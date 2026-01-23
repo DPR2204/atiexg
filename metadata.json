@@ -1,0 +1,8 @@
+{
+  "name": "Atitlán Experiences Premium",
+  "description": "A high-end tour booking platform for Lake Atitlán featuring a smart AI travel assistant, interactive comparison tools, and immersive visual discovery.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
