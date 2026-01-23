@@ -581,7 +581,7 @@ const App = () => {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a href="https://wa.me/50222681264" target="_blank" className="bg-green-600 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-green-500">WhatsApp</a>
-                  <a href="mailto:reservas@atitlanrestaurantes.com" className="bg-gray-950 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-blue-600">Email</a>
+                  <a href="mailto:hola@atitlancafe.com" className="bg-gray-950 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-blue-600">Email</a>
                 </div>
               </div>
               <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 sm:p-6 space-y-4">
@@ -591,7 +591,7 @@ const App = () => {
                 </div>
                 <div>
                   <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-2">Zona</p>
-                  <p className="text-sm sm:text-base font-bold text-gray-900">Panajachel · San Juan · Santa Catarina</p>
+                  <p className="text-sm sm:text-base font-bold text-gray-900">Panajachel · San Juan · Santiago Atitlán</p>
                 </div>
                 <div>
                   <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-2">Atención</p>
