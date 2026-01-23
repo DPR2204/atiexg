@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { Tour, ItineraryStep, SelectedTourConfig, TourPrice, Addon } from './types';
+import React, { useState, useMemo } from 'react';
+import { Tour, ItineraryStep, SelectedTourConfig } from './types';
 import { TOURS } from './data';
 
 // --- UTILS ---
