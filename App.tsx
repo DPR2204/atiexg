@@ -455,22 +455,22 @@ const App = () => {
       )}
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-8 sm:py-16 w-full">
-        <section id="inicio" className="relative overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] bg-gray-950 text-white p-6 sm:p-10 lg:p-16 mb-12 sm:mb-20">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.25),_transparent_55%)]"></div>
-          <div className="absolute inset-0 bg-gradient-to-tr from-gray-950 via-gray-950/80 to-transparent"></div>
+        <section id="inicio" className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-white text-gray-900 border border-gray-200/70 shadow-[0_30px_80px_-60px_rgba(15,23,42,0.45)] p-6 sm:p-10 lg:p-16 mb-12 sm:mb-20">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_60%)]"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-blue-50/40"></div>
           <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <span className="h-px w-6 sm:w-8 bg-blue-500"></span>
-                <span className="text-blue-400 font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Atitlán Restaurantes & Experiences</span>
+                <span className="h-px w-6 sm:w-8 bg-blue-600"></span>
+                <span className="text-blue-600 font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Atitlán Restaurantes & Experiences</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black leading-[0.95] tracking-tight mb-5">Más que tours: experiencias, gastronomía y servicio premium en el lago.</h2>
-              <p className="text-sm sm:text-lg text-white/70 font-medium leading-relaxed max-w-2xl">
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black leading-[0.95] tracking-tight mb-5 text-gray-950">Más que tours: experiencias, gastronomía y servicio premium en el lago.</h2>
+              <p className="text-sm sm:text-lg text-gray-600 font-medium leading-relaxed max-w-2xl">
                 Creamos rutas de alto nivel para visitantes exigentes y también conectamos con nuestra propuesta gastronómica, hospitalidad y actividades privadas en el corazón de Atitlán.
               </p>
               <div className="mt-6 sm:mt-8 flex flex-wrap gap-3">
-                <a href="#catalogo" className="bg-blue-600 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-blue-900/40 hover:bg-blue-500">Ver catálogo</a>
-                <a href="#contacto" className="bg-white/10 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest border border-white/20 hover:bg-white/20">Contactar</a>
+                <a href="#catalogo" className="bg-gray-950 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-gray-900/20 hover:bg-blue-600">Ver catálogo</a>
+                <a href="#contacto" className="bg-white text-gray-900 px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest border border-gray-200 hover:border-gray-300">Contactar</a>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -480,9 +480,9 @@ const App = () => {
                 { title: 'Cultura & bienestar', detail: 'Encuentros con artesanos y rituales locales.' },
                 { title: 'Operación 360°', detail: 'Traslados, staff y coordinación total.' },
               ].map((item) => (
-                <div key={item.title} className="bg-white/10 border border-white/10 rounded-2xl p-4 sm:p-5">
-                  <p className="text-sm font-black text-white mb-2">{item.title}</p>
-                  <p className="text-[11px] sm:text-xs text-white/60 font-medium">{item.detail}</p>
+                <div key={item.title} className="bg-gray-50/80 border border-gray-200/70 rounded-2xl p-4 sm:p-5 shadow-sm">
+                  <p className="text-sm font-black text-gray-900 mb-2">{item.title}</p>
+                  <p className="text-[11px] sm:text-xs text-gray-500 font-medium">{item.detail}</p>
                 </div>
               ))}
             </div>
