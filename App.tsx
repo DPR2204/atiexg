@@ -668,7 +668,7 @@ const App = () => {
           </div>
         </div>
         <div className="mt-8 text-center text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-gray-300">
-          © 2024 ATITLÁN PREMIUM EXPERIENCES. TODOS LOS DERECHOS RESERVADOS.
+          © 2024 IG @AINURPROMOTIONS . TODOS LOS DERECHOS RESERVADOS.
         </div>
       </footer>
     </div>
