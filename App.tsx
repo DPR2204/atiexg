@@ -228,32 +228,76 @@ const TourDetailModal = ({ tour, onClose, selection, onSaveSelection }: {
   );
 };
 
-const Header = ({ onSearchClick }: { onSearchClick: () => void }) => (
-  <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100">
-    <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4">
-      <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.location.reload()}>
-        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 transition-transform group-hover:rotate-3">
-          <span className="text-white font-black text-xl sm:text-2xl italic">A</span>
+const Header = ({ onSearchClick }: { onSearchClick: () => void }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const closeMenu = () => setIsMobileMenuOpen(false);
+
+  return (
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100">
+      <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.location.reload()}>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 transition-transform group-hover:rotate-3">
+            <span className="text-white font-black text-xl sm:text-2xl italic">A</span>
+          </div>
+          <div className="hidden sm:flex flex-col">
+            <h1 className="text-base sm:text-lg font-black tracking-tighter leading-none">ATITLÁN</h1>
+            <span className="text-[8px] sm:text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">Experiences</span>
+          </div>
         </div>
-        <div className="hidden sm:flex flex-col">
-          <h1 className="text-base sm:text-lg font-black tracking-tighter leading-none">ATITLÁN</h1>
-          <span className="text-[8px] sm:text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">Experiences</span>
+        <nav className="hidden lg:flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">
+          <a href="#inicio" className="hover:text-gray-900 transition-colors">Inicio</a>
+          <a href="#catalogo" className="hover:text-gray-900 transition-colors">Catálogo</a>
+          <a href="#conocenos" className="hover:text-gray-900 transition-colors">Conócenos</a>
+          <a href="#contacto" className="hover:text-gray-900 transition-colors">Contacto</a>
+        </nav>
+        <button onClick={onSearchClick} className="hidden md:flex items-center flex-1 max-w-md gap-2 sm:gap-3 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all text-left group active:scale-[0.98] bg-white/50 min-w-0">
+          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <span className="text-[9px] sm:text-[11px] font-bold text-gray-900 leading-none truncate">Explora el Catálogo</span>
+            <span className="text-[8px] sm:text-[10px] text-gray-400 truncate font-medium">14 Experiencias Premium</span>
+          </div>
+        </button>
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <button
+            onClick={onSearchClick}
+            className="md:hidden w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-blue-600 hover:bg-blue-50"
+            aria-label="Buscar en el catálogo"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </button>
+          <a href="#contacto" className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600">Contacto</a>
+          <a href="#catalogo" className="hidden sm:inline-flex bg-gray-950 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-sm font-black hover:bg-blue-600 active:scale-95 transition-all">CATÁLOGO</a>
+          <button
+            onClick={() => setIsMobileMenuOpen(prev => !prev)}
+            className="sm:hidden w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100"
+            aria-label="Abrir menú"
+          >
+            {isMobileMenuOpen ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            )}
+          </button>
         </div>
       </div>
-      <button onClick={onSearchClick} className="flex items-center flex-1 max-w-xl gap-2 sm:gap-3 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all text-left group active:scale-[0.98] bg-white/50 min-w-0">
-        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <span className="text-[9px] sm:text-[11px] font-bold text-gray-900 leading-none truncate">Explora el Catálogo</span>
-          <span className="text-[8px] sm:text-[10px] text-gray-400 truncate font-medium">14 Experiencias Premium</span>
+      {isMobileMenuOpen && (
+        <div className="sm:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl px-4 pb-4">
+          <div className="pt-4 grid gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
+            <a href="#inicio" onClick={closeMenu} className="hover:text-gray-900">Inicio</a>
+            <a href="#catalogo" onClick={closeMenu} className="hover:text-gray-900">Catálogo</a>
+            <a href="#conocenos" onClick={closeMenu} className="hover:text-gray-900">Conócenos</a>
+            <a href="#contacto" onClick={closeMenu} className="hover:text-gray-900">Contacto</a>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <a href="https://wa.me/50222681264" target="_blank" className="flex-1 text-center bg-green-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">WhatsApp</a>
+            <a href="#catalogo" onClick={closeMenu} className="flex-1 text-center bg-gray-950 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">Catálogo</a>
+          </div>
         </div>
-      </button>
-      <div className="flex items-center gap-3 sm:gap-6 shrink-0">
-        <a href="https://wa.me/50222681264" target="_blank" className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600">Soporte</a>
-        <button className="bg-gray-950 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-sm font-black hover:bg-blue-600 active:scale-95 transition-all">CATÁLOGO</button>
-      </div>
-    </div>
-  </header>
-);
+      )}
+    </header>
+  );
+};
 
 const SearchOverlay = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   if (!isOpen) return null;
@@ -407,52 +451,152 @@ const App = () => {
       )}
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-8 sm:py-16 w-full">
-        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-6 sm:pb-12 scrollbar-hide">
-          {FILTERS.map(f => (
-            <button key={f} onClick={() => setActiveFilter(f)} className={`px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] transition-all border-2 whitespace-nowrap ${activeFilter === f ? 'bg-gray-950 text-white border-gray-950 shadow-lg' : 'bg-white border-gray-100 text-gray-400 active:scale-95 hover:border-gray-900'}`}>{f}</button>
-          ))}
-        </div>
-
-        <div className="mb-10 sm:mb-20">
-          <div className="max-w-4xl">
-            <div className="flex items-center gap-2 mb-4"><span className="h-px w-6 sm:w-8 bg-blue-600"></span><span className="text-blue-600 font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Guatemala • Lago de Atitlán</span></div>
-            <h2 className="text-3xl sm:text-6xl md:text-8xl font-black text-gray-950 mb-6 sm:mb-8 leading-[0.9] sm:leading-[0.85] tracking-tighter">CATÁLOGO PREMIUM.</h2>
-            <p className="text-gray-500 text-base sm:text-xl md:text-2xl font-bold leading-relaxed max-w-2xl">14 Experiencias diseñadas por expertos locales para el viajero exigente. Personaliza tu propia ruta.</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12 lg:gap-16">
-          {filteredTours.map(tour => (
-            <div key={tour.id} className="relative group">
-              <button 
-                onClick={() => toggleSelection(tour.id)} 
-                className={`absolute top-4 left-4 sm:top-5 sm:left-5 z-10 p-2.5 sm:p-3 rounded-2xl shadow-lg transition-all active:scale-90 ${selectedConfigs.some(c => c.tourId === tour.id) ? 'bg-blue-600 text-white scale-110 shadow-blue-200' : 'bg-white/95 text-gray-500 hover:text-blue-600'}`}
-              >
-                {selectedConfigs.some(c => c.tourId === tour.id) ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>}
-              </button>
-              <div onClick={() => setSelectedTourDetail(tour)} className="cursor-pointer">
-                <article className="bg-white rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-sm group-hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2">
-                  <div className="relative aspect-[4/5] overflow-hidden">
-                    <img src={tour.image} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-1000" alt={tour.name} loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950/90 via-gray-950/20 to-transparent"></div>
-                    <div className="absolute bottom-6 left-6 right-6 text-white">
-                      <div className="flex gap-2 mb-3">
-                        {tour.isBestSeller && <span className="bg-blue-600 px-2.5 py-1 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">POPULAR</span>}
-                        <span className="bg-white/10 backdrop-blur-md border border-white/20 px-2.5 py-1 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest">{tour.category}</span>
-                      </div>
-                      <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-1 tracking-tighter uppercase">{tour.name}</h3>
-                      <p className="text-[10px] sm:text-xs text-white/70 line-clamp-2 font-bold tracking-wide italic">{tour.concept}</p>
-                    </div>
-                  </div>
-                  <div className="p-5 sm:p-7 flex justify-between items-center bg-white border-t border-gray-50">
-                    <div className="flex flex-col"><span className="text-[9px] sm:text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Desde</span><span className="text-2xl sm:text-3xl font-black text-gray-950">${tour.price}</span></div>
-                    <button className="bg-gray-950 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-[1.25rem] font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl">DETALLE</button>
-                  </div>
-                </article>
+        <section id="inicio" className="relative overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] bg-gray-950 text-white p-6 sm:p-10 lg:p-16 mb-12 sm:mb-20">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.25),_transparent_55%)]"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-gray-950 via-gray-950/80 to-transparent"></div>
+          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="h-px w-6 sm:w-8 bg-blue-500"></span>
+                <span className="text-blue-400 font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Atitlán Restaurantes & Experiences</span>
+              </div>
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black leading-[0.95] tracking-tight mb-5">Más que tours: experiencias, gastronomía y servicio premium en el lago.</h2>
+              <p className="text-sm sm:text-lg text-white/70 font-medium leading-relaxed max-w-2xl">
+                Creamos rutas de alto nivel para visitantes exigentes y también conectamos con nuestra propuesta gastronómica, hospitalidad y actividades privadas en el corazón de Atitlán.
+              </p>
+              <div className="mt-6 sm:mt-8 flex flex-wrap gap-3">
+                <a href="#catalogo" className="bg-blue-600 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest shadow-lg shadow-blue-900/40 hover:bg-blue-500">Ver catálogo</a>
+                <a href="#contacto" className="bg-white/10 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest border border-white/20 hover:bg-white/20">Contactar</a>
               </div>
             </div>
-          ))}
-        </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { title: 'Experiencias premium', detail: 'Tours privados, concierge y logística personalizada.' },
+                { title: 'Gastronomía Atitlán', detail: 'Conectamos con AtitlánRestaurantes.com y aliados.' },
+                { title: 'Cultura & bienestar', detail: 'Encuentros con artesanos y rituales locales.' },
+                { title: 'Operación 360°', detail: 'Traslados, staff y coordinación total.' },
+              ].map((item) => (
+                <div key={item.title} className="bg-white/10 border border-white/10 rounded-2xl p-4 sm:p-5">
+                  <p className="text-sm font-black text-white mb-2">{item.title}</p>
+                  <p className="text-[11px] sm:text-xs text-white/60 font-medium">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="catalogo" className="scroll-mt-28">
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-6 sm:pb-12 scrollbar-hide">
+            {FILTERS.map(f => (
+              <button key={f} onClick={() => setActiveFilter(f)} className={`px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] transition-all border-2 whitespace-nowrap ${activeFilter === f ? 'bg-gray-950 text-white border-gray-950 shadow-lg' : 'bg-white border-gray-100 text-gray-400 active:scale-95 hover:border-gray-900'}`}>{f}</button>
+            ))}
+          </div>
+
+          <div className="mb-10 sm:mb-20">
+            <div className="max-w-4xl">
+              <div className="flex items-center gap-2 mb-4"><span className="h-px w-6 sm:w-8 bg-blue-600"></span><span className="text-blue-600 font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Guatemala • Lago de Atitlán</span></div>
+              <h2 className="text-3xl sm:text-6xl md:text-8xl font-black text-gray-950 mb-6 sm:mb-8 leading-[0.9] sm:leading-[0.85] tracking-tighter">CATÁLOGO PREMIUM.</h2>
+              <p className="text-gray-500 text-base sm:text-xl md:text-2xl font-bold leading-relaxed max-w-2xl">14 Experiencias diseñadas por expertos locales para el viajero exigente. Personaliza tu propia ruta.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12 lg:gap-16">
+            {filteredTours.map(tour => (
+              <div key={tour.id} className="relative group">
+                <button 
+                  onClick={() => toggleSelection(tour.id)} 
+                  className={`absolute top-4 left-4 sm:top-5 sm:left-5 z-10 p-2.5 sm:p-3 rounded-2xl shadow-lg transition-all active:scale-90 ${selectedConfigs.some(c => c.tourId === tour.id) ? 'bg-blue-600 text-white scale-110 shadow-blue-200' : 'bg-white/95 text-gray-500 hover:text-blue-600'}`}
+                >
+                  {selectedConfigs.some(c => c.tourId === tour.id) ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>}
+                </button>
+                <div onClick={() => setSelectedTourDetail(tour)} className="cursor-pointer">
+                  <article className="bg-white rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-sm group-hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2">
+                    <div className="relative aspect-[4/5] overflow-hidden">
+                      <img src={tour.image} className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-1000" alt={tour.name} loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-950/90 via-gray-950/20 to-transparent"></div>
+                      <div className="absolute bottom-6 left-6 right-6 text-white">
+                        <div className="flex gap-2 mb-3">
+                          {tour.isBestSeller && <span className="bg-blue-600 px-2.5 py-1 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">POPULAR</span>}
+                          <span className="bg-white/10 backdrop-blur-md border border-white/20 px-2.5 py-1 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest">{tour.category}</span>
+                        </div>
+                        <h3 className="text-2xl sm:text-3xl font-black leading-tight mb-1 tracking-tighter uppercase">{tour.name}</h3>
+                        <p className="text-[10px] sm:text-xs text-white/70 line-clamp-2 font-bold tracking-wide italic">{tour.concept}</p>
+                      </div>
+                    </div>
+                    <div className="p-5 sm:p-7 flex justify-between items-center bg-white border-t border-gray-50">
+                      <div className="flex flex-col"><span className="text-[9px] sm:text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Desde</span><span className="text-2xl sm:text-3xl font-black text-gray-950">${tour.price}</span></div>
+                      <button className="bg-gray-950 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl sm:rounded-[1.25rem] font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl">DETALLE</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="conocenos" className="scroll-mt-28 mt-16 sm:mt-24">
+          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] items-center">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="h-px w-6 sm:w-8 bg-blue-600"></span>
+                <span className="text-blue-600 font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Conócenos</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black text-gray-950 mb-4">Somos mucho más que tours en el lago.</h2>
+              <p className="text-gray-500 text-sm sm:text-base font-medium leading-relaxed">
+                AtitlánRestaurantes.com y Atitlán Experiences comparten un mismo propósito: mostrar lo mejor del lago con un servicio auténtico,
+                responsable y de alto nivel. Diseñamos experiencias completas que integran gastronomía, bienestar, cultura local y logística premium.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { title: 'Hospitalidad', detail: 'Equipo bilingüe y atención personalizada antes y durante el viaje.' },
+                { title: 'Curaduría local', detail: 'Colaboramos con chefs, capitanes y artesanos de la zona.' },
+                { title: 'Sostenibilidad', detail: 'Priorizamos aliados que cuidan la comunidad y el entorno.' },
+                { title: 'Flexibilidad', detail: 'Ajustamos horarios, menús y actividades para cada grupo.' },
+              ].map((item) => (
+                <div key={item.title} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                  <p className="text-sm font-black text-gray-900 mb-2">{item.title}</p>
+                  <p className="text-[11px] sm:text-xs text-gray-500 font-medium">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="contacto" className="scroll-mt-28 mt-16 sm:mt-24">
+          <div className="bg-white border border-gray-100 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-12 shadow-sm">
+            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] items-center">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="h-px w-6 sm:w-8 bg-blue-600"></span>
+                  <span className="text-blue-600 font-black uppercase text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Contacto</span>
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-black text-gray-950 mb-4">Hablemos de tu próxima experiencia.</h2>
+                <p className="text-gray-500 text-sm sm:text-base font-medium leading-relaxed mb-6">
+                  Escríbenos para cotizar tours privados, experiencias gastronómicas o programas corporativos. Nuestro equipo responde rápido y con opciones claras.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <a href="https://wa.me/50222681264" target="_blank" className="bg-green-600 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-green-500">WhatsApp</a>
+                  <a href="mailto:reservas@atitlanrestaurantes.com" className="bg-gray-950 text-white px-5 sm:px-7 py-3 sm:py-4 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-blue-600">Email</a>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 sm:p-6 space-y-4">
+                <div>
+                  <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-2">Horario</p>
+                  <p className="text-sm sm:text-base font-bold text-gray-900">Lunes a Domingo · 8:00 a 20:00</p>
+                </div>
+                <div>
+                  <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-2">Zona</p>
+                  <p className="text-sm sm:text-base font-bold text-gray-900">Panajachel · San Juan · Santa Catarina</p>
+                </div>
+                <div>
+                  <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-2">Atención</p>
+                  <p className="text-sm sm:text-base font-bold text-gray-900">Reservas privadas, restaurantes aliados, eventos especiales.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Floating Selection Bar - Optimized for Mobile Accessibility */}
@@ -506,8 +650,22 @@ const App = () => {
         </div>
       </div>
 
-      <footer className="bg-white border-t border-gray-100 pt-12 sm:pt-24 pb-8 sm:pb-12 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-gray-300 text-center">
-        © 2024 ATITLÁN PREMIUM EXPERIENCES. TODOS LOS DERECHOS RESERVADOS.
+      <footer className="bg-white border-t border-gray-100 pt-12 sm:pt-24 pb-8 sm:pb-12">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 text-center sm:text-left">
+          <div>
+            <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-gray-400">Atitlán Premium Experiences</p>
+            <p className="text-xs sm:text-sm text-gray-500 font-medium mt-2">Más que tours: experiencias, gastronomía y hospitalidad en el lago.</p>
+          </div>
+          <div className="flex flex-wrap justify-center sm:justify-end gap-4 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-gray-400">
+            <a href="#inicio" className="hover:text-gray-900 transition-colors">Inicio</a>
+            <a href="#catalogo" className="hover:text-gray-900 transition-colors">Catálogo</a>
+            <a href="#conocenos" className="hover:text-gray-900 transition-colors">Conócenos</a>
+            <a href="#contacto" className="hover:text-gray-900 transition-colors">Contacto</a>
+          </div>
+        </div>
+        <div className="mt-8 text-center text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-gray-300">
+          © 2024 ATITLÁN PREMIUM EXPERIENCES. TODOS LOS DERECHOS RESERVADOS.
+        </div>
       </footer>
     </div>
   );
