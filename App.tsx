@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { Tour, ItineraryStep, SelectedTourConfig, TourPrice, Addon } from './types';
+import React, { useState, useMemo } from 'react';
+import { Tour, ItineraryStep, SelectedTourConfig } from './types';
 import { TOURS } from './data';
 
 // --- UTILS ---
@@ -228,38 +228,80 @@ const TourDetailModal = ({ tour, onClose, selection, onSaveSelection }: {
   );
 };
 
-const Header = ({ onSearchClick }: { onSearchClick: () => void }) => (
-  <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100">
-    <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
-      <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.location.reload()}>
-        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 transition-transform group-hover:rotate-3">
-          <span className="text-white font-black text-xl sm:text-2xl italic">A</span>
+const Header = ({ onSearchClick }: { onSearchClick: () => void }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const closeMenu = () => setIsMobileMenuOpen(false);
+  const handleSearchClick = () => {
+    closeMenu();
+    onSearchClick();
+  };
+
+  return (
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-100">
+      <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.location.reload()}>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 transition-transform group-hover:rotate-3">
+            <span className="text-white font-black text-xl sm:text-2xl italic">A</span>
+          </div>
+          <div className="hidden sm:flex flex-col">
+            <h1 className="text-base sm:text-lg font-black tracking-tighter leading-none">ATITLÁN</h1>
+            <span className="text-[8px] sm:text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">Experiences</span>
+          </div>
         </div>
-        <div className="hidden sm:flex flex-col">
-          <h1 className="text-base sm:text-lg font-black tracking-tighter leading-none">ATITLÁN</h1>
-          <span className="text-[8px] sm:text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">Experiences</span>
+        <nav className="hidden lg:flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">
+          <a href="#inicio" className="hover:text-gray-900 transition-colors">Inicio</a>
+          <a href="#catalogo" className="hover:text-gray-900 transition-colors">Catálogo</a>
+          <a href="#conocenos" className="hover:text-gray-900 transition-colors">Conócenos</a>
+          <a href="#contacto" className="hover:text-gray-900 transition-colors">Contacto</a>
+        </nav>
+        <button onClick={handleSearchClick} className="hidden md:flex items-center flex-1 max-w-md gap-2 sm:gap-3 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all text-left group active:scale-[0.98] bg-white/50 min-w-0">
+          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <span className="text-[9px] sm:text-[11px] font-bold text-gray-900 leading-none truncate">Explora el Catálogo</span>
+            <span className="text-[8px] sm:text-[10px] text-gray-400 truncate font-medium">14 Experiencias Premium</span>
+          </div>
+        </button>
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <button
+            onClick={handleSearchClick}
+            className="md:hidden w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-blue-600 hover:bg-blue-50"
+            aria-label="Buscar en el catálogo"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </button>
+          <a href="#contacto" className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600">Contacto</a>
+          <a href="#catalogo" className="hidden sm:inline-flex bg-gray-950 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-sm font-black hover:bg-blue-600 active:scale-95 transition-all">CATÁLOGO</a>
+          <button
+            onClick={() => setIsMobileMenuOpen(prev => !prev)}
+            className="sm:hidden w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100"
+            aria-label="Abrir menú"
+          >
+            {isMobileMenuOpen ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            )}
+          </button>
         </div>
       </div>
-      <nav className="hidden lg:flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">
-        <a href="#inicio" className="hover:text-gray-900 transition-colors">Inicio</a>
-        <a href="#catalogo" className="hover:text-gray-900 transition-colors">Catálogo</a>
-        <a href="#conocenos" className="hover:text-gray-900 transition-colors">Conócenos</a>
-        <a href="#contacto" className="hover:text-gray-900 transition-colors">Contacto</a>
-      </nav>
-      <button onClick={onSearchClick} className="hidden md:flex items-center flex-1 max-w-md gap-2 sm:gap-3 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all text-left group active:scale-[0.98] bg-white/50 min-w-0">
-        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <span className="text-[9px] sm:text-[11px] font-bold text-gray-900 leading-none truncate">Explora el Catálogo</span>
-          <span className="text-[8px] sm:text-[10px] text-gray-400 truncate font-medium">14 Experiencias Premium</span>
+      {isMobileMenuOpen && (
+        <div className="sm:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl px-4 pb-4">
+          <div className="pt-4 grid gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
+            <a href="#inicio" onClick={closeMenu} className="hover:text-gray-900">Inicio</a>
+            <a href="#catalogo" onClick={closeMenu} className="hover:text-gray-900">Catálogo</a>
+            <a href="#conocenos" onClick={closeMenu} className="hover:text-gray-900">Conócenos</a>
+            <a href="#contacto" onClick={closeMenu} className="hover:text-gray-900">Contacto</a>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <a href="https://wa.me/50222681264" target="_blank" className="flex-1 text-center bg-green-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">WhatsApp</a>
+            <a href="#catalogo" onClick={closeMenu} className="flex-1 text-center bg-gray-950 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">Catálogo</a>
+          </div>
         </div>
-      </button>
-      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-        <a href="#contacto" className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600">Contacto</a>
-        <a href="#catalogo" className="bg-gray-950 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-sm font-black hover:bg-blue-600 active:scale-95 transition-all">CATÁLOGO</a>
-      </div>
-    </div>
-  </header>
-);
+      )}
+    </header>
+  );
+};
 
 const SearchOverlay = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   if (!isOpen) return null;
