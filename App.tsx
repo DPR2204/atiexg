@@ -326,7 +326,21 @@ const Header = ({ onSearchClick }: { onSearchClick: () => void }) => {
   );
 };
 
-const SearchOverlay = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+const SearchOverlay = ({
+  isOpen,
+  onClose,
+  searchQuery,
+  onSearchQueryChange,
+  passengers,
+  onPassengersChange,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  passengers: number;
+  onPassengersChange: (value: number) => void;
+}) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
@@ -339,6 +353,16 @@ const SearchOverlay = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
         </div>
         <div className="space-y-4 sm:space-y-6">
           <div className="p-5 sm:p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
+            <label className="block text-[9px] sm:text-[10px] font-mono uppercase text-gray-400 mb-2 tracking-widest">Buscar experiencia</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              placeholder="Nombre, categoría o concepto"
+              className="w-full bg-transparent text-base sm:text-lg font-bold outline-none text-gray-900 placeholder:text-gray-400"
+            />
+          </div>
+          <div className="p-5 sm:p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
             <label className="block text-[9px] sm:text-[10px] font-mono uppercase text-gray-400 mb-2 tracking-widest">Fecha de interés</label>
             <input type="date" className="w-full bg-transparent text-base sm:text-lg font-bold outline-none text-gray-900" defaultValue={new Date().toISOString().split('T')[0]} />
           </div>
@@ -348,9 +372,19 @@ const SearchOverlay = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
               <p className="text-[9px] sm:text-[10px] font-mono text-gray-400 uppercase tracking-widest">Adultos / Niños</p>
             </div>
             <div className="flex items-center gap-4 sm:gap-5">
-              <button className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center text-xl font-light bg-white hover:border-red-400 transition-colors">-</button>
-              <span className="font-black text-lg sm:text-xl">2</span>
-              <button className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center text-xl font-light bg-white hover:border-red-400 transition-colors">+</button>
+              <button
+                onClick={() => onPassengersChange(Math.max(1, passengers - 1))}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center text-xl font-light bg-white hover:border-red-400 transition-colors"
+              >
+                -
+              </button>
+              <span className="font-black text-lg sm:text-xl">{passengers}</span>
+              <button
+                onClick={() => onPassengersChange(passengers + 1)}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-200 flex items-center justify-center text-xl font-light bg-white hover:border-red-400 transition-colors"
+              >
+                +
+              </button>
             </div>
           </div>
         </div>
@@ -419,13 +453,28 @@ const App = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('Todos');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [passengers, setPassengers] = useState(2);
   const [selectedConfigs, setSelectedConfigs] = useState<SelectedTourConfig[]>([]);
   const [selectedTourDetail, setSelectedTourDetail] = useState<Tour | null>(null);
 
   const filteredTours = useMemo(() => {
-    if (activeFilter === 'Todos') return TOURS;
-    return TOURS.filter(t => t.category === activeFilter);
-  }, [activeFilter]);
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    return TOURS.filter(tour => {
+      const matchesFilter = activeFilter === 'Todos' || tour.category === activeFilter;
+      if (!matchesFilter) return false;
+      if (!normalizedQuery) return true;
+      const haystack = [
+        tour.name,
+        tour.category,
+        tour.concept,
+        tour.description,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+  }, [activeFilter, searchQuery]);
 
   const toggleSelection = (id: number) => {
     const exists = selectedConfigs.some(c => c.tourId === id);
@@ -458,7 +507,14 @@ const App = () => {
   return (
     <div className="min-h-full flex flex-col bg-white selection:bg-red-100">
       <Header onSearchClick={() => setIsSearchOpen(true)} />
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        passengers={passengers}
+        onPassengersChange={setPassengers}
+      />
       
       {selectedTourDetail && (
         <TourDetailModal 
