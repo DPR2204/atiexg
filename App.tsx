@@ -187,6 +187,29 @@ const TourDetailModal = ({ tour, onClose, selection, onSaveSelection }: {
                 </button>
               ))}
             </div>
+            <div className="mt-4 sm:mt-5 rounded-2xl border border-blue-100 bg-blue-50/40 p-4 sm:p-5 text-[11px] sm:text-xs text-gray-700 space-y-3">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-blue-600">●</span>
+                <div>
+                  <p className="font-black uppercase tracking-widest text-[9px] sm:text-[10px] text-blue-700">Cómo leer los niveles de precio (muy importante)</p>
+                  <p className="mt-1 font-medium">Estos nombres significan lo mismo en todos los tours.</p>
+                </div>
+              </div>
+              <ul className="space-y-2 pl-4">
+                <li className="list-disc">
+                  <span className="font-bold">Small group Standard/Classic (precio piso):</span> grupo más grande y base “bien hecho”. Cupo típico 8–12 pax (ajustable por ustedes). Incluye guía bilingüe compartido, operación estándar, agua, reservas cuando aplique, menú fijo base cuando aplique.
+                </li>
+                <li className="list-disc">
+                  <span className="font-bold">Small group Premium/Comfort (precio objetivo):</span> grupo más pequeño + 1–2 mejoras que se sienten. Cupo típico 4–8 pax. Incluye además prioridad de mesa/servicio, un extra definido del tour (ej. 2do consumo, coffee flight, snack real/hidratación, equipo como headlamp), y más buffer de tiempo (menos “carreras”).
+                </li>
+                <li className="list-disc">
+                  <span className="font-bold">Small group All‑in (cuando exista):</span> lo mismo que Premium pero ya incluye el costo de la actividad de tercero (kayak/SUP, zipline, yoga/temazcal, etc.).
+                </li>
+                <li className="list-disc">
+                  <span className="font-bold">Privado:</span> el grupo va solo (lancha/vehículo dedicado) y el tour se vuelve más flexible. Incluye típico: host dedicado, ruta ajustable, ritmo personalizado.
+                </li>
+              </ul>
+            </div>
           </div>
 
           {tour.addons.length > 0 && (
