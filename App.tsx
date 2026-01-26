@@ -4,7 +4,7 @@ import { Tour, ItineraryStep, SelectedTourConfig } from './types';
 import { TOURS } from './data';
 
 // --- UTILS ---
-const formatWhatsAppMessage = (selections: SelectedTourConfig[]) => {
+const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: string[]) => {
   const base = "https://wa.me/50222681264?text=";
   let message = "¡Hola Atitlán Experiences! 🌊\n\nSolicitud de Reserva Premium:\n\n";
   
@@ -30,7 +30,14 @@ const formatWhatsAppMessage = (selections: SelectedTourConfig[]) => {
     message += `\n`;
   });
   
-  message += "¿Me podrían confirmar disponibilidad para estas experiencias? ¡Gracias!";
+  if (generalAddons.length > 0) {
+    message += "\n🧩 *Add-ons generales seleccionados*\n";
+    generalAddons.forEach((addon) => {
+      message += `• ${addon}\n`;
+    });
+  }
+
+  message += "\n¿Me podrían confirmar disponibilidad para estas experiencias? ¡Gracias!";
   return base + encodeURIComponent(message);
 };
 
@@ -449,6 +456,86 @@ const ComparisonModal = ({ tours, configs, onClose }: { tours: Tour[], configs: 
 
 const FILTERS = ['Todos', 'Premium', 'Privado', 'Aventura', 'Cultural', 'Gastronomía'];
 
+const GENERAL_ADDONS = [
+  {
+    id: 'transporte',
+    title: 'Transporte (a/desde Ciudad de Guatemala)',
+    items: [
+      'Shared shuttle Guatemala City/Airport ↔ Panajachel: USD 32–40 p/p',
+      'Private transfer Guatemala City ↔ Panajachel: 1–3 pax USD 165–195 por vehículo',
+      'Private transfer Guatemala City ↔ Panajachel: 4–6 pax USD 195–225 por vehículo',
+      'Private transfer Guatemala City ↔ Panajachel: 7–10 pax USD 225–255 por vehículo',
+      'Surcharge madrugada/tarde (si aplica): +USD 25–60'
+    ]
+  },
+  {
+    id: 'tiempo-extra',
+    title: 'Tiempo extra / flexibilidad',
+    items: [
+      'Hora extra lancha privada (navegación + espera): USD 65–95 por hora',
+      'Hora extra con host/guía (si excede jornada): USD 25–45 por hora',
+      'Parada extra planificada (buffer + coordinación): USD 15–35 por grupo'
+    ]
+  },
+  {
+    id: 'guias-concierge',
+    title: 'Guías y concierge',
+    items: [
+      'Guía premium upgrade: Half day USD 40–80 por grupo',
+      'Guía premium upgrade: Full day USD 80–150 por grupo',
+      'Intérprete 3er idioma (FR/DE/IT): Half day USD 120–220 por grupo',
+      'Intérprete 3er idioma (FR/DE/IT): Full day USD 220–350 por grupo',
+      'Concierge WhatsApp (pre-trip + durante tour): USD 15–35 por reserva'
+    ]
+  },
+  {
+    id: 'foto-video',
+    title: 'Foto / video / contenido',
+    items: [
+      'Foto Mini (30–45 min, 15–25 fotos): USD 80–120',
+      'Foto Standard (60–90 min, 30–50 fotos): USD 150–230',
+      'Media jornada (3–4h): USD 350–550',
+      'Jornada completa (6–8h): USD 550–900',
+      'Drone add-on (clips + 5 fotos): USD 80–150',
+      'Reel vertical (30–60s editado): USD 250–450'
+    ]
+  },
+  {
+    id: 'fnb',
+    title: 'F&B (upgrade universal)',
+    items: [
+      'Coffee flight/tasting (3–4 muestras): USD 12–20 p/p',
+      'Upgrade bebida premium (vino/cóctel/beer): USD 8–15 p/p',
+      'Charcutería/tapas upgrade: USD 12–30 p/p',
+      'Botella extra (vino): USD 35–70 | Espumante: USD 45–120',
+      'Menú fijo 2–3 tiempos: USD 45–75 p/p',
+      'Maridaje 2–3 bebidas: +USD 18–35 p/p'
+    ]
+  },
+  {
+    id: 'terceros',
+    title: 'Actividades de terceros (si las integran como All-in)',
+    items: [
+      'Yoga drop-in: USD 8–13 p/p',
+      'Temazcal: USD 19–39 p/p',
+      'Masaje 60 min: USD 26–52 p/p',
+      'Cacao ceremony: USD 13–33 p/p',
+      'Kayak/SUP (medio día): USD 10–16 p/p',
+      'Zipline: USD 52–78 p/p',
+      'Parapente tandem: USD 65–104 p/p'
+    ]
+  },
+  {
+    id: 'momentos',
+    title: 'Momentos especiales',
+    items: [
+      'Proposal kit (sin foto): USD 120–220',
+      'Proposal + foto mini: USD 220–380',
+      'Cumpleaños a bordo (mini cake + decoración + foto mini opcional): USD 90–160'
+    ]
+  }
+];
+
 const App = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
@@ -459,6 +546,7 @@ const App = () => {
   const [selectedTourDetail, setSelectedTourDetail] = useState<Tour | null>(null);
   const [isPricingOpen, setIsPricingOpen] = useState(true);
   const [isAddonsOpen, setIsAddonsOpen] = useState(true);
+  const [selectedGeneralAddons, setSelectedGeneralAddons] = useState<string[]>([]);
 
   const filteredTours = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -504,6 +592,10 @@ const App = () => {
         return [...prev, config];
       }
     });
+  };
+
+  const toggleGeneralAddon = (label: string) => {
+    setSelectedGeneralAddons(prev => prev.includes(label) ? prev.filter(item => item !== label) : [...prev, label]);
   };
 
   return (
@@ -619,16 +711,20 @@ const App = () => {
 
         <section id="esquema-precios" className="scroll-mt-28 mt-16 sm:mt-24">
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-sm space-y-4">
+            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.5)] space-y-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_55%)] pointer-events-none"></div>
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950">Esquema de precios (cómo funciona)</h2>
+                <div className="relative z-10">
+                  <span className="inline-flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">
+                    Esquema
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950 mt-3">Esquema de precios (cómo funciona)</h2>
                   <p className="text-sm sm:text-base text-gray-500 font-medium mt-1">Definiciones consistentes para todos los tours.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsPricingOpen(prev => !prev)}
-                  className="shrink-0 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                  className="relative z-10 shrink-0 w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
                   aria-expanded={isPricingOpen}
                   aria-controls="pricing-content"
                 >
@@ -636,8 +732,8 @@ const App = () => {
                 </button>
               </div>
               {isPricingOpen && (
-                <div id="pricing-content" className="space-y-4 text-sm sm:text-base text-gray-700">
-                  <div>
+                <div id="pricing-content" className="relative z-10 space-y-5 text-sm sm:text-base text-gray-700">
+                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
                     <h3 className="font-black text-gray-900">Shared Standard (precio base)</h3>
                     <ul className="list-disc pl-5 mt-2 space-y-1">
                       <li>Grupo: 8–12 pax.</li>
@@ -646,7 +742,7 @@ const App = () => {
                       <li>Incluye: operación base del tour + agua.</li>
                     </ul>
                   </div>
-                  <div>
+                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
                     <h3 className="font-black text-gray-900">Shared Premium</h3>
                     <ul className="list-disc pl-5 mt-2 space-y-1">
                       <li>Grupo: 4–8 pax (más exclusivo).</li>
@@ -660,13 +756,13 @@ const App = () => {
                       </li>
                     </ul>
                   </div>
-                  <div>
+                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
                     <h3 className="font-black text-gray-900">Shared All-in (solo si el tour tiene “terceros”)</h3>
                     <ul className="list-disc pl-5 mt-2 space-y-1">
                       <li>Lo mismo que Premium, pero ya incluye el costo de actividades de terceros (zipline, kayak/SUP, yoga/temazcal, etc.).</li>
                     </ul>
                   </div>
-                  <div>
+                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
                     <h3 className="font-black text-gray-900">Private (precio por grupo)</h3>
                     <ul className="list-disc pl-5 mt-2 space-y-1">
                       <li>Lancha/vehículo dedicado + host dedicado.</li>
@@ -675,21 +771,25 @@ const App = () => {
                       <li>Persona adicional (si capacidad lo permite): USD 35 p/p.</li>
                     </ul>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-gray-400">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
+                  <p className="text-[11px] sm:text-xs text-gray-400 border-t border-gray-100 pt-4">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
                 </div>
               )}
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-sm space-y-4">
+            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.5)] space-y-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.08),_transparent_55%)] pointer-events-none"></div>
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950">Add-ons generales (opcionales)</h2>
+                <div className="relative z-10">
+                  <span className="inline-flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">
+                    Add-ons
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950 mt-3">Add-ons generales (opcionales)</h2>
                   <p className="text-sm sm:text-base text-gray-500 font-medium mt-1">Opcionales universales aplicables a cualquier tour.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsAddonsOpen(prev => !prev)}
-                  className="shrink-0 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                  className="relative z-10 shrink-0 w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-200 transition-colors shadow-sm"
                   aria-expanded={isAddonsOpen}
                   aria-controls="addons-content"
                 >
@@ -697,93 +797,34 @@ const App = () => {
                 </button>
               </div>
               {isAddonsOpen && (
-                <div id="addons-content" className="space-y-4 text-sm sm:text-base text-gray-700">
-                  <div>
-                    <h3 className="font-black text-gray-900">Transporte (a/desde Ciudad de Guatemala)</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Shared shuttle Guatemala City/Airport ↔ Panajachel: USD 32–40 p/p</li>
-                      <li>
-                        Private transfer Guatemala City ↔ Panajachel:
-                        <ul className="list-disc pl-5 mt-1 space-y-1">
-                          <li>1–3 pax: USD 165–195 por vehículo</li>
-                          <li>4–6 pax: USD 195–225 por vehículo</li>
-                          <li>7–10 pax: USD 225–255 por vehículo</li>
-                        </ul>
-                      </li>
-                      <li>Surcharge madrugada/tarde (si aplica): +USD 25–60</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900">Tiempo extra / flexibilidad</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Hora extra lancha privada (navegación + espera): USD 65–95 por hora</li>
-                      <li>Hora extra con host/guía (si excede jornada): USD 25–45 por hora</li>
-                      <li>Parada extra planificada (buffer + coordinación): USD 15–35 por grupo</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900">Guías y concierge</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>
-                        Guía premium upgrade:
-                        <ul className="list-disc pl-5 mt-1 space-y-1">
-                          <li>Half day: USD 40–80 por grupo</li>
-                          <li>Full day: USD 80–150 por grupo</li>
-                        </ul>
-                      </li>
-                      <li>
-                        Intérprete 3er idioma (FR/DE/IT):
-                        <ul className="list-disc pl-5 mt-1 space-y-1">
-                          <li>Half day: USD 120–220 por grupo</li>
-                          <li>Full day: USD 220–350 por grupo</li>
-                        </ul>
-                      </li>
-                      <li>Concierge WhatsApp (pre-trip + durante tour): USD 15–35 por reserva</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900">Foto / video / contenido</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Foto Mini (30–45 min, 15–25 fotos): USD 80–120</li>
-                      <li>Foto Standard (60–90 min, 30–50 fotos): USD 150–230</li>
-                      <li>Media jornada (3–4h): USD 350–550</li>
-                      <li>Jornada completa (6–8h): USD 550–900</li>
-                      <li>Drone add-on (clips + 5 fotos): USD 80–150</li>
-                      <li>Reel vertical (30–60s editado): USD 250–450</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900">F&amp;B (upgrade universal)</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Coffee flight/tasting (3–4 muestras): USD 12–20 p/p</li>
-                      <li>Upgrade bebida premium (vino/cóctel/beer): USD 8–15 p/p</li>
-                      <li>Charcutería/tapas upgrade: USD 12–30 p/p</li>
-                      <li>Botella extra (vino): USD 35–70 | Espumante: USD 45–120</li>
-                      <li>Menú fijo 2–3 tiempos: USD 45–75 p/p</li>
-                      <li>Maridaje 2–3 bebidas: +USD 18–35 p/p</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900">Actividades de terceros (si las integran como All-in)</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Yoga drop-in: USD 8–13 p/p</li>
-                      <li>Temazcal: USD 19–39 p/p</li>
-                      <li>Masaje 60 min: USD 26–52 p/p</li>
-                      <li>Cacao ceremony: USD 13–33 p/p</li>
-                      <li>Kayak/SUP (medio día): USD 10–16 p/p</li>
-                      <li>Zipline: USD 52–78 p/p</li>
-                      <li>Parapente tandem: USD 65–104 p/p</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900">Momentos especiales</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Proposal kit (sin foto): USD 120–220</li>
-                      <li>Proposal + foto mini: USD 220–380</li>
-                      <li>Cumpleaños a bordo (mini cake + decoración + foto mini opcional): USD 90–160</li>
-                    </ul>
-                  </div>
-                  <p className="text-[11px] sm:text-xs text-gray-400">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
+                <div id="addons-content" className="relative z-10 space-y-5 text-sm sm:text-base text-gray-700">
+                  {GENERAL_ADDONS.map((category) => (
+                    <div key={category.id} className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
+                      <h3 className="font-black text-gray-900">{category.title}</h3>
+                      <ul className="mt-2 space-y-2">
+                        {category.items.map((item) => {
+                          const isSelected = selectedGeneralAddons.includes(item);
+                          return (
+                            <li key={item}>
+                              <button
+                                type="button"
+                                onClick={() => toggleGeneralAddon(item)}
+                                className={`w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left text-[12px] sm:text-sm font-bold border transition-colors ${isSelected ? 'bg-emerald-600/10 border-emerald-200 text-emerald-700' : 'bg-white border-gray-100 text-gray-600 hover:border-emerald-100 hover:text-emerald-600'}`}
+                              >
+                                <span className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300'}`}>
+                                  {isSelected && (
+                                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+                                  )}
+                                </span>
+                                <span>{item}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                  <p className="text-[11px] sm:text-xs text-gray-400 border-t border-gray-100 pt-4">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
                 </div>
               )}
             </div>
@@ -896,7 +937,7 @@ const App = () => {
               </button>
             )}
             <a 
-              href={formatWhatsAppMessage(selectedConfigs)}
+              href={formatWhatsAppMessage(selectedConfigs, selectedGeneralAddons)}
               target="_blank"
               className="bg-green-600 text-white px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-green-500 active:scale-95 shadow-sm"
             >
