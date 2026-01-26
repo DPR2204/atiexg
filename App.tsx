@@ -398,6 +398,8 @@ const App = () => {
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [selectedConfigs, setSelectedConfigs] = useState<SelectedTourConfig[]>([]);
   const [selectedTourDetail, setSelectedTourDetail] = useState<Tour | null>(null);
+  const [isPricingOpen, setIsPricingOpen] = useState(true);
+  const [isAddonsOpen, setIsAddonsOpen] = useState(true);
 
   const filteredTours = useMemo(() => {
     if (activeFilter === 'Todos') return TOURS;
@@ -535,6 +537,179 @@ const App = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section id="esquema-precios" className="scroll-mt-28 mt-16 sm:mt-24">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-sm space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950">Esquema de precios (cómo funciona)</h2>
+                  <p className="text-sm sm:text-base text-gray-500 font-medium mt-1">Definiciones consistentes para todos los tours.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPricingOpen(prev => !prev)}
+                  className="shrink-0 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                  aria-expanded={isPricingOpen}
+                  aria-controls="pricing-content"
+                >
+                  <svg className={`w-4 h-4 transition-transform ${isPricingOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+              </div>
+              {isPricingOpen && (
+                <div id="pricing-content" className="space-y-4 text-sm sm:text-base text-gray-700">
+                  <div>
+                    <h3 className="font-black text-gray-900">Shared Standard (precio base)</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Grupo: 8–12 pax.</li>
+                      <li>Guía: bilingüe (EN/ES) compartido.</li>
+                      <li>Ritmo: timing estándar (tour clásico).</li>
+                      <li>Incluye: operación base del tour + agua.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Shared Premium</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Grupo: 4–8 pax (más exclusivo).</li>
+                      <li>Ritmo: más buffers, menos carreras.</li>
+                      <li>
+                        Incluye además:
+                        <ul className="list-disc pl-5 mt-1 space-y-1">
+                          <li>Priority seating en restaurantes (mesa reservada / servicio más rápido cuando aplique).</li>
+                          <li>Premium Perk: 1 beneficio tangible definido por tour (ej.: coffee flight, 2do consumo, snack real, headlamp, safe packing, etc.).</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Shared All-in (solo si el tour tiene “terceros”)</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Lo mismo que Premium, pero ya incluye el costo de actividades de terceros (zipline, kayak/SUP, yoga/temazcal, etc.).</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Private (precio por grupo)</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Lancha/vehículo dedicado + host dedicado.</li>
+                      <li>Ruta flexible (se ajusta ritmo/paradas).</li>
+                      <li>Precio base incluye hasta 6 pax.</li>
+                      <li>Persona adicional (si capacidad lo permite): USD 35 p/p.</li>
+                    </ul>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-gray-400">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-sm space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950">Add-ons generales (opcionales)</h2>
+                  <p className="text-sm sm:text-base text-gray-500 font-medium mt-1">Opcionales universales aplicables a cualquier tour.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddonsOpen(prev => !prev)}
+                  className="shrink-0 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                  aria-expanded={isAddonsOpen}
+                  aria-controls="addons-content"
+                >
+                  <svg className={`w-4 h-4 transition-transform ${isAddonsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+              </div>
+              {isAddonsOpen && (
+                <div id="addons-content" className="space-y-4 text-sm sm:text-base text-gray-700">
+                  <div>
+                    <h3 className="font-black text-gray-900">Transporte (a/desde Ciudad de Guatemala)</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Shared shuttle Guatemala City/Airport ↔ Panajachel: USD 32–40 p/p</li>
+                      <li>
+                        Private transfer Guatemala City ↔ Panajachel:
+                        <ul className="list-disc pl-5 mt-1 space-y-1">
+                          <li>1–3 pax: USD 165–195 por vehículo</li>
+                          <li>4–6 pax: USD 195–225 por vehículo</li>
+                          <li>7–10 pax: USD 225–255 por vehículo</li>
+                        </ul>
+                      </li>
+                      <li>Surcharge madrugada/tarde (si aplica): +USD 25–60</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Tiempo extra / flexibilidad</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Hora extra lancha privada (navegación + espera): USD 65–95 por hora</li>
+                      <li>Hora extra con host/guía (si excede jornada): USD 25–45 por hora</li>
+                      <li>Parada extra planificada (buffer + coordinación): USD 15–35 por grupo</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Guías y concierge</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>
+                        Guía premium upgrade:
+                        <ul className="list-disc pl-5 mt-1 space-y-1">
+                          <li>Half day: USD 40–80 por grupo</li>
+                          <li>Full day: USD 80–150 por grupo</li>
+                        </ul>
+                      </li>
+                      <li>
+                        Intérprete 3er idioma (FR/DE/IT):
+                        <ul className="list-disc pl-5 mt-1 space-y-1">
+                          <li>Half day: USD 120–220 por grupo</li>
+                          <li>Full day: USD 220–350 por grupo</li>
+                        </ul>
+                      </li>
+                      <li>Concierge WhatsApp (pre-trip + durante tour): USD 15–35 por reserva</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Foto / video / contenido</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Foto Mini (30–45 min, 15–25 fotos): USD 80–120</li>
+                      <li>Foto Standard (60–90 min, 30–50 fotos): USD 150–230</li>
+                      <li>Media jornada (3–4h): USD 350–550</li>
+                      <li>Jornada completa (6–8h): USD 550–900</li>
+                      <li>Drone add-on (clips + 5 fotos): USD 80–150</li>
+                      <li>Reel vertical (30–60s editado): USD 250–450</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">F&amp;B (upgrade universal)</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Coffee flight/tasting (3–4 muestras): USD 12–20 p/p</li>
+                      <li>Upgrade bebida premium (vino/cóctel/beer): USD 8–15 p/p</li>
+                      <li>Charcutería/tapas upgrade: USD 12–30 p/p</li>
+                      <li>Botella extra (vino): USD 35–70 | Espumante: USD 45–120</li>
+                      <li>Menú fijo 2–3 tiempos: USD 45–75 p/p</li>
+                      <li>Maridaje 2–3 bebidas: +USD 18–35 p/p</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Actividades de terceros (si las integran como All-in)</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Yoga drop-in: USD 8–13 p/p</li>
+                      <li>Temazcal: USD 19–39 p/p</li>
+                      <li>Masaje 60 min: USD 26–52 p/p</li>
+                      <li>Cacao ceremony: USD 13–33 p/p</li>
+                      <li>Kayak/SUP (medio día): USD 10–16 p/p</li>
+                      <li>Zipline: USD 52–78 p/p</li>
+                      <li>Parapente tandem: USD 65–104 p/p</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900">Momentos especiales</h3>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Proposal kit (sin foto): USD 120–220</li>
+                      <li>Proposal + foto mini: USD 220–380</li>
+                      <li>Cumpleaños a bordo (mini cake + decoración + foto mini opcional): USD 90–160</li>
+                    </ul>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-gray-400">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
