@@ -8,7 +8,7 @@
     "build": "vite build && npm run sitemap && npm run prerender",
     "preview": "vite preview",
     "sitemap": "tsx scripts/generate-sitemap.ts",
-    "prerender": "tsx scripts/prerender.ts",
+    "prerender": "tsx scripts/prerender.tsx",
     "prebuild": "npm run sitemap"
   },
   "dependencies": {
