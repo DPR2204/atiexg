@@ -27,9 +27,10 @@ const renderRoute = (route: string) => {
     .replace('<!--app-html-->', appHtml)
     .replace('<!--app-head-->', headTags);
 
-  const outputPath = route === '/'
+  const normalizedRoute = route.replace(/^\/+/, '').replace(/\/+$/, '');
+  const outputPath = normalizedRoute === ''
     ? join(distDir, 'index.html')
-    : join(distDir, route, 'index.html');
+    : join(distDir, normalizedRoute, 'index.html');
 
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, html, 'utf8');
