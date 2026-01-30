@@ -6,6 +6,7 @@ import {
   SITE_URL,
   LOCALE,
   DEFAULT_OG_IMAGE,
+  DEFAULT_KEYWORDS,
   getTourBySlug,
   getTourMeta,
   buildOrganizationSchema,
@@ -64,11 +65,18 @@ const generateHeadTags = (route: string): string => {
   const headTags = `
     <title>${title}</title>
     <meta name="description" content="${description}" />
+    <meta name="keywords" content="${DEFAULT_KEYWORDS}" />
     <meta name="robots" content="index,follow" />
+    <meta name="geo.region" content="GT-SO" />
+    <meta name="geo.placename" content="Panajachel, Sololá, Guatemala" />
+    <meta name="geo.position" content="14.7412;-91.1597" />
+    <meta name="ICBM" content="14.7412, -91.1597" />
     <link rel="canonical" href="${canonicalUrl}" />
     <link rel="alternate" hreflang="${LOCALE}" href="${canonicalUrl}" />
+    <link rel="alternate" hreflang="es" href="${canonicalUrl}" />
+    <link rel="alternate" hreflang="x-default" href="${canonicalUrl}" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Atitlán Experiences" />
+    <meta property="og:site_name" content="Atitlán Experiences - Tours en Panajachel" />
     <meta property="og:title" content="${title}" />
     <meta property="og:description" content="${description}" />
     <meta property="og:url" content="${canonicalUrl}" />
