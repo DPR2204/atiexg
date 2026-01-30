@@ -30,7 +30,7 @@ export const DEFAULT_KEYWORDS = [
   'que hacer en Pana Guatemala',
 ].join(', ');
 
-export type PageKey = 'home' | 'catalogo' | 'conocenos' | 'contacto';
+export type PageKey = 'home' | 'catalogo' | 'galeria' | 'conocenos' | 'contacto';
 
 export type PageMeta = {
   title: string;
@@ -51,6 +51,12 @@ export const PAGE_META: Record<PageKey, PageMeta> = {
     description:
       'Catálogo de tours en Panajachel: lanchas a San Pedro, San Juan y Santiago, paseos en kayak, volcanes, atardeceres y más. Las mejores actividades en el Lago Atitlán, Guatemala.',
     path: '/catalogo',
+  },
+  galeria: {
+    title: 'Galería de Fotos del Lago Atitlán | Paisajes, Cultura y Aventuras',
+    description:
+      'Explora nuestra galería de fotos del Lago de Atitlán, Guatemala. Paisajes impresionantes, cultura maya, gastronomía local y aventuras en el lago más hermoso del mundo.',
+    path: '/galeria',
   },
   conocenos: {
     title: 'Operador de Tours en Panajachel, Guatemala | Atitlán Experiences',
