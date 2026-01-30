@@ -14,15 +14,12 @@ const SIZES = [480, 768, 1000, 1400];
 const replaceSize = (src: string, width: number, height: number) =>
   src.replace(/\/(\d+)\/(\d+)(?=$)/, `/${width}/${height}`);
 
-const buildSized = (src: string, width: number, height: number, format?: string) => {
-  const base = replaceSize(src, width, height);
-  return format ? `${base}.${format}` : base;
-};
+const buildSized = (src: string, width: number, height: number) => replaceSize(src, width, height);
 
-const buildSrcSet = (src: string, format?: string) =>
+const buildSrcSet = (src: string) =>
   SIZES.map((width) => {
     const height = Math.round(width * 0.8);
-    const url = buildSized(src, width, height, format);
+    const url = buildSized(src, width, height);
     return `${url} ${width}w`;
   }).join(', ');
 
@@ -37,8 +34,6 @@ const TourImage = ({
   const srcSet = buildSrcSet(src);
   return (
     <picture>
-      <source type="image/avif" srcSet={buildSrcSet(src, 'avif')} sizes={sizes} />
-      <source type="image/webp" srcSet={buildSrcSet(src, 'webp')} sizes={sizes} />
       <img
         src={buildSized(src, 1000, 800)}
         srcSet={srcSet}

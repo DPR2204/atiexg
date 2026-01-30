@@ -67,7 +67,7 @@ const InicioPage = () => {
 
       <main>
         {/* Hero Section */}
-        <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+        <section className="relative min-h-[75vh] sm:min-h-[90vh] flex items-center overflow-hidden">
           {/* Background Elements */}
           <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-red-50/30" />
           <div className="absolute top-20 right-0 w-[600px] h-[600px] bg-red-100/40 rounded-full blur-3xl animate-float" />
@@ -76,7 +76,7 @@ const InicioPage = () => {
           {/* Decorative Grid */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
 
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 lg:py-32">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 lg:py-32">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
               {/* Content */}
               <div className="space-y-8 animate-fade-in-up">

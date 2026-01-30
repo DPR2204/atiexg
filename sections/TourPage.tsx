@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { TOURS } from '../data';
 import Seo from './Seo';
@@ -13,9 +13,16 @@ import {
   getTourPath,
 } from '../seo';
 
-const formatWhatsApp = (tourName: string) => {
+const formatWhatsApp = (tourName: string, priceLabel?: string, priceAmount?: string, addons?: string[]) => {
   const base = 'https://wa.me/50222681264?text=';
-  const message = `¡Hola Atitlán Experiences! 🌊\n\nMe interesa la experiencia: *${tourName}*.\n¿Podrían compartir disponibilidad y próximos horarios?`;
+  let message = `¡Hola Atitlán Experiences! 🌊\n\nMe interesa la experiencia: *${tourName}*.`;
+  if (priceLabel && priceAmount) {
+    message += `\nOpción: ${priceLabel} ($${priceAmount})`;
+  }
+  if (addons && addons.length > 0) {
+    message += `\nAdd-ons: ${addons.join(', ')}`;
+  }
+  message += '\n¿Podrían compartir disponibilidad y próximos horarios?';
   return base + encodeURIComponent(message);
 };
 
@@ -24,6 +31,14 @@ const TourPage = () => {
   const tour = getTourBySlug(slug);
 
   const seoMeta = useMemo(() => (tour ? getTourMeta(tour) : null), [tour]);
+  const [selectedPriceId, setSelectedPriceId] = useState(tour?.prices[0]?.id ?? '');
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!tour) return;
+    setSelectedPriceId(tour.prices[0]?.id ?? '');
+    setSelectedAddonIds([]);
+  }, [tour]);
 
   // Get related tours (same category, excluding current)
   const relatedTours = useMemo(() => {
@@ -61,6 +76,10 @@ const TourPage = () => {
       </div>
     );
   }
+
+  const selectedPrice = tour.prices.find((price) => price.id === selectedPriceId);
+  const selectedAddons = tour.addons.filter((addon) => selectedAddonIds.includes(addon.id));
+  const selectedAddonLabels = selectedAddons.map((addon) => `${addon.label} ($${addon.price})`);
 
   return (
     <div className="min-h-screen bg-white">
@@ -155,7 +174,7 @@ const TourPage = () => {
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-3">
               <a
-                href={formatWhatsApp(tour.name)}
+                href={formatWhatsApp(tour.name, selectedPrice?.label, selectedPrice?.amount, selectedAddonLabels)}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-green-400 transition-all shadow-lg shadow-green-500/30"
@@ -245,15 +264,24 @@ const TourPage = () => {
               Opciones de precio
             </h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {tour.prices.map((price) => (
-                <div key={price.id} className="bg-white rounded-2xl p-5 border border-gray-100 hover:border-red-200 transition-colors">
-                  <p className="font-bold text-gray-900 mb-1">{price.label}</p>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-3">
-                    {price.description}
-                  </p>
-                  <p className="text-2xl font-black text-red-500">{price.amount}</p>
-                </div>
-              ))}
+              {tour.prices.map((price) => {
+                const isSelected = selectedPriceId === price.id;
+                return (
+                  <button
+                    key={price.id}
+                    type="button"
+                    onClick={() => setSelectedPriceId(price.id)}
+                    className={`text-left bg-white rounded-2xl p-5 border transition-colors ${isSelected ? 'border-red-400 bg-red-50/40' : 'border-gray-100 hover:border-red-200'}`}
+                    aria-pressed={isSelected}
+                  >
+                    <p className="font-bold text-gray-900 mb-1">{price.label}</p>
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-3">
+                      {price.description}
+                    </p>
+                    <p className="text-2xl font-black text-red-500">{price.amount}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -271,12 +299,27 @@ const TourPage = () => {
                 Add-ons sugeridos
               </h3>
               <div className="grid gap-3 sm:grid-cols-2">
-                {tour.addons.map((addon) => (
-                  <div key={addon.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100">
-                    <span className="text-gray-700 font-medium">{addon.label}</span>
-                    <span className="text-red-500 font-bold">${addon.price}</span>
-                  </div>
-                ))}
+                {tour.addons.map((addon) => {
+                  const isSelected = selectedAddonIds.includes(addon.id);
+                  return (
+                    <button
+                      key={addon.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedAddonIds((prev) =>
+                          prev.includes(addon.id)
+                            ? prev.filter((id) => id !== addon.id)
+                            : [...prev, addon.id],
+                        )
+                      }
+                      className={`flex items-center justify-between p-4 bg-white rounded-xl border transition-colors ${isSelected ? 'border-red-400 bg-red-50/40' : 'border-gray-100 hover:border-red-200'}`}
+                      aria-pressed={isSelected}
+                    >
+                      <span className="text-gray-700 font-medium">{addon.label}</span>
+                      <span className="text-red-500 font-bold">${addon.price}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </section>
