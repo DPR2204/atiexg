@@ -1,9 +1,13 @@
 import React from 'react';
 import { RouteObject } from 'react-router-dom';
 import Layout from './sections/Layout';
-import HomePage from './sections/HomePage';
+import InicioPage from './sections/InicioPage';
+import CatalogoPage from './sections/CatalogoPage';
+import GaleriaPage from './sections/GaleriaPage';
+import ConocenosPage from './sections/ConocenosPage';
+import ContactoPage from './sections/ContactoPage';
 import TourPage from './sections/TourPage';
-import { PAGE_META } from './seo';
+import NotFoundPage from './sections/NotFoundPage';
 
 export const routes: RouteObject[] = [
   {
@@ -12,23 +16,31 @@ export const routes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <HomePage pageKey="home" />,
+        element: <InicioPage />,
       },
       {
-        path: PAGE_META.catalogo.path.slice(1),
-        element: <HomePage pageKey="catalogo" focusSection="catalogo" />,
+        path: 'catalogo',
+        element: <CatalogoPage />,
       },
       {
-        path: PAGE_META.conocenos.path.slice(1),
-        element: <HomePage pageKey="conocenos" focusSection="conocenos" />,
+        path: 'galeria',
+        element: <GaleriaPage />,
       },
       {
-        path: PAGE_META.contacto.path.slice(1),
-        element: <HomePage pageKey="contacto" focusSection="contacto" />,
+        path: 'conocenos',
+        element: <ConocenosPage />,
+      },
+      {
+        path: 'contacto',
+        element: <ContactoPage />,
       },
       {
         path: 'experiencias/:slug',
         element: <TourPage />,
+      },
+      {
+        path: '*',
+        element: <NotFoundPage />,
       },
     ],
   },
