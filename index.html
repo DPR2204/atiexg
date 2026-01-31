@@ -516,6 +516,107 @@
     ::selection {
       background-color: rgba(239, 68, 68, 0.2);
     }
+
+    /* ========================================
+       MUSEUM GALLERY STYLES
+       ======================================== */
+
+    /* Museum card with sticky behavior */
+    .museum-card {
+      position: sticky;
+      top: 10vh;
+      transform-origin: center top;
+      transition: transform 0.1s ease-out;
+    }
+
+    /* Photo frame floating effect */
+    .photo-frame {
+      background: #fafafa;
+      border-radius: 24px;
+      box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(0, 0, 0, 0.03);
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.5s ease;
+    }
+
+    .photo-frame:hover {
+      transform: translateY(-8px);
+      box-shadow:
+        0 35px 60px -12px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Photo inner frame with rounded corners */
+    .photo-inner {
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    /* Archive label style */
+    .archive-label {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.15em;
+      font-weight: 500;
+    }
+
+    /* Camera settings style */
+    .camera-settings {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Property label style */
+    .property-label {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.2em;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    /* Scroll indicator animation */
+    @keyframes scrollBounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(8px);
+      }
+    }
+    .animate-scroll-bounce {
+      animation: scrollBounce 2s ease-in-out infinite;
+    }
+
+    /* Fade in on scroll */
+    .scroll-reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .scroll-reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Museum background */
+    .museum-bg {
+      background: linear-gradient(180deg, #f5f5f5 0%, #ffffff 50%, #f8f8f8 100%);
+    }
+
+    /* Floating scroll-to-top button */
+    .scroll-to-top {
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .scroll-to-top:hover {
+      transform: translateY(-4px) scale(1.05);
+    }
+    .scroll-to-top:active {
+      transform: scale(0.95);
+    }
   </style>
 <script type="importmap">
 {
