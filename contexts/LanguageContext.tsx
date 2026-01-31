@@ -17,6 +17,7 @@ const translations = { es, en };
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [language, setLanguageState] = useState<Language>(() => {
+        if (typeof window === 'undefined') return 'es';
         const saved = localStorage.getItem('atiexg_lang');
         return (saved === 'es' || saved === 'en') ? saved : 'es';
     });
