@@ -3,8 +3,303 @@ import Seo from './Seo';
 import { GlassNav, GlassFooter } from './shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
 
+// Types
+interface GalleryImage {
+  id: number;
+  seed: string;
+  archiveCode: string;
+  focalLength: string;
+  aperture: string;
+  iso: string;
+  category: string;
+  title: string;
+}
+
+interface ImmersiveFullscreenProps {
+  images: GalleryImage[];
+  currentIndex: number;
+  onClose: () => void;
+  onNavigate: (index: number) => void;
+  getImageUrl: (seed: string, width: number, height: number) => string;
+}
+
+// Immersive Fullscreen Gallery Component
+const ImmersiveFullscreen: React.FC<ImmersiveFullscreenProps> = ({
+  images,
+  currentIndex,
+  onClose,
+  onNavigate,
+  getImageUrl,
+}) => {
+  const [isActive, setIsActive] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [showHint, setShowHint] = useState(true);
+  const [isExiting, setIsExiting] = useState(false);
+
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const currentImage = images[currentIndex];
+
+  // Activate animation on mount
+  useEffect(() => {
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+
+    // Delay activation for entrance animation
+    const timer = setTimeout(() => setIsActive(true), 50);
+
+    // Hide hint after showing
+    const hintTimer = setTimeout(() => setShowHint(false), 3500);
+
+    return () => {
+      document.body.style.overflow = '';
+      clearTimeout(timer);
+      clearTimeout(hintTimer);
+    };
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setIsExiting(true);
+    setIsActive(false);
+    setTimeout(onClose, 400);
+  }, [onClose]);
+
+  const navigateNext = useCallback(() => {
+    if (currentIndex < images.length - 1) {
+      setSlideDirection('left');
+      setTimeout(() => {
+        onNavigate(currentIndex + 1);
+        setSlideDirection(null);
+      }, 350);
+    }
+  }, [currentIndex, images.length, onNavigate]);
+
+  const navigatePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setSlideDirection('right');
+      setTimeout(() => {
+        onNavigate(currentIndex - 1);
+        setSlideDirection(null);
+      }, 350);
+    }
+  }, [currentIndex, onNavigate]);
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      } else if (e.key === 'ArrowLeft') {
+        navigatePrev();
+      } else if (e.key === 'ArrowRight') {
+        navigateNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleClose, navigatePrev, navigateNext]);
+
+  // Touch/Mouse handlers for swipe gestures
+  const handleDragStart = useCallback((clientX: number, clientY: number) => {
+    setIsDragging(true);
+    dragStartRef.current = { x: clientX, y: clientY };
+    setDragOffset({ x: 0, y: 0 });
+  }, []);
+
+  const handleDragMove = useCallback((clientX: number, clientY: number) => {
+    if (!isDragging) return;
+
+    const deltaX = clientX - dragStartRef.current.x;
+    const deltaY = clientY - dragStartRef.current.y;
+
+    setDragOffset({ x: deltaX, y: deltaY });
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+
+    const { x: deltaX, y: deltaY } = dragOffset;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Horizontal swipe threshold
+    const horizontalThreshold = 80;
+    // Vertical swipe threshold for close
+    const verticalThreshold = 100;
+
+    // Determine action based on drag direction and distance
+    if (absY > verticalThreshold && absY > absX && deltaY > 0) {
+      // Swipe down to close
+      handleClose();
+    } else if (absX > horizontalThreshold && absX > absY) {
+      if (deltaX > 0 && currentIndex > 0) {
+        // Swipe right to go previous
+        navigatePrev();
+      } else if (deltaX < 0 && currentIndex < images.length - 1) {
+        // Swipe left to go next
+        navigateNext();
+      }
+    }
+
+    setIsDragging(false);
+    setDragOffset({ x: 0, y: 0 });
+  }, [isDragging, dragOffset, currentIndex, images.length, handleClose, navigatePrev, navigateNext]);
+
+  // Mouse event handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    handleDragStart(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleDragMove(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
+    handleDragEnd();
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) handleDragEnd();
+  };
+
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    handleDragStart(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    handleDragMove(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchEnd = () => {
+    handleDragEnd();
+  };
+
+  // Click on backdrop to close
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === containerRef.current) {
+      handleClose();
+    }
+  };
+
+  // Calculate transform based on drag state
+  const getImageTransform = () => {
+    if (isExiting) return undefined;
+    if (!isDragging) return undefined;
+
+    const { x, y } = dragOffset;
+    const rotation = x * 0.02; // Subtle rotation based on horizontal drag
+    const scale = 1 - Math.abs(y) * 0.001; // Subtle scale reduction when dragging down
+
+    return `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${Math.max(0.85, scale)})`;
+  };
+
+  // Determine wrapper classes
+  const getWrapperClasses = () => {
+    let classes = 'fullscreen-image-wrapper';
+
+    if (isExiting) {
+      classes += ' exiting';
+    } else if (slideDirection === 'left') {
+      classes += ' slide-left';
+    } else if (slideDirection === 'right') {
+      classes += ' slide-right';
+    } else if (isActive && !isDragging) {
+      classes += ' active';
+    }
+
+    if (isDragging) {
+      classes += ' dragging';
+    }
+
+    return classes;
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={`fullscreen-backdrop ${isActive && !isExiting ? 'active' : ''}`}
+        aria-hidden="true"
+      />
+
+      {/* Drag feedback overlay */}
+      <div
+        className={`drag-feedback ${isDragging && Math.abs(dragOffset.y) > 50 ? 'active' : ''}`}
+        aria-hidden="true"
+      />
+
+      {/* Main container */}
+      <div
+        ref={containerRef}
+        className="fullscreen-container"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleBackdropClick}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Imagen ${currentIndex + 1} de ${images.length}: ${currentImage.title}`}
+      >
+        {/* Image wrapper */}
+        <div
+          className={getWrapperClasses()}
+          style={isDragging ? { transform: getImageTransform() } : undefined}
+        >
+          <img
+            src={getImageUrl(currentImage.seed, 1200, 1500)}
+            alt={currentImage.title}
+            className="fullscreen-image"
+            draggable={false}
+          />
+
+          {/* Metadata */}
+          <div className="fullscreen-metadata">
+            <p className="text-white/90 text-lg font-medium mb-1">{currentImage.title}</p>
+            <p className="text-white/50 text-xs font-mono tracking-wider">
+              {currentImage.archiveCode} · {currentImage.focalLength} · {currentImage.aperture} · {currentImage.iso}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Counter */}
+      <div className={`fullscreen-counter ${isActive && !isExiting ? 'active' : ''}`}>
+        {String(currentIndex + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
+      </div>
+
+      {/* Swipe indicator dots */}
+      <div className={`swipe-indicator ${isActive && !isExiting ? 'active' : ''}`}>
+        {images.map((_, idx) => (
+          <div
+            key={idx}
+            className={`swipe-dot ${idx === currentIndex ? 'current' : ''}`}
+          />
+        ))}
+      </div>
+
+      {/* Gesture hint - only shows first time */}
+      {showHint && (
+        <div className="gesture-hint">
+          Desliza para navegar · Baja para cerrar
+        </div>
+      )}
+    </>
+  );
+};
+
 // Gallery images with archive metadata
-const GALLERY_IMAGES = [
+const GALLERY_IMAGES: GalleryImage[] = [
   {
     id: 1,
     seed: 'atitlan-lake-1',
@@ -133,6 +428,7 @@ const getImageUrl = (seed: string, width: number, height: number) =>
 const GaleriaPage = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
+  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const handleImageLoad = useCallback((id: number) => {
@@ -242,8 +538,12 @@ const GaleriaPage = () => {
                 }}
               >
                 <div className="photo-frame p-3 sm:p-4">
-                  {/* Image Container */}
-                  <div className="photo-inner relative aspect-[4/5] sm:aspect-[3/4]">
+                  {/* Image Container - Clickable */}
+                  <button
+                    onClick={() => setFullscreenIndex(index)}
+                    className="photo-inner relative aspect-[4/5] sm:aspect-[3/4] w-full block cursor-pointer group"
+                    aria-label={`Ver ${image.title} en pantalla completa`}
+                  >
                     {/* Skeleton Loader */}
                     {!isLoaded && (
                       <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-[20px]" />
@@ -252,12 +552,19 @@ const GaleriaPage = () => {
                     <img
                       src={getImageUrl(image.seed, 800, 1000)}
                       alt={image.title}
-                      className={`w-full h-full object-cover transition-opacity duration-700 ${
+                      className={`w-full h-full object-cover transition-all duration-700 ${
                         isLoaded ? 'opacity-100' : 'opacity-0'
-                      }`}
+                      } group-hover:scale-[1.02]`}
                       loading="lazy"
                       onLoad={() => handleImageLoad(image.id)}
                     />
+
+                    {/* Hover overlay hint */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
+                        <span className="text-xs font-medium text-gray-800 uppercase tracking-wider">Tap para ver</span>
+                      </div>
+                    </div>
 
                     {/* Archive Label Overlay */}
                     <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
@@ -268,7 +575,7 @@ const GaleriaPage = () => {
                         {image.focalLength} / {image.aperture} / {image.iso}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Property Footer */}
@@ -328,6 +635,17 @@ const GaleriaPage = () => {
       </button>
 
       <GlassFooter />
+
+      {/* Immersive Fullscreen Gallery */}
+      {fullscreenIndex !== null && (
+        <ImmersiveFullscreen
+          images={GALLERY_IMAGES}
+          currentIndex={fullscreenIndex}
+          onClose={() => setFullscreenIndex(null)}
+          onNavigate={setFullscreenIndex}
+          getImageUrl={getImageUrl}
+        />
+      )}
     </div>
   );
 };
