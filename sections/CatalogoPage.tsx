@@ -394,33 +394,6 @@ const CatalogoPage = () => {
               className="group block animate-fade-in-up relative"
               style={{ animationDelay: `${(index % 6) * 50}ms` }}
             >
-              <button
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  toggleSelection(tour);
-                }}
-                className={`absolute top-4 left-4 z-10 p-2.5 rounded-2xl shadow-lg transition-all active:scale-90 ${
-                  selectedConfigs.some((config) => config.tourId === tour.id)
-                    ? 'bg-red-500 text-white scale-110 shadow-red-200'
-                    : 'bg-white/95 text-gray-500 hover:text-red-500'
-                }`}
-                aria-label={
-                  selectedConfigs.some((config) => config.tourId === tour.id)
-                    ? `Quitar ${tour.name} del plan`
-                    : `Agregar ${tour.name} al plan`
-                }
-              >
-                {selectedConfigs.some((config) => config.tourId === tour.id) ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
-                  </svg>
-                )}
-              </button>
               <article className="h-full glass-card rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
                 <div className="relative aspect-[4/5] overflow-hidden">
                   <TourImage
@@ -430,6 +403,35 @@ const CatalogoPage = () => {
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                  {/* Comparison button - top right */}
+                  <button
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      toggleSelection(tour);
+                    }}
+                    className={`absolute top-4 right-4 z-10 p-2.5 rounded-2xl shadow-lg transition-all active:scale-90 ${
+                      selectedConfigs.some((config) => config.tourId === tour.id)
+                        ? 'bg-red-500 text-white scale-110 shadow-red-200'
+                        : 'bg-white/95 text-gray-500 hover:text-red-500'
+                    }`}
+                    aria-label={
+                      selectedConfigs.some((config) => config.tourId === tour.id)
+                        ? `Quitar ${tour.name} del plan`
+                        : `Agregar ${tour.name} al plan`
+                    }
+                  >
+                    {selectedConfigs.some((config) => config.tourId === tour.id) ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
+                      </svg>
+                    )}
+                  </button>
 
                   {/* Tags */}
                   <div className="absolute top-4 left-4 flex flex-wrap gap-2">
@@ -505,126 +507,311 @@ const CatalogoPage = () => {
 
         <section id="esquema-precios" className="scroll-mt-28 mt-16 sm:mt-24">
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.5)] space-y-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_55%)] pointer-events-none"></div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="relative z-10">
-                  <span className="inline-flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">
-                    Esquema
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950 mt-3">Esquema de precios (cómo funciona)</h2>
-                  <p className="text-sm sm:text-base text-gray-500 font-medium mt-1">Definiciones consistentes para todos los tours.</p>
+            {/* Pricing Schema - Redesigned */}
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-black text-white">Esquema de Precios</h2>
+                      <p className="text-xs text-slate-400">Elige tu nivel de experiencia</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPricingOpen((prev) => !prev)}
+                    className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white transition-all"
+                    aria-expanded={isPricingOpen}
+                    aria-controls="pricing-content"
+                  >
+                    <svg className={`w-4 h-4 transition-transform ${isPricingOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsPricingOpen((prev) => !prev)}
-                  className="relative z-10 shrink-0 w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
-                  aria-expanded={isPricingOpen}
-                  aria-controls="pricing-content"
-                >
-                  <svg className={`w-4 h-4 transition-transform ${isPricingOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
-                </button>
+
+                {isPricingOpen && (
+                  <div id="pricing-content" className="space-y-3">
+                    {/* Standard */}
+                    <div className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 transition-all cursor-default">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-white">Shared Standard</h3>
+                            <span className="px-2 py-0.5 bg-slate-700 text-slate-300 text-[9px] font-bold uppercase rounded-full">Base</span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                              8-12 pax
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389 21.034 21.034 0 01-.554-.6 19.098 19.098 0 01-3.466 3.429A1 1 0 012 14.502a17.09 17.09 0 003.037-2.936 18.93 18.93 0 01-1.065-2.572 1 1 0 111.898-.633c.217.65.473 1.276.766 1.875a17.09 17.09 0 001.39-3.536H4a1 1 0 110-2h3V3a1 1 0 011-1zm10.657 5.343a1 1 0 00-1.414 0l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L15.414 11H19a1 1 0 100-2h-3.586l2.243-2.243a1 1 0 000-1.414z" clipRule="evenodd"/></svg>
+                              EN/ES
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
+                              Timing clásico
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Premium */}
+                    <div className="group bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-400/30 rounded-2xl p-4 transition-all cursor-default">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-blue-500/20">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-white">Shared Premium</h3>
+                            <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 text-[9px] font-bold uppercase rounded-full">Popular</span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300 mb-2">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                              4-8 pax
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
+                              Ritmo flexible
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Mesa reservada
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Premium Perk
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* All-in */}
+                    <div className="group bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-400/30 rounded-2xl p-4 transition-all cursor-default">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-white">Shared All-in</h3>
+                            <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-300 text-[9px] font-bold uppercase rounded-full">Todo incluido</span>
+                          </div>
+                          <p className="text-xs text-slate-400 mb-2">Premium + actividades de terceros incluidas</p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Zipline
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Kayak/SUP
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Yoga/Temazcal
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Private */}
+                    <div className="group bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-400/30 rounded-2xl p-4 transition-all cursor-default">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-amber-500/20">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-bold text-white">Private</h3>
+                            <span className="px-2 py-0.5 bg-amber-500/30 text-amber-300 text-[9px] font-bold uppercase rounded-full">Exclusivo</span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300 mb-2">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                              Hasta 6 pax base
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                              +$35 p/p adicional
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Lancha dedicada
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Host dedicado
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
+                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Ruta flexible
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 text-center pt-2">Precios sujetos a temporada y disponibilidad</p>
+                  </div>
+                )}
               </div>
-              {isPricingOpen && (
-                <div id="pricing-content" className="relative z-10 space-y-5 text-sm sm:text-base text-gray-700">
-                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
-                    <h3 className="font-black text-gray-900">Shared Standard (precio base)</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Grupo: 8–12 pax.</li>
-                      <li>Guía: bilingüe (EN/ES) compartido.</li>
-                      <li>Ritmo: timing estándar (tour clásico).</li>
-                      <li>Incluye: operación base del tour + agua.</li>
-                    </ul>
-                  </div>
-                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
-                    <h3 className="font-black text-gray-900">Shared Premium</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Grupo: 4–8 pax (más exclusivo).</li>
-                      <li>Ritmo: más buffers, menos carreras.</li>
-                      <li>
-                        Incluye además:
-                        <ul className="list-disc pl-5 mt-1 space-y-1">
-                          <li>Priority seating en restaurantes (mesa reservada / servicio más rápido cuando aplique).</li>
-                          <li>Premium Perk: 1 beneficio tangible definido por tour (ej.: coffee flight, 2do consumo, snack real, headlamp, safe packing, etc.).</li>
-                        </ul>
-                      </li>
-                    </ul>
-                  </div>
-                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
-                    <h3 className="font-black text-gray-900">Shared All-in (solo si el tour tiene “terceros”)</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Lo mismo que Premium, pero ya incluye el costo de actividades de terceros (zipline, kayak/SUP, yoga/temazcal, etc.).</li>
-                    </ul>
-                  </div>
-                  <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
-                    <h3 className="font-black text-gray-900">Private (precio por grupo)</h3>
-                    <ul className="list-disc pl-5 mt-2 space-y-1">
-                      <li>Lancha/vehículo dedicado + host dedicado.</li>
-                      <li>Ruta flexible (se ajusta ritmo/paradas).</li>
-                      <li>Precio base incluye hasta 6 pax.</li>
-                      <li>Persona adicional (si capacidad lo permite): USD 35 p/p.</li>
-                    </ul>
-                  </div>
-                  <p className="text-[11px] sm:text-xs text-gray-400 border-t border-gray-100 pt-4">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
-                </div>
-              )}
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.5)] space-y-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.08),_transparent_55%)] pointer-events-none"></div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="relative z-10">
-                  <span className="inline-flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">
-                    Add-ons
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-950 mt-3">Add-ons generales (opcionales)</h2>
-                  <p className="text-sm sm:text-base text-gray-500 font-medium mt-1">Opcionales universales aplicables a cualquier tour.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAddonsOpen((prev) => !prev)}
-                  className="relative z-10 shrink-0 w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-200 transition-colors shadow-sm"
-                  aria-expanded={isAddonsOpen}
-                  aria-controls="addons-content"
-                >
-                  <svg className={`w-4 h-4 transition-transform ${isAddonsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-              </div>
-              {isAddonsOpen && (
-                <div id="addons-content" className="relative z-10 space-y-5 text-sm sm:text-base text-gray-700">
-                  {GENERAL_ADDONS.map((category) => (
-                    <div key={category.id} className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 sm:p-5">
-                      <h3 className="font-black text-gray-900">{category.title}</h3>
-                      <ul className="mt-2 space-y-2">
-                        {category.items.map((item) => {
-                          const isSelected = selectedGeneralAddons.includes(item);
-                          return (
-                            <li key={item}>
-                              <button
-                                type="button"
-                                onClick={() => toggleGeneralAddon(item)}
-                                className={`w-full flex items-start gap-2 rounded-xl px-3 py-2 text-left text-[12px] sm:text-sm font-bold border transition-colors ${
-                                  isSelected
-                                    ? 'bg-emerald-600/10 border-emerald-200 text-emerald-700'
-                                    : 'bg-white border-gray-100 text-gray-600 hover:border-emerald-100 hover:text-emerald-600'
-                                }`}
-                              >
-                                <span className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300'}`}>
-                                  {isSelected && (
-                                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
-                                  )}
-                                </span>
-                                <span>{item}</span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
+            {/* Add-ons Section - Redesigned */}
+            <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
                     </div>
-                  ))}
-                  <p className="text-[11px] sm:text-xs text-gray-400 border-t border-gray-100 pt-4">Precios sugeridos. Sujeto a cambios según temporada y disponibilidad.</p>
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-black text-white">Add-ons Opcionales</h2>
+                      <p className="text-xs text-emerald-300/70">Personaliza tu experiencia</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddonsOpen((prev) => !prev)}
+                    className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white transition-all"
+                    aria-expanded={isAddonsOpen}
+                    aria-controls="addons-content"
+                  >
+                    <svg className={`w-4 h-4 transition-transform ${isAddonsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
+                  </button>
                 </div>
-              )}
+
+                {/* Selected count badge */}
+                {selectedGeneralAddons.length > 0 && (
+                  <div className="mb-4 flex items-center gap-2">
+                    <span className="px-3 py-1.5 bg-emerald-500/30 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-300">
+                      {selectedGeneralAddons.length} add-on{selectedGeneralAddons.length > 1 ? 's' : ''} seleccionado{selectedGeneralAddons.length > 1 ? 's' : ''}
+                    </span>
+                    <button
+                      onClick={() => setSelectedGeneralAddons([])}
+                      className="text-[10px] text-emerald-400/60 hover:text-emerald-300 uppercase tracking-wider font-bold"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+                )}
+
+                {isAddonsOpen && (
+                  <div id="addons-content" className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                    {GENERAL_ADDONS.map((category) => {
+                      const categoryIcons: Record<string, React.ReactNode> = {
+                        'transporte': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>,
+                        'tiempo-extra': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+                        'guias-concierge': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>,
+                        'foto-video': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
+                        'fnb': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+                        'terceros': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+                        'momentos': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>,
+                      };
+                      const selectedInCategory = category.items.filter(item => selectedGeneralAddons.includes(item)).length;
+
+                      return (
+                        <div key={category.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                          <div className="flex items-center gap-3 p-4 border-b border-white/5">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                              {categoryIcons[category.id]}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-white text-sm truncate">{category.title}</h3>
+                              <p className="text-[10px] text-emerald-300/50">{category.items.length} opciones</p>
+                            </div>
+                            {selectedInCategory > 0 && (
+                              <span className="px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-bold rounded-full">
+                                {selectedInCategory}
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-2 space-y-1">
+                            {category.items.map((item) => {
+                              const isSelected = selectedGeneralAddons.includes(item);
+                              // Extract price from item string
+                              const priceMatch = item.match(/USD\s*[\d,–-]+(?:\s*(?:p\/p|por\s+(?:vehículo|grupo|hora|reserva)))?/i);
+                              const price = priceMatch ? priceMatch[0] : null;
+                              const itemText = price ? item.replace(price, '').replace(/:\s*$/, '').trim() : item;
+
+                              return (
+                                <button
+                                  key={item}
+                                  type="button"
+                                  onClick={() => toggleGeneralAddon(item)}
+                                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+                                    isSelected
+                                      ? 'bg-emerald-500/30 border border-emerald-400/50'
+                                      : 'bg-white/5 border border-transparent hover:bg-white/10 hover:border-white/10'
+                                  }`}
+                                >
+                                  <span className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                                    isSelected
+                                      ? 'bg-emerald-500 border-emerald-500'
+                                      : 'border-white/30'
+                                  }`}>
+                                    {isSelected && (
+                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/>
+                                      </svg>
+                                    )}
+                                  </span>
+                                  <span className="flex-1 min-w-0">
+                                    <span className={`block text-xs font-medium truncate ${isSelected ? 'text-white' : 'text-white/80'}`}>
+                                      {itemText}
+                                    </span>
+                                    {price && (
+                                      <span className={`text-[10px] font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-400/70'}`}>
+                                        {price}
+                                      </span>
+                                    )}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-[10px] text-emerald-300/50 text-center pt-2">Precios sujetos a temporada y disponibilidad</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
