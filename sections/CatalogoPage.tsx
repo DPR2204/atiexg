@@ -322,6 +322,9 @@ const CatalogoPage = () => {
   const [selectedConfigs, setSelectedConfigs] = useState<SelectedTourConfig[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [selectedGeneralAddons, setSelectedGeneralAddons] = useState<string[]>([]);
+  const [isPricingExpanded, setIsPricingExpanded] = useState(true);
+  const [isAddonsExpanded, setIsAddonsExpanded] = useState(true);
+  const [expandedAddonCategories, setExpandedAddonCategories] = useState<Set<string>>(new Set(GENERAL_ADDONS.map(c => c.id)));
   const meta = PAGE_META.catalogo;
 
   const filteredTours = useMemo(() => {
@@ -581,18 +584,31 @@ const CatalogoPage = () => {
         <section id="esquema-precios" className="scroll-mt-28 mt-16 sm:mt-24">
           {/* Section Header */}
           <div className="mb-8 sm:mb-12 animate-fade-in-up">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="h-px w-8 bg-gray-300" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                Opciones de servicio
-              </span>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="h-px w-8 bg-gray-300" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                    Opciones de servicio
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Esquema de Precios</h2>
+                <p className="text-sm text-gray-500 max-w-xl">Elige el nivel de experiencia que mejor se adapte a tu viaje</p>
+              </div>
+              <button
+                onClick={() => setIsPricingExpanded(!isPricingExpanded)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all"
+              >
+                {isPricingExpanded ? 'Ocultar' : 'Mostrar'}
+                <svg className={`w-4 h-4 transition-transform duration-300 ${isPricingExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Esquema de Precios</h2>
-            <p className="text-sm text-gray-500 max-w-xl">Elige el nivel de experiencia que mejor se adapte a tu viaje</p>
           </div>
 
           {/* Pricing Cards - Independent Minimalist Boxes */}
-          <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-16 sm:mb-20">
+          <div className={`grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-16 sm:mb-20 transition-all duration-500 overflow-hidden ${isPricingExpanded ? 'opacity-100 max-h-[2000px]' : 'opacity-0 max-h-0 mb-0'}`}>
             {/* Standard */}
             <div className="group bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 hover:border-gray-200 hover:shadow-lg transition-all duration-300 animate-fade-in-up" style={{ animationDelay: '0ms' }}>
               <div className="flex items-center gap-3 mb-4">
@@ -719,7 +735,7 @@ const CatalogoPage = () => {
 
           {/* Add-ons Section Header */}
           <div className="mb-8 sm:mb-10 animate-fade-in-up">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="h-px w-8 bg-gray-300" />
@@ -730,24 +746,35 @@ const CatalogoPage = () => {
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Add-ons Opcionales</h2>
                 <p className="text-sm text-gray-500">Complementa tu experiencia con servicios adicionales</p>
               </div>
-              {selectedGeneralAddons.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1.5 bg-red-50 border border-red-100 rounded-full text-xs font-bold text-red-600">
-                    {selectedGeneralAddons.length} seleccionado{selectedGeneralAddons.length > 1 ? 's' : ''}
-                  </span>
-                  <button
-                    onClick={() => setSelectedGeneralAddons([])}
-                    className="text-xs text-gray-400 hover:text-red-500 font-medium transition-colors"
-                  >
-                    Limpiar
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                {selectedGeneralAddons.length > 0 && (
+                  <>
+                    <span className="px-3 py-1.5 bg-red-50 border border-red-100 rounded-full text-xs font-bold text-red-600">
+                      {selectedGeneralAddons.length} seleccionado{selectedGeneralAddons.length > 1 ? 's' : ''}
+                    </span>
+                    <button
+                      onClick={() => setSelectedGeneralAddons([])}
+                      className="text-xs text-gray-400 hover:text-red-500 font-medium transition-colors"
+                    >
+                      Limpiar
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => setIsAddonsExpanded(!isAddonsExpanded)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all"
+                >
+                  {isAddonsExpanded ? 'Ocultar' : 'Mostrar'}
+                  <svg className={`w-4 h-4 transition-transform duration-300 ${isAddonsExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Add-ons Grid - Independent Minimalist Boxes */}
-          <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className={`grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 transition-all duration-500 overflow-hidden ${isAddonsExpanded ? 'opacity-100 max-h-[4000px]' : 'opacity-0 max-h-0'}`}>
             {GENERAL_ADDONS.map((category, catIndex) => {
               const categoryStyles: Record<string, { bg: string; icon: string; border: string; accent: string }> = {
                 'transporte': { bg: 'bg-slate-50', icon: 'bg-slate-100 text-slate-600', border: 'border-slate-100 hover:border-slate-200', accent: 'text-slate-600' },
@@ -770,32 +797,53 @@ const CatalogoPage = () => {
               const style = categoryStyles[category.id] || categoryStyles['transporte'];
               const selectedInCategory = category.items.filter(item => selectedGeneralAddons.includes(item)).length;
 
+              const isExpanded = expandedAddonCategories.has(category.id);
+              const toggleCategory = () => {
+                setExpandedAddonCategories(prev => {
+                  const newSet = new Set(prev);
+                  if (newSet.has(category.id)) {
+                    newSet.delete(category.id);
+                  } else {
+                    newSet.add(category.id);
+                  }
+                  return newSet;
+                });
+              };
+
               return (
                 <div
                   key={category.id}
                   className={`${style.bg} border ${style.border} rounded-2xl p-4 sm:p-5 hover:shadow-md transition-all duration-300 animate-fade-in-up`}
                   style={{ animationDelay: `${catIndex * 60}ms` }}
                 >
-                  {/* Category Header */}
-                  <div className="flex items-center justify-between mb-4">
+                  {/* Category Header - Clickable to toggle */}
+                  <button
+                    onClick={toggleCategory}
+                    className="w-full flex items-center justify-between mb-2 group"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl ${style.icon} flex items-center justify-center`}>
+                      <div className={`w-9 h-9 rounded-xl ${style.icon} flex items-center justify-center group-hover:scale-105 transition-transform`}>
                         {categoryIcons[category.id]}
                       </div>
-                      <div>
+                      <div className="text-left">
                         <h3 className="font-semibold text-gray-900 text-sm">{category.title.split(' (')[0]}</h3>
                         <p className="text-[10px] text-gray-400">{category.items.length} opciones</p>
                       </div>
                     </div>
-                    {selectedInCategory > 0 && (
-                      <span className={`w-6 h-6 rounded-full ${style.icon} flex items-center justify-center text-[10px] font-bold`}>
-                        {selectedInCategory}
-                      </span>
-                    )}
-                  </div>
+                    <div className="flex items-center gap-2">
+                      {selectedInCategory > 0 && (
+                        <span className={`w-6 h-6 rounded-full ${style.icon} flex items-center justify-center text-[10px] font-bold`}>
+                          {selectedInCategory}
+                        </span>
+                      )}
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </div>
+                  </button>
 
-                  {/* Items */}
-                  <div className="space-y-1.5 max-h-[180px] overflow-y-auto scrollbar-hide">
+                  {/* Items - Collapsible */}
+                  <div className={`space-y-1.5 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[180px] opacity-100 mt-3 overflow-y-auto scrollbar-hide' : 'max-h-0 opacity-0'}`}>
                     {category.items.map((item) => {
                       const isSelected = selectedGeneralAddons.includes(item);
                       const priceMatch = item.match(/USD\s*[\d,–-]+(?:\s*(?:p\/p|por\s+(?:vehículo|grupo|hora|reserva)))?/i);
