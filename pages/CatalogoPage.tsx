@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Seo from './Seo';
-import { GlassNav, GlassFooter } from './shared';
-import TourImage from './TourImage';
+import Seo from '../components/Seo';
+import { GlassNav, GlassFooter } from '../components/shared';
+import TourImage from '../components/TourImage';
 import { TOURS } from '../data';
 import { SelectedTourConfig, Tour } from '../types';
 import {

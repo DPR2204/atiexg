@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Seo from './Seo';
-import { GlassNav, GlassFooter } from './shared';
-import TourImage from './TourImage';
+import Seo from '../components/Seo';
+import { GlassNav, GlassFooter } from '../components/shared';
+import TourImage from '../components/TourImage';
 import {
   PAGE_META,
   buildOrganizationSchema,

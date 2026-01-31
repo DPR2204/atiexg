@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { TOURS } from '../data';
-import Seo from './Seo';
-import TourImage from './TourImage';
-import { GlassNav, GlassFooter } from './shared';
+import Seo from '../components/Seo';
+import TourImage from '../components/TourImage';
+import { GlassNav, GlassFooter } from '../components/shared';
 import {
   buildOrganizationSchema,
   buildTourSchema,

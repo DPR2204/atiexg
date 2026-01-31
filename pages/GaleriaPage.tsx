@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import Seo from './Seo';
-import { GlassNav, GlassFooter } from './shared';
+import Seo from '../components/Seo';
+import { GlassNav, GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
 
 // Gallery images with categories and aspects

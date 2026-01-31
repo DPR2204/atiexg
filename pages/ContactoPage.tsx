@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Seo from './Seo';
-import { GlassNav, GlassFooter } from './shared';
+import Seo from '../components/Seo';
+import { GlassNav, GlassFooter } from '../components/shared';
 import {
   PAGE_META,
   buildOrganizationSchema,

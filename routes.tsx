@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { RouteObject } from 'react-router-dom';
-import Layout from './sections/Layout';
-import InicioPage from './sections/InicioPage';
-import CatalogoPage from './sections/CatalogoPage';
-import GaleriaPage from './sections/GaleriaPage';
-import ConocenosPage from './sections/ConocenosPage';
-import ContactoPage from './sections/ContactoPage';
-import TourPage from './sections/TourPage';
-import NotFoundPage from './sections/NotFoundPage';
+import Layout from './components/layouts/Layout';
+import LoadingSpinner from './components/shared/LoadingSpinner';
+
+// Lazy load pages
+const HomePage = lazy(() => import('./pages/HomePage'));
+const CatalogoPage = lazy(() => import('./pages/CatalogoPage'));
+const GaleriaPage = lazy(() => import('./pages/GaleriaPage'));
+const ConocenosPage = lazy(() => import('./pages/ConocenosPage'));
+const ContactoPage = lazy(() => import('./pages/ContactoPage'));
+const TourPage = lazy(() => import('./pages/TourPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
+const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<LoadingSpinner />}>
+    {children}
+  </Suspense>
+);
 
 export const routes: RouteObject[] = [
   {
@@ -16,31 +25,31 @@ export const routes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <InicioPage />,
+        element: <SuspenseWrapper><HomePage /></SuspenseWrapper>,
       },
       {
         path: 'catalogo',
-        element: <CatalogoPage />,
+        element: <SuspenseWrapper><CatalogoPage /></SuspenseWrapper>,
       },
       {
         path: 'galeria',
-        element: <GaleriaPage />,
+        element: <SuspenseWrapper><GaleriaPage /></SuspenseWrapper>,
       },
       {
         path: 'conocenos',
-        element: <ConocenosPage />,
+        element: <SuspenseWrapper><ConocenosPage /></SuspenseWrapper>,
       },
       {
         path: 'contacto',
-        element: <ContactoPage />,
+        element: <SuspenseWrapper><ContactoPage /></SuspenseWrapper>,
       },
       {
         path: 'experiencias/:slug',
-        element: <TourPage />,
+        element: <SuspenseWrapper><TourPage /></SuspenseWrapper>,
       },
       {
         path: '*',
-        element: <NotFoundPage />,
+        element: <SuspenseWrapper><NotFoundPage /></SuspenseWrapper>,
       },
     ],
   },
