@@ -193,59 +193,123 @@ const ComparisonModal = ({
   tours,
   configs,
   onClose,
+  onRemoveTour,
 }: {
   tours: Tour[];
   configs: SelectedTourConfig[];
   onClose: () => void;
+  onRemoveTour: (tourId: string) => void;
 }) => (
   <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-fade-in">
-    <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-xl" onClick={onClose}></div>
-    <div className="relative bg-white w-full max-w-6xl rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-      <div className="p-6 sm:p-8 border-b border-gray-100 flex items-center justify-between bg-white">
-        <h2 className="text-xl sm:text-2xl font-black text-gray-900 uppercase tracking-tighter">Comparativa Detallada</h2>
-        <button onClick={onClose} className="p-2 sm:p-3 bg-gray-100 hover:bg-gray-200 rounded-full transition-all active:scale-90" aria-label="Cerrar comparación">
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+    <div className="absolute inset-0 bg-black/80 backdrop-blur-2xl" onClick={onClose}></div>
+    <div className="relative bg-white w-full max-w-6xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-in">
+      {/* Header */}
+      <div className="p-5 sm:p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Comparar Experiencias</h2>
+            <p className="text-xs text-gray-400">{tours.length} tours seleccionados</p>
+          </div>
+        </div>
+        <button onClick={onClose} className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all active:scale-95" aria-label="Cerrar comparación">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <div className="flex-1 overflow-x-auto p-4 sm:p-8 bg-gray-50/30">
-        <div className="flex gap-4 sm:gap-8 min-w-[800px] md:min-w-[1000px]">
-          {tours.map((tour) => {
+
+      {/* Comparison Grid */}
+      <div className="flex-1 overflow-x-auto p-4 sm:p-6 bg-gray-50/50">
+        <div className="flex gap-4 sm:gap-5" style={{ minWidth: `${Math.max(tours.length * 280, 560)}px` }}>
+          {tours.map((tour, index) => {
             const config = configs.find((c) => c.tourId === tour.id);
             const price = tour.prices.find((p) => p.id === config?.selectedPriceId);
             return (
-              <div key={tour.id} className="flex-1 bg-white rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 border border-gray-100 flex flex-col shadow-sm">
-                <TourImage
-                  src={tour.image}
-                  alt={tour.name}
-                  className="w-full h-40 sm:h-48 object-cover rounded-[1.5rem] sm:rounded-[2rem] mb-6 shadow-md"
-                  sizes="(max-width: 768px) 80vw, 40vw"
-                />
-                <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-1 leading-none uppercase truncate">{tour.name}</h3>
-                <p className="text-[9px] sm:text-[10px] font-black text-red-500 uppercase tracking-widest mb-6">{tour.category}</p>
+              <div
+                key={tour.id}
+                className="flex-1 min-w-[260px] max-w-[320px] bg-white rounded-2xl border border-gray-100 flex flex-col shadow-sm hover:shadow-lg transition-shadow animate-slide-up"
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                {/* Tour Image with Remove Button */}
+                <div className="relative">
+                  <TourImage
+                    src={tour.image}
+                    alt={tour.name}
+                    className="w-full h-36 sm:h-44 object-cover rounded-t-2xl"
+                    sizes="(max-width: 768px) 80vw, 320px"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-t-2xl" />
 
-                <div className="space-y-4 sm:space-y-6 flex-1 text-sm">
-                  <div className="flex justify-between border-b border-gray-50 pb-3">
-                    <span className="font-bold text-gray-400 uppercase text-[8px] sm:text-[9px]">Formato</span>
-                    <span className="font-black text-gray-900 text-xs sm:text-sm">{price?.label}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-gray-50 pb-3">
-                    <span className="font-bold text-gray-400 uppercase text-[8px] sm:text-[9px]">Precio Ref.</span>
-                    <span className="font-black text-red-500 text-xs sm:text-sm">${price?.amount}</span>
-                  </div>
-                  <div className="space-y-2">
-                    <span className="font-bold text-gray-400 uppercase text-[8px] sm:text-[9px]">Itinerario:</span>
-                    {(config?.customItinerary || tour.itinerary).slice(0, 4).map((step, idx) => (
-                      <div key={`${step.time}-${idx}`} className="flex gap-2 text-[10px] sm:text-[11px] font-bold text-gray-600">
-                        <span className="text-red-500 shrink-0">{step.time}</span>
-                        <span className="truncate">{step.activity}</span>
+                  {/* Remove Button */}
+                  <button
+                    onClick={() => onRemoveTour(tour.id)}
+                    className="absolute top-3 right-3 p-2 bg-black/40 hover:bg-red-500 rounded-xl text-white/80 hover:text-white transition-all active:scale-90 backdrop-blur-sm"
+                    aria-label={`Quitar ${tour.name} de comparación`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+
+                  {/* Category Badge */}
+                  <span className="absolute bottom-3 left-3 px-2.5 py-1 bg-white/95 backdrop-blur-sm text-[9px] font-bold uppercase tracking-wider rounded-lg text-gray-700">
+                    {tour.category}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 sm:p-5 flex-1 flex flex-col">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 leading-tight line-clamp-2">{tour.name}</h3>
+
+                  {/* Key Info */}
+                  <div className="space-y-2.5 mb-4">
+                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Formato</span>
+                      <span className="text-xs font-bold text-gray-900">{price?.label || 'Standard'}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 px-3 bg-red-50 rounded-xl">
+                      <span className="text-[10px] font-medium text-red-400 uppercase tracking-wide">Desde</span>
+                      <span className="text-sm font-black text-red-600">${price?.amount || tour.price}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Rating</span>
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        <span className="text-xs font-bold text-gray-900">{tour.rating}</span>
                       </div>
-                    ))}
+                    </div>
+                  </div>
+
+                  {/* Itinerary Preview */}
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Itinerario</p>
+                    <div className="space-y-1.5">
+                      {(config?.customItinerary || tour.itinerary).slice(0, 3).map((step, idx) => (
+                        <div key={`${step.time}-${idx}`} className="flex gap-2 text-[11px]">
+                          <span className="font-mono font-semibold text-red-500 shrink-0 w-12">{step.time}</span>
+                          <span className="text-gray-600 truncate">{step.activity}</span>
+                        </div>
+                      ))}
+                      {tour.itinerary.length > 3 && (
+                        <p className="text-[10px] text-gray-400 italic">+{tour.itinerary.length - 3} paradas más...</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {/* Footer Hint */}
+      <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">Desliza horizontalmente para ver todos los tours</p>
       </div>
     </div>
   </div>
@@ -257,8 +321,6 @@ const CatalogoPage = () => {
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [selectedConfigs, setSelectedConfigs] = useState<SelectedTourConfig[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
-  const [isPricingOpen, setIsPricingOpen] = useState(true);
-  const [isAddonsOpen, setIsAddonsOpen] = useState(true);
   const [selectedGeneralAddons, setSelectedGeneralAddons] = useState<string[]>([]);
   const meta = PAGE_META.catalogo;
 
@@ -327,6 +389,10 @@ const CatalogoPage = () => {
           tours={TOURS.filter((tour) => selectedConfigs.some((config) => config.tourId === tour.id))}
           configs={selectedConfigs}
           onClose={() => setIsCompareOpen(false)}
+          onRemoveTour={(tourId) => {
+            setSelectedConfigs((prev) => prev.filter((c) => c.tourId !== tourId));
+            if (selectedConfigs.length <= 2) setIsCompareOpen(false);
+          }}
         />
       )}
 
@@ -404,17 +470,17 @@ const CatalogoPage = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                  {/* Comparison button - top right */}
+                  {/* Comparison button - top right - Enhanced */}
                   <button
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
                       toggleSelection(tour);
                     }}
-                    className={`absolute top-4 right-4 z-10 p-2.5 rounded-2xl shadow-lg transition-all active:scale-90 ${
+                    className={`absolute top-4 right-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl shadow-lg transition-all duration-300 active:scale-95 ${
                       selectedConfigs.some((config) => config.tourId === tour.id)
-                        ? 'bg-red-500 text-white scale-110 shadow-red-200'
-                        : 'bg-white/95 text-gray-500 hover:text-red-500'
+                        ? 'bg-red-500 text-white shadow-red-500/30 scale-105'
+                        : 'bg-white/95 backdrop-blur-sm text-gray-600 hover:bg-red-500 hover:text-white hover:shadow-red-500/20'
                     }`}
                     aria-label={
                       selectedConfigs.some((config) => config.tourId === tour.id)
@@ -423,13 +489,19 @@ const CatalogoPage = () => {
                     }
                   >
                     {selectedConfigs.some((config) => config.tourId === tour.id) ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-[10px] font-bold uppercase tracking-wide">Agregado</span>
+                      </>
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
-                      </svg>
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span className="text-[10px] font-bold uppercase tracking-wide">Comparar</span>
+                      </>
                     )}
                   </button>
 
@@ -505,315 +577,274 @@ const CatalogoPage = () => {
           </div>
         )}
 
+        {/* Pricing & Add-ons Section - Minimalist Independent Cards */}
         <section id="esquema-precios" className="scroll-mt-28 mt-16 sm:mt-24">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Pricing Schema - Redesigned */}
-            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          {/* Section Header */}
+          <div className="mb-8 sm:mb-12 animate-fade-in-up">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-px w-8 bg-gray-300" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                Opciones de servicio
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Esquema de Precios</h2>
+            <p className="text-sm text-gray-500 max-w-xl">Elige el nivel de experiencia que mejor se adapte a tu viaje</p>
+          </div>
 
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-black text-white">Esquema de Precios</h2>
-                      <p className="text-xs text-slate-400">Elige tu nivel de experiencia</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPricingOpen((prev) => !prev)}
-                    className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white transition-all"
-                    aria-expanded={isPricingOpen}
-                    aria-controls="pricing-content"
-                  >
-                    <svg className={`w-4 h-4 transition-transform ${isPricingOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
-                  </button>
+          {/* Pricing Cards - Independent Minimalist Boxes */}
+          <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-16 sm:mb-20">
+            {/* Standard */}
+            <div className="group bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 hover:border-gray-200 hover:shadow-lg transition-all duration-300 animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
                 </div>
-
-                {isPricingOpen && (
-                  <div id="pricing-content" className="space-y-3">
-                    {/* Standard */}
-                    <div className="group bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 transition-all cursor-default">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-white">Shared Standard</h3>
-                            <span className="px-2 py-0.5 bg-slate-700 text-slate-300 text-[9px] font-bold uppercase rounded-full">Base</span>
-                          </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                              8-12 pax
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389 21.034 21.034 0 01-.554-.6 19.098 19.098 0 01-3.466 3.429A1 1 0 012 14.502a17.09 17.09 0 003.037-2.936 18.93 18.93 0 01-1.065-2.572 1 1 0 111.898-.633c.217.65.473 1.276.766 1.875a17.09 17.09 0 001.39-3.536H4a1 1 0 110-2h3V3a1 1 0 011-1zm10.657 5.343a1 1 0 00-1.414 0l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L15.414 11H19a1 1 0 100-2h-3.586l2.243-2.243a1 1 0 000-1.414z" clipRule="evenodd"/></svg>
-                              EN/ES
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
-                              Timing clásico
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Premium */}
-                    <div className="group bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-400/30 rounded-2xl p-4 transition-all cursor-default">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-blue-500/20">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-white">Shared Premium</h3>
-                            <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 text-[9px] font-bold uppercase rounded-full">Popular</span>
-                          </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300 mb-2">
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                              4-8 pax
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
-                              Ritmo flexible
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Mesa reservada
-                            </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Premium Perk
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* All-in */}
-                    <div className="group bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-400/30 rounded-2xl p-4 transition-all cursor-default">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-emerald-500/20">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-white">Shared All-in</h3>
-                            <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-300 text-[9px] font-bold uppercase rounded-full">Todo incluido</span>
-                          </div>
-                          <p className="text-xs text-slate-400 mb-2">Premium + actividades de terceros incluidas</p>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Zipline
-                            </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Kayak/SUP
-                            </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Yoga/Temazcal
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Private */}
-                    <div className="group bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-400/30 rounded-2xl p-4 transition-all cursor-default">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-lg shadow-amber-500/20">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-white">Private</h3>
-                            <span className="px-2 py-0.5 bg-amber-500/30 text-amber-300 text-[9px] font-bold uppercase rounded-full">Exclusivo</span>
-                          </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300 mb-2">
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                              Hasta 6 pax base
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-                              +$35 p/p adicional
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Lancha dedicada
-                            </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Host dedicado
-                            </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-[10px] text-slate-300">
-                              <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Ruta flexible
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-slate-500 text-center pt-2">Precios sujetos a temporada y disponibilidad</p>
-                  </div>
-                )}
+                <div>
+                  <h3 className="font-bold text-gray-900">Standard</h3>
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">Compartido</span>
+                </div>
+              </div>
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                  <span>8-12 personas</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
+                  <span>Timing clásico</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.466 3.429A1 1 0 012 14.502a17.09 17.09 0 003.037-2.936 18.93 18.93 0 01-1.065-2.572 1 1 0 111.898-.633c.217.65.473 1.276.766 1.875a17.09 17.09 0 001.39-3.536H4a1 1 0 110-2h3V3a1 1 0 011-1z" clipRule="evenodd"/></svg>
+                  <span>Guía EN/ES</span>
+                </div>
+              </div>
+              <div className="pt-3 border-t border-gray-50">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Desde</span>
+                <p className="text-lg font-bold text-gray-900">Precio base</p>
               </div>
             </div>
 
-            {/* Add-ons Section - Redesigned */}
-            <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-400/10 rounded-full blur-3xl pointer-events-none"></div>
-
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-black text-white">Add-ons Opcionales</h2>
-                      <p className="text-xs text-emerald-300/70">Personaliza tu experiencia</p>
-                    </div>
+            {/* Premium */}
+            <div className="group bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 sm:p-6 hover:shadow-lg hover:shadow-blue-100/50 transition-all duration-300 animate-fade-in-up" style={{ animationDelay: '80ms' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-md shadow-blue-200">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                    </svg>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddonsOpen((prev) => !prev)}
-                    className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/60 hover:bg-white/20 hover:text-white transition-all"
-                    aria-expanded={isAddonsOpen}
-                    aria-controls="addons-content"
-                  >
-                    <svg className={`w-4 h-4 transition-transform ${isAddonsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
-                  </button>
+                  <div>
+                    <h3 className="font-bold text-gray-900">Premium</h3>
+                    <span className="text-[9px] font-medium uppercase tracking-wider text-blue-500">Popular</span>
+                  </div>
                 </div>
+              </div>
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-xs text-gray-700">
+                  <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                  <span>4-8 personas</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-700">
+                  <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
+                  <span>Ritmo flexible</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Mesa reservada</span>
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Premium perk</span>
+              </div>
+              <div className="pt-3 border-t border-blue-100">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400">Desde</span>
+                <p className="text-lg font-bold text-gray-900">+15-25%</p>
+              </div>
+            </div>
 
-                {/* Selected count badge */}
-                {selectedGeneralAddons.length > 0 && (
-                  <div className="mb-4 flex items-center gap-2">
-                    <span className="px-3 py-1.5 bg-emerald-500/30 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-300">
-                      {selectedGeneralAddons.length} add-on{selectedGeneralAddons.length > 1 ? 's' : ''} seleccionado{selectedGeneralAddons.length > 1 ? 's' : ''}
-                    </span>
-                    <button
-                      onClick={() => setSelectedGeneralAddons([])}
-                      className="text-[10px] text-emerald-400/60 hover:text-emerald-300 uppercase tracking-wider font-bold"
-                    >
-                      Limpiar
-                    </button>
-                  </div>
-                )}
+            {/* All-in */}
+            <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-5 sm:p-6 hover:shadow-lg hover:shadow-emerald-100/50 transition-all duration-300 animate-fade-in-up" style={{ animationDelay: '160ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-md shadow-emerald-200">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">All-in</h3>
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-emerald-500">Todo incluido</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mb-3">Premium + actividades incluidas</p>
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Zipline</span>
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Kayak</span>
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Yoga</span>
+              </div>
+              <div className="pt-3 border-t border-emerald-100">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-400">Desde</span>
+                <p className="text-lg font-bold text-gray-900">+40-60%</p>
+              </div>
+            </div>
 
-                {isAddonsOpen && (
-                  <div id="addons-content" className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-                    {GENERAL_ADDONS.map((category) => {
-                      const categoryIcons: Record<string, React.ReactNode> = {
-                        'transporte': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>,
-                        'tiempo-extra': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
-                        'guias-concierge': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>,
-                        'foto-video': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
-                        'fnb': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
-                        'terceros': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
-                        'momentos': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>,
-                      };
-                      const selectedInCategory = category.items.filter(item => selectedGeneralAddons.includes(item)).length;
-
-                      return (
-                        <div key={category.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                          <div className="flex items-center gap-3 p-4 border-b border-white/5">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                              {categoryIcons[category.id]}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-white text-sm truncate">{category.title}</h3>
-                              <p className="text-[10px] text-emerald-300/50">{category.items.length} opciones</p>
-                            </div>
-                            {selectedInCategory > 0 && (
-                              <span className="px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-bold rounded-full">
-                                {selectedInCategory}
-                              </span>
-                            )}
-                          </div>
-                          <div className="p-2 space-y-1">
-                            {category.items.map((item) => {
-                              const isSelected = selectedGeneralAddons.includes(item);
-                              // Extract price from item string
-                              const priceMatch = item.match(/USD\s*[\d,–-]+(?:\s*(?:p\/p|por\s+(?:vehículo|grupo|hora|reserva)))?/i);
-                              const price = priceMatch ? priceMatch[0] : null;
-                              const itemText = price ? item.replace(price, '').replace(/:\s*$/, '').trim() : item;
-
-                              return (
-                                <button
-                                  key={item}
-                                  type="button"
-                                  onClick={() => toggleGeneralAddon(item)}
-                                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
-                                    isSelected
-                                      ? 'bg-emerald-500/30 border border-emerald-400/50'
-                                      : 'bg-white/5 border border-transparent hover:bg-white/10 hover:border-white/10'
-                                  }`}
-                                >
-                                  <span className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                                    isSelected
-                                      ? 'bg-emerald-500 border-emerald-500'
-                                      : 'border-white/30'
-                                  }`}>
-                                    {isSelected && (
-                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/>
-                                      </svg>
-                                    )}
-                                  </span>
-                                  <span className="flex-1 min-w-0">
-                                    <span className={`block text-xs font-medium truncate ${isSelected ? 'text-white' : 'text-white/80'}`}>
-                                      {itemText}
-                                    </span>
-                                    {price && (
-                                      <span className={`text-[10px] font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-400/70'}`}>
-                                        {price}
-                                      </span>
-                                    )}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <p className="text-[10px] text-emerald-300/50 text-center pt-2">Precios sujetos a temporada y disponibilidad</p>
-                  </div>
-                )}
+            {/* Private */}
+            <div className="group bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-5 sm:p-6 hover:shadow-lg hover:shadow-amber-100/50 transition-all duration-300 animate-fade-in-up" style={{ animationDelay: '240ms' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform shadow-md shadow-amber-200">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Private</h3>
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-amber-500">Exclusivo</span>
+                </div>
+              </div>
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-xs text-gray-700">
+                  <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                  <span>Hasta 6 pax (+$35 p/p extra)</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Lancha dedicada</span>
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Host privado</span>
+                <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Ruta flexible</span>
+              </div>
+              <div className="pt-3 border-t border-amber-100">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-amber-400">Desde</span>
+                <p className="text-lg font-bold text-gray-900">+80-120%</p>
               </div>
             </div>
           </div>
+
+          {/* Add-ons Section Header */}
+          <div className="mb-8 sm:mb-10 animate-fade-in-up">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="h-px w-8 bg-gray-300" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                    Personaliza
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Add-ons Opcionales</h2>
+                <p className="text-sm text-gray-500">Complementa tu experiencia con servicios adicionales</p>
+              </div>
+              {selectedGeneralAddons.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1.5 bg-red-50 border border-red-100 rounded-full text-xs font-bold text-red-600">
+                    {selectedGeneralAddons.length} seleccionado{selectedGeneralAddons.length > 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={() => setSelectedGeneralAddons([])}
+                    className="text-xs text-gray-400 hover:text-red-500 font-medium transition-colors"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Add-ons Grid - Independent Minimalist Boxes */}
+          <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {GENERAL_ADDONS.map((category, catIndex) => {
+              const categoryStyles: Record<string, { bg: string; icon: string; border: string; accent: string }> = {
+                'transporte': { bg: 'bg-slate-50', icon: 'bg-slate-100 text-slate-600', border: 'border-slate-100 hover:border-slate-200', accent: 'text-slate-600' },
+                'tiempo-extra': { bg: 'bg-violet-50', icon: 'bg-violet-100 text-violet-600', border: 'border-violet-100 hover:border-violet-200', accent: 'text-violet-600' },
+                'guias-concierge': { bg: 'bg-sky-50', icon: 'bg-sky-100 text-sky-600', border: 'border-sky-100 hover:border-sky-200', accent: 'text-sky-600' },
+                'foto-video': { bg: 'bg-pink-50', icon: 'bg-pink-100 text-pink-600', border: 'border-pink-100 hover:border-pink-200', accent: 'text-pink-600' },
+                'fnb': { bg: 'bg-amber-50', icon: 'bg-amber-100 text-amber-600', border: 'border-amber-100 hover:border-amber-200', accent: 'text-amber-600' },
+                'terceros': { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-600', border: 'border-emerald-100 hover:border-emerald-200', accent: 'text-emerald-600' },
+                'momentos': { bg: 'bg-rose-50', icon: 'bg-rose-100 text-rose-600', border: 'border-rose-100 hover:border-rose-200', accent: 'text-rose-600' },
+              };
+              const categoryIcons: Record<string, React.ReactNode> = {
+                'transporte': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>,
+                'tiempo-extra': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+                'guias-concierge': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>,
+                'foto-video': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
+                'fnb': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>,
+                'terceros': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+                'momentos': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>,
+              };
+              const style = categoryStyles[category.id] || categoryStyles['transporte'];
+              const selectedInCategory = category.items.filter(item => selectedGeneralAddons.includes(item)).length;
+
+              return (
+                <div
+                  key={category.id}
+                  className={`${style.bg} border ${style.border} rounded-2xl p-4 sm:p-5 hover:shadow-md transition-all duration-300 animate-fade-in-up`}
+                  style={{ animationDelay: `${catIndex * 60}ms` }}
+                >
+                  {/* Category Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl ${style.icon} flex items-center justify-center`}>
+                        {categoryIcons[category.id]}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-sm">{category.title.split(' (')[0]}</h3>
+                        <p className="text-[10px] text-gray-400">{category.items.length} opciones</p>
+                      </div>
+                    </div>
+                    {selectedInCategory > 0 && (
+                      <span className={`w-6 h-6 rounded-full ${style.icon} flex items-center justify-center text-[10px] font-bold`}>
+                        {selectedInCategory}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Items */}
+                  <div className="space-y-1.5 max-h-[180px] overflow-y-auto scrollbar-hide">
+                    {category.items.map((item) => {
+                      const isSelected = selectedGeneralAddons.includes(item);
+                      const priceMatch = item.match(/USD\s*[\d,–-]+(?:\s*(?:p\/p|por\s+(?:vehículo|grupo|hora|reserva)))?/i);
+                      const price = priceMatch ? priceMatch[0] : null;
+                      const itemText = price ? item.replace(price, '').replace(/:\s*$/, '').trim() : item;
+
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => toggleGeneralAddon(item)}
+                          className={`w-full flex items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-all duration-200 ${
+                            isSelected
+                              ? 'bg-white shadow-sm border border-gray-200'
+                              : 'bg-white/50 hover:bg-white border border-transparent'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 mt-0.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                            isSelected
+                              ? `${style.icon} border-transparent`
+                              : 'border-gray-300'
+                          }`}>
+                            {isSelected && (
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/>
+                              </svg>
+                            )}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className={`block text-[11px] leading-tight ${isSelected ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+                              {itemText}
+                            </span>
+                            {price && (
+                              <span className={`text-[10px] font-semibold ${style.accent}`}>
+                                {price}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer Note */}
+          <p className="text-center text-[11px] text-gray-400 mt-8">Precios sujetos a temporada y disponibilidad</p>
         </section>
       </main>
 
