@@ -10,6 +10,8 @@ const GaleriaPage = lazy(() => import('./pages/GaleriaPage'));
 const ConocenosPage = lazy(() => import('./pages/ConocenosPage'));
 const ContactoPage = lazy(() => import('./pages/ContactoPage'));
 const TourPage = lazy(() => import('./pages/TourPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -46,6 +48,14 @@ export const routes: RouteObject[] = [
       {
         path: 'experiencias/:slug',
         element: <SuspenseWrapper><TourPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'checkout',
+        element: <SuspenseWrapper><CheckoutPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'pago-exitoso',
+        element: <SuspenseWrapper><PaymentSuccessPage /></SuspenseWrapper>,
       },
       {
         path: '*',

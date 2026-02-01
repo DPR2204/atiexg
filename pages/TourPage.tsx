@@ -194,6 +194,16 @@ const TourPage = () => {
                 Ver más tours
               </Link>
             </div>
+            {/* Deposit Option */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-400">¿Prefieres asegurar tu lugar?</span>
+              <Link
+                to={`/checkout?tour=${tour.id}`}
+                className="text-red-500 hover:text-red-600 font-bold underline underline-offset-2 transition-colors"
+              >
+                Pagar $50 de anticipo
+              </Link>
+            </div>
           </div>
         </section>
 

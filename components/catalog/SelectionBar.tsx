@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
 import { Tour, SelectedTourConfig } from '../../types';
 import { TOURS } from '../../data';
@@ -18,6 +19,14 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     formatWhatsAppMessage,
     selectedGeneralAddons,
 }) => {
+    // Build checkout URL with tour info
+    const firstTour = selectedConfigs.length > 0
+        ? TOURS.find((t) => t.id === selectedConfigs[0].tourId)
+        : null;
+    const checkoutUrl = firstTour
+        ? `/checkout?tour=${firstTour.id}&items=${encodeURIComponent(JSON.stringify(selectedConfigs.map(c => c.tourId)))}`
+        : '/checkout';
+
     return (
         <div className={`fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-50 w-[96%] sm:w-[94%] max-w-2xl bg-black rounded-2xl sm:rounded-[2.5rem] shadow-lg px-3 py-3 sm:px-5 sm:py-5 border border-white/10 text-white transition-all duration-700 ${selectedConfigs.length > 0 ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-40 opacity-0 scale-90 pointer-events-none'}`}>
             <div className="flex items-center justify-between gap-1.5 sm:gap-6">
@@ -65,15 +74,23 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
                             Comparar
                         </button>
                     )}
-                    <a
-                        href={formatWhatsAppMessage(selectedConfigs, selectedGeneralAddons)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-green-600 text-white px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-green-500 active:scale-95 shadow-sm"
-                        aria-label="Reservar experiencias seleccionadas por WhatsApp"
-                    >
-                        RESERVAR
-                    </a>
+                    <div className="flex flex-col gap-1">
+                        <a
+                            href={formatWhatsAppMessage(selectedConfigs, selectedGeneralAddons)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-green-600 text-white px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-green-500 active:scale-95 shadow-sm text-center"
+                            aria-label="Reservar experiencias seleccionadas por WhatsApp"
+                        >
+                            RESERVAR
+                        </a>
+                        <Link
+                            to={checkoutUrl}
+                            className="text-[7px] sm:text-[8px] text-white/50 hover:text-white/80 text-center transition-colors underline underline-offset-2"
+                        >
+                            Pagar anticipo
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
