@@ -311,8 +311,8 @@ const GaleriaPage = () => {
                       }, 300);
                     }}
                     className={`relative flex-shrink-0 w-16 h-12 sm:w-20 sm:h-14 rounded-lg overflow-hidden transition-all duration-300 ${index === currentIndex
-                        ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-black scale-110'
-                        : 'opacity-50 hover:opacity-100'
+                      ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-black scale-110'
+                      : 'opacity-50 hover:opacity-100'
                       }`}
                   >
                     <img
@@ -434,8 +434,8 @@ const GaleriaPage = () => {
                     setCurrentIndex(0);
                   }}
                   className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${selectedCategory === category
-                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
-                      : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
+                    : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-white'
                     }`}
                 >
                   {category}
@@ -458,7 +458,7 @@ const GaleriaPage = () => {
       </div>
 
       {/* Gallery Grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
           {filteredImages.map((image, index) => {
             const isLoaded = loadedImages.has(image.id);

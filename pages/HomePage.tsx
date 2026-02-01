@@ -26,7 +26,7 @@ const InicioPage = () => {
       />
       <GlassNav />
 
-      <main>
+      <main id="main-content">
         <HeroSection />
         <FeaturesSection />
         <FeaturedTours />

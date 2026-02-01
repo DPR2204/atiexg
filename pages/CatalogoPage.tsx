@@ -241,7 +241,7 @@ const CatalogoPage = () => {
         />
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
         <div className="mb-10 sm:mb-16 animate-fade-in-up">
           <div className="flex items-center gap-2 mb-4">
@@ -433,13 +433,13 @@ const CatalogoPage = () => {
                           type="button"
                           onClick={() => toggleGeneralAddon(item)}
                           className={`w-full flex items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-all duration-200 ${isSelected
-                              ? 'bg-white shadow-sm border border-gray-200'
-                              : 'bg-white/50 hover:bg-white border border-transparent'
+                            ? 'bg-white shadow-sm border border-gray-200'
+                            : 'bg-white/50 hover:bg-white border border-transparent'
                             }`}
                         >
                           <span className={`w-4 h-4 mt-0.5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected
-                              ? `${style.icon} border-transparent`
-                              : 'border-gray-300'
+                            ? `${style.icon} border-transparent`
+                            : 'border-gray-300'
                             }`}>
                             {isSelected && (
                               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
