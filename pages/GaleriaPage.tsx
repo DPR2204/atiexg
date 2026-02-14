@@ -3,8 +3,8 @@ import Seo from '../components/Seo';
 import { GlassNav, GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
 
-import cloudinaryAssets from '../data/cloudinary-assets.json';
-import { getCloudinaryUrl } from '../utils/cloudinary';
+import cloudinaryAssets from '../src/data/cloudinary-assets.json';
+import { getCloudinaryUrl } from '../src/utils/cloudinary';
 
 // Dynamic Gallery images from Cloudinary
 const GALLERY_IMAGES = cloudinaryAssets.map((asset, index) => ({
