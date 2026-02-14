@@ -3,41 +3,26 @@ import Seo from '../components/Seo';
 import { GlassNav, GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
 
-// Gallery images with categories and aspects
-const GALLERY_IMAGES = [
-  { id: 1, seed: 'atitlan-lake-1', category: 'Paisajes', aspect: 'landscape', title: 'Amanecer en el Lago', location: 'Panajachel' },
-  { id: 2, seed: 'atitlan-boat-2', category: 'Lanchas', aspect: 'portrait', title: 'Lancha Tradicional', location: 'San Pedro' },
-  { id: 3, seed: 'atitlan-sunset-3', category: 'Atardeceres', aspect: 'landscape', title: 'Atardecer Dorado', location: 'Santa Cruz' },
-  { id: 4, seed: 'atitlan-culture-4', category: 'Cultura', aspect: 'square', title: 'Tradición Viva', location: 'Santiago Atitlán' },
-  { id: 5, seed: 'atitlan-food-5', category: 'Gastronomía', aspect: 'portrait', title: 'Sabores del Lago', location: 'San Juan' },
-  { id: 6, seed: 'atitlan-volcano-6', category: 'Volcanes', aspect: 'landscape', title: 'Volcán San Pedro', location: 'San Pedro' },
-  { id: 7, seed: 'atitlan-artisan-7', category: 'Artesanías', aspect: 'square', title: 'Arte Textil', location: 'San Juan' },
-  { id: 8, seed: 'atitlan-kayak-8', category: 'Aventura', aspect: 'landscape', title: 'Kayak al Amanecer', location: 'Santa Cruz' },
-  { id: 9, seed: 'atitlan-village-9', category: 'Pueblos', aspect: 'portrait', title: 'Calles de Color', location: 'Santa Catarina' },
-  { id: 10, seed: 'atitlan-sunrise-10', category: 'Amaneceres', aspect: 'landscape', title: 'Primera Luz', location: 'Indian Nose' },
-  { id: 11, seed: 'atitlan-market-11', category: 'Mercados', aspect: 'square', title: 'Mercado Local', location: 'Sololá' },
-  { id: 12, seed: 'atitlan-coffee-12', category: 'Café', aspect: 'portrait', title: 'Café de Altura', location: 'San Juan' },
-  { id: 13, seed: 'atitlan-people-13', category: 'Gente', aspect: 'portrait', title: 'Sonrisas del Lago', location: 'Santiago' },
-  { id: 14, seed: 'atitlan-nature-14', category: 'Naturaleza', aspect: 'landscape', title: 'Flora Nativa', location: 'Reserva Natural' },
-  { id: 15, seed: 'atitlan-dock-15', category: 'Muelles', aspect: 'square', title: 'Muelle al Atardecer', location: 'Panajachel' },
-  { id: 16, seed: 'atitlan-mountain-16', category: 'Montañas', aspect: 'landscape', title: 'Vista Panorámica', location: 'Mirador' },
-  { id: 17, seed: 'atitlan-craft-17', category: 'Artesanías', aspect: 'portrait', title: 'Manos Creativas', location: 'San Antonio' },
-  { id: 18, seed: 'atitlan-water-18', category: 'Paisajes', aspect: 'landscape', title: 'Aguas Cristalinas', location: 'Santa Cruz' },
-  { id: 19, seed: 'atitlan-street-19', category: 'Pueblos', aspect: 'square', title: 'Vida Cotidiana', location: 'San Marcos' },
-  { id: 20, seed: 'atitlan-bird-20', category: 'Naturaleza', aspect: 'portrait', title: 'Aves del Lago', location: 'Reserva' },
-  { id: 21, seed: 'atitlan-church-21', category: 'Cultura', aspect: 'landscape', title: 'Iglesia Colonial', location: 'Santiago' },
-  { id: 22, seed: 'atitlan-flower-22', category: 'Naturaleza', aspect: 'square', title: 'Flores Silvestres', location: 'San Marcos' },
-  { id: 23, seed: 'atitlan-boat-23', category: 'Lanchas', aspect: 'landscape', title: 'Navegando el Lago', location: 'Panajachel' },
-  { id: 24, seed: 'atitlan-night-24', category: 'Atardeceres', aspect: 'portrait', title: 'Cielo Nocturno', location: 'San Pedro' },
-];
+import cloudinaryAssets from '../data/cloudinary-assets.json';
+import { getCloudinaryUrl } from '../utils/cloudinary';
+
+// Dynamic Gallery images from Cloudinary
+const GALLERY_IMAGES = cloudinaryAssets.map((asset, index) => ({
+  id: index + 1,
+  public_id: asset.public_id,
+  category: 'Atitlán', // Default category since we aren't using folder mapping yet
+  aspect: (asset.width / asset.height) > 1.2 ? 'landscape' : (asset.width / asset.height) < 0.8 ? 'portrait' : 'square',
+  title: asset.public_id.split('_')[0], // Use filename part as title
+  location: 'Lago de Atitlán'
+}));
 
 const CATEGORIES = ['Todos', ...new Set(GALLERY_IMAGES.map((img) => img.category))];
 
 type ViewMode = 'grid' | 'museum' | 'fullscreen';
 type ImageType = typeof GALLERY_IMAGES[0];
 
-const getImageUrl = (seed: string, width: number, height: number) =>
-  `https://picsum.photos/seed/${seed}/${width}/${height}`;
+const getImageUrl = (public_id: string, width: number, height: number) =>
+  getCloudinaryUrl(public_id, { width, height });
 
 const GaleriaPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -254,7 +239,7 @@ const GaleriaPage = () => {
           >
             {currentImage && (
               <img
-                src={getImageUrl(currentImage.seed, 1600, 1200)}
+                src={getImageUrl(currentImage.public_id, 1600, 1200)}
                 alt={currentImage.title}
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                 style={{
@@ -316,7 +301,7 @@ const GaleriaPage = () => {
                       }`}
                   >
                     <img
-                      src={getImageUrl(img.seed, 200, 150)}
+                      src={getImageUrl(img.public_id, 200, 150)}
                       alt={img.title}
                       className="w-full h-full object-cover"
                       loading="lazy"
@@ -486,7 +471,7 @@ const GaleriaPage = () => {
                     )}
                     <img
                       src={getImageUrl(
-                        image.seed,
+                        image.public_id,
                         image.aspect === 'portrait' ? 600 : 800,
                         image.aspect === 'portrait' ? 800 : image.aspect === 'square' ? 600 : 600
                       )}
