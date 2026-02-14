@@ -239,7 +239,7 @@ const GaleriaPage = () => {
           >
             {currentImage && (
               <img
-                src={getImageUrl(currentImage.public_id, 1600, 1200)}
+                src={getImageUrl(currentImage.public_id, 2400, 1800)}
                 alt={currentImage.title}
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                 style={{
@@ -301,7 +301,7 @@ const GaleriaPage = () => {
                       }`}
                   >
                     <img
-                      src={getImageUrl(img.public_id, 200, 150)}
+                      src={getImageUrl(img.public_id, 300, 225)}
                       alt={img.title}
                       className="w-full h-full object-cover"
                       loading="lazy"
@@ -472,8 +472,8 @@ const GaleriaPage = () => {
                     <img
                       src={getImageUrl(
                         image.public_id,
-                        image.aspect === 'portrait' ? 600 : 800,
-                        image.aspect === 'portrait' ? 800 : image.aspect === 'square' ? 600 : 600
+                        image.aspect === 'portrait' ? 900 : 1200,
+                        image.aspect === 'portrait' ? 1200 : image.aspect === 'square' ? 1200 : 900
                       )}
                       alt={image.title}
                       className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${isLoaded ? 'opacity-100' : 'opacity-0'
