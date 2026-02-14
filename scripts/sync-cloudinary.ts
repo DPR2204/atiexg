@@ -29,7 +29,7 @@ cloudinary.config({
 });
 
 async function syncAssets() {
-    const TARGET_FOLDER = 'Ati_ex_all';
+    const TARGET_FOLDER = 'ati_exg_optz';
     console.log(`Syncing assets ONLY from asset_folder: ${TARGET_FOLDER}...`);
 
     try {
