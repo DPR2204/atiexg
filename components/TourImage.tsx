@@ -1,4 +1,5 @@
 import React from 'react';
+import { getCloudinaryUrl } from '../src/utils/cloudinary';
 
 type TourImageProps = {
   src: string;
@@ -9,12 +10,19 @@ type TourImageProps = {
   priority?: boolean;
 };
 
-const SIZES = [480, 768, 1000, 1400];
+const SIZES = [640, 960, 1440, 2048];
+
+const isCloudinaryId = (src: string) => !src.startsWith('http');
 
 const replaceSize = (src: string, width: number, height: number) =>
   src.replace(/\/(\d+)\/(\d+)(?=$)/, `/${width}/${height}`);
 
-const buildSized = (src: string, width: number, height: number) => replaceSize(src, width, height);
+const buildSized = (src: string, width: number, height: number) => {
+  if (isCloudinaryId(src)) {
+    return getCloudinaryUrl(src, { width, height });
+  }
+  return replaceSize(src, width, height);
+};
 
 const buildSrcSet = (src: string) =>
   SIZES.map((width) => {
@@ -35,7 +43,7 @@ const TourImage = ({
   return (
     <picture>
       <img
-        src={buildSized(src, 1000, 800)}
+        src={buildSized(src, 1440, 1152)}
         srcSet={srcSet}
         sizes={sizes}
         alt={alt}
@@ -43,8 +51,8 @@ const TourImage = ({
         loading={priority ? 'eager' : loading}
         decoding="async"
         fetchPriority={priority ? 'high' : 'auto'}
-        width={1000}
-        height={800}
+        width={1440}
+        height={1152}
       />
     </picture>
   );

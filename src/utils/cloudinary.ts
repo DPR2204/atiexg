@@ -24,7 +24,7 @@ export const getCloudinaryUrl = (publicId: string, options: CloudinaryOptions = 
         width,
         height,
         crop = 'fill',
-        quality = 'auto',
+        quality = 'auto:good',
         format = 'auto'
     } = options;
 
