@@ -8,6 +8,11 @@
 }
 
 /* Base Styles */
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Poppins', sans-serif;
   -webkit-tap-highlight-color: transparent;

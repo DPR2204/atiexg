@@ -184,6 +184,14 @@ const COLORS = ['#1a3a50', '#4a3d2e', '#1a2d3e', '#1a4050', '#5a3a20', '#3a2535'
 
 const curatedIds = new Set(galleryItems.map((item) => item.src));
 
+// Repeating size pattern for visual variety in the gallery
+const SIZE_PATTERN: Array<'large' | 'medium' | 'small'> = [
+  'large', 'small', 'medium', 'small',
+  'medium', 'large', 'small', 'medium',
+  'large', 'medium', 'small', 'large',
+  'small', 'medium', 'medium', 'small',
+];
+
 const remainingItems: GalleryItem[] = cloudinaryAssets
   .filter((asset) => !curatedIds.has(asset.public_id))
   .map((asset, index) => {
@@ -196,7 +204,7 @@ const remainingItems: GalleryItem[] = cloudinaryAssets
       location,
       tourLink: TOUR_LINKS[location] || '/catalogo',
       color: COLORS[index % COLORS.length],
-      size: 'medium' as const,
+      size: SIZE_PATTERN[index % SIZE_PATTERN.length],
       orientation: (asset.width > asset.height ? 'landscape' : 'portrait') as const,
     };
   });
@@ -286,23 +294,27 @@ const GaleriaPage: React.FC = () => {
     setViewerState(null);
   }, []);
 
-  // ---------- Lenis smooth scroll ----------
+  // ---------- Lenis smooth scroll (desktop only) ----------
   useEffect(() => {
     if (prefersReducedMotion()) return;
+
+    // Skip Lenis on touch devices — native scroll is more reliable
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isTouchDevice) return;
 
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      touchMultiplier: 1.5,
     });
 
     // Sync Lenis → GSAP ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    const rafCallback = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(rafCallback);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
-      gsap.ticker.remove(lenis.raf as any);
+      gsap.ticker.remove(rafCallback);
       lenis.destroy();
     };
   }, []);
@@ -399,9 +411,20 @@ const GaleriaPage: React.FC = () => {
 
   // ---------- Gallery scroll reveals + parallax ----------
   const setupGalleryAnimations = useCallback(() => {
-    if (prefersReducedMotion()) return;
+    if (prefersReducedMotion()) {
+      // Even with reduced motion, ensure all cards are visible
+      const allCards = document.querySelectorAll<HTMLElement>('[data-gallery-card]');
+      allCards.forEach((c) => {
+        c.style.opacity = '1';
+        c.style.transform = 'none';
+      });
+      return;
+    }
 
     const shaderCapable = supportsShaderReveal();
+
+    // Track which groups have been revealed so we never hide them again
+    const revealedGroups = new Set<string>();
 
     const ctx = gsap.context(() => {
       // --- Reveal animation for each gallery group ---
@@ -410,11 +433,11 @@ const GaleriaPage: React.FC = () => {
         const cards = group.querySelectorAll<HTMLElement>('[data-gallery-card]');
         if (!cards.length) return;
 
+        const groupId = group.dataset.galleryGroup || '';
         const labels = group.querySelectorAll<HTMLElement>('[data-card-label]');
 
         // Start invisible
         if (shaderCapable) {
-          // Shader path: hidden by mask (opacity stays 0 as safety net until onEnter)
           cards.forEach((c) => {
             c.setAttribute('data-shader-reveal', '');
             c.style.setProperty('--reveal', '0');
@@ -425,43 +448,50 @@ const GaleriaPage: React.FC = () => {
         }
         if (labels.length) gsap.set(labels, { opacity: 0, y: 10 });
 
+        const revealGroup = () => {
+          if (revealedGroups.has(groupId)) return;
+          revealedGroups.add(groupId);
+
+          if (shaderCapable) {
+            gsap.set(cards, { opacity: 1 });
+            gsap.to(cards, {
+              '--reveal': 1,
+              y: 0,
+              duration: 1.2,
+              stagger: 0.15,
+              ease: 'power2.out',
+            });
+          } else {
+            gsap.to(cards, {
+              opacity: 1,
+              y: 0,
+              duration: 0.8,
+              stagger: 0.1,
+              ease: 'power3.out',
+            });
+          }
+
+          if (labels.length) {
+            gsap.to(labels, {
+              opacity: 1,
+              y: 0,
+              duration: 0.6,
+              stagger: shaderCapable ? 0.15 : 0.1,
+              delay: 0.2,
+              ease: 'power2.out',
+            });
+          }
+        };
+
         ScrollTrigger.create({
           trigger: group,
           start: 'top 85%',
           once: true,
-          onEnter: () => {
-            if (shaderCapable) {
-              // Shader reveal: gradient mask wipe + subtle lift
-              gsap.set(cards, { opacity: 1 }); // Opaque, but hidden by mask
-              gsap.to(cards, {
-                '--reveal': 1,
-                y: 0,
-                duration: 1.2,
-                stagger: 0.15,
-                ease: 'power2.out',
-              });
-            } else {
-              // Fallback: simple fade + rise
-              gsap.to(cards, {
-                opacity: 1,
-                y: 0,
-                duration: 0.8,
-                stagger: 0.1,
-                ease: 'power3.out',
-              });
-            }
-
-            // Labels reveal with 0.2s delay after each card
-            if (labels.length) {
-              gsap.to(labels, {
-                opacity: 1,
-                y: 0,
-                duration: 0.6,
-                stagger: shaderCapable ? 0.15 : 0.1,
-                delay: 0.2,
-                ease: 'power2.out',
-              });
-            }
+          fastScrollEnd: true,
+          onEnter: revealGroup,
+          // Also reveal if already scrolled past on page load / fast scroll
+          onRefresh: (self) => {
+            if (self.progress > 0) revealGroup();
           },
         });
       });
@@ -474,27 +504,36 @@ const GaleriaPage: React.FC = () => {
           trigger: cta,
           start: 'top 85%',
           once: true,
+          fastScrollEnd: true,
           onEnter: () => {
             gsap.to(cta, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+          },
+          onRefresh: (self) => {
+            if (self.progress > 0) {
+              gsap.set(cta, { opacity: 1, y: 0 });
+            }
           },
         });
       });
 
-      // --- Parallax on gallery images ---
-      const parallaxImages = document.querySelectorAll<HTMLElement>('[data-parallax]');
-      parallaxImages.forEach((img) => {
-        const speed = parseFloat(img.dataset.parallax || '0.15');
-        gsap.to(img, {
-          yPercent: speed * 100,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: img.closest('[data-gallery-card]') || img,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: true,
-          },
+      // --- Parallax on gallery images (only on non-touch / desktop) ---
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (!isTouchDevice) {
+        const parallaxImages = document.querySelectorAll<HTMLElement>('[data-parallax]');
+        parallaxImages.forEach((img) => {
+          const speed = parseFloat(img.dataset.parallax || '0.15');
+          gsap.to(img, {
+            yPercent: speed * 100,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: img.closest('[data-gallery-card]') || img,
+              start: 'top bottom',
+              end: 'bottom top',
+              scrub: true,
+            },
+          });
         });
-      });
+      }
     }, containerRef);
 
     return () => ctx.revert();
@@ -506,7 +545,7 @@ const GaleriaPage: React.FC = () => {
   }, [setupGalleryAnimations]);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-[#0a0a0a] text-[#f5f0e8]">
+    <div ref={containerRef} className="min-h-screen bg-[#0a0a0a] text-[#f5f0e8] overflow-x-hidden">
       <Seo
         title="Galería | Atitlán Experiences — Fotos del Lago de Atitlán"
         description="Explora nuestra galería de fotos del Lago de Atitlán, Guatemala. Paisajes, cultura, gastronomía y aventuras premium en el lago más hermoso del mundo."
@@ -720,21 +759,13 @@ const GaleriaPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ---- Remaining gallery images ---- */}
+        {/* ---- Remaining gallery images — asymmetric layout ---- */}
         {remainingItems.length > 0 && (
-          <div data-gallery-group="remaining" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
-            {remainingItems.map((item, idx) => (
-              <div key={item.id} data-gallery-card>
-                <GalleryCard
-                  item={item}
-                  itemIndex={galleryItems.length + idx}
-                  heightClass="h-[35vh] sm:h-[40vh]"
-                  parallaxSpeed={0.1}
-                  onOpen={handleOpenViewer}
-                />
-              </div>
-            ))}
-          </div>
+          <RemainingGalleryGrid
+            items={remainingItems}
+            startIndex={galleryItems.length}
+            onOpen={handleOpenViewer}
+          />
         )}
       </main>
 
@@ -825,6 +856,174 @@ const GaleriaPage: React.FC = () => {
 };
 
 // ============================================================
+// Remaining Gallery Grid — asymmetric layout patterns
+// ============================================================
+
+/*
+ * Layout patterns that repeat every 6 items:
+ *  A) 8-col + 4-col  (2 items)
+ *  B) full-width      (1 item)
+ *  C) 5-col + 7-col  (2 items)
+ *  D) 4-col + 4-col + 4-col (3 items — but we count 1 here)
+ * Total per cycle: items consumed = 2+1+2+3 = 8
+ */
+
+interface LayoutRow {
+  type: 'two-asymmetric' | 'full' | 'two-asymmetric-reverse' | 'three';
+  count: number; // how many items this row consumes
+}
+
+const LAYOUT_CYCLE: LayoutRow[] = [
+  { type: 'two-asymmetric', count: 2 },
+  { type: 'full', count: 1 },
+  { type: 'two-asymmetric-reverse', count: 2 },
+  { type: 'three', count: 3 },
+];
+
+const HEIGHT_MAP: Record<string, Record<'large' | 'medium' | 'small', string>> = {
+  'two-asymmetric': {
+    large: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+    medium: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+    small: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+  },
+  full: {
+    large: 'h-[55vh] sm:h-[60vh] lg:h-[75vh]',
+    medium: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+    small: 'h-[45vh] sm:h-[50vh] lg:h-[55vh]',
+  },
+  'two-asymmetric-reverse': {
+    large: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+    medium: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+    small: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+  },
+  three: {
+    large: 'h-[40vh] sm:h-[45vh] lg:h-[50vh]',
+    medium: 'h-[40vh] sm:h-[45vh] lg:h-[50vh]',
+    small: 'h-[35vh] sm:h-[40vh] lg:h-[45vh]',
+  },
+};
+
+const RemainingGalleryGrid: React.FC<{
+  items: GalleryItem[];
+  startIndex: number;
+  onOpen: (index: number, sourceEl: HTMLElement) => void;
+}> = ({ items, startIndex, onOpen }) => {
+  const rows: { layout: LayoutRow; items: GalleryItem[]; baseIdx: number }[] = [];
+  let cursor = 0;
+  let cycleIdx = 0;
+
+  while (cursor < items.length) {
+    const layout = LAYOUT_CYCLE[cycleIdx % LAYOUT_CYCLE.length];
+    const slice = items.slice(cursor, cursor + layout.count);
+    if (slice.length === 0) break;
+    rows.push({ layout, items: slice, baseIdx: cursor });
+    cursor += slice.length;
+    cycleIdx++;
+  }
+
+  return (
+    <>
+      {rows.map((row, rowIdx) => {
+        const groupNum = `remaining-${rowIdx}`;
+        const mt = 'mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]';
+
+        if (row.layout.type === 'full') {
+          const it = row.items[0];
+          return (
+            <div key={groupNum} data-gallery-group={groupNum} className={mt}>
+              <div data-gallery-card>
+                <GalleryCard
+                  item={it}
+                  itemIndex={startIndex + row.baseIdx}
+                  heightClass={HEIGHT_MAP.full[it.size]}
+                  parallaxSpeed={0.1}
+                  onOpen={onOpen}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        if (row.layout.type === 'two-asymmetric') {
+          return (
+            <div key={groupNum} data-gallery-group={groupNum} className={`grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 ${mt}`}>
+              {row.items[0] && (
+                <div className="lg:col-span-8" data-gallery-card>
+                  <GalleryCard
+                    item={row.items[0]}
+                    itemIndex={startIndex + row.baseIdx}
+                    heightClass={HEIGHT_MAP['two-asymmetric'][row.items[0].size]}
+                    parallaxSpeed={0.12}
+                    onOpen={onOpen}
+                  />
+                </div>
+              )}
+              {row.items[1] && (
+                <div className="lg:col-span-4" data-gallery-card>
+                  <GalleryCard
+                    item={row.items[1]}
+                    itemIndex={startIndex + row.baseIdx + 1}
+                    heightClass={HEIGHT_MAP['two-asymmetric'][row.items[1].size]}
+                    parallaxSpeed={0.18}
+                    onOpen={onOpen}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        if (row.layout.type === 'two-asymmetric-reverse') {
+          return (
+            <div key={groupNum} data-gallery-group={groupNum} className={`grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 ${mt}`}>
+              {row.items[0] && (
+                <div className="lg:col-span-5" data-gallery-card>
+                  <GalleryCard
+                    item={row.items[0]}
+                    itemIndex={startIndex + row.baseIdx}
+                    heightClass={HEIGHT_MAP['two-asymmetric-reverse'][row.items[0].size]}
+                    parallaxSpeed={0.18}
+                    onOpen={onOpen}
+                  />
+                </div>
+              )}
+              {row.items[1] && (
+                <div className="lg:col-span-7" data-gallery-card>
+                  <GalleryCard
+                    item={row.items[1]}
+                    itemIndex={startIndex + row.baseIdx + 1}
+                    heightClass={HEIGHT_MAP['two-asymmetric-reverse'][row.items[1].size]}
+                    parallaxSpeed={0.1}
+                    onOpen={onOpen}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // three columns
+        return (
+          <div key={groupNum} data-gallery-group={groupNum} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5 ${mt}`}>
+            {row.items.map((it, i) => (
+              <div key={it.id} data-gallery-card>
+                <GalleryCard
+                  item={it}
+                  itemIndex={startIndex + row.baseIdx + i}
+                  heightClass={HEIGHT_MAP.three[it.size]}
+                  parallaxSpeed={[0.08, 0.15, 0.12][i % 3]}
+                  onOpen={onOpen}
+                />
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
+// ============================================================
 // Gallery Card — Clickable image with overlay + parallax
 // ============================================================
 
@@ -836,6 +1035,15 @@ const GalleryCard: React.FC<{
   onOpen: (index: number, sourceEl: HTMLElement) => void;
 }> = ({ item, itemIndex, heightClass, parallaxSpeed = 0.15, onOpen }) => {
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Check if image is already cached/complete on mount (handles fast scroll past)
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     onOpen(itemIndex, e.currentTarget);
@@ -868,6 +1076,7 @@ const GalleryCard: React.FC<{
 
       {/* Image with parallax data attribute — extra height for parallax room */}
       <img
+        ref={imgRef}
         src={getCloudinaryUrl(item.src, { width: 1600 })}
         srcSet={srcSet}
         sizes={sizes}
