@@ -1,8 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
 import Seo from '../components/Seo';
 import { GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // ============================================================
 // Gallery data — configurable array
@@ -134,28 +139,189 @@ const galleryItems: GalleryItem[] = [
 ];
 
 // ============================================================
+// Reduced-motion helper
+// ============================================================
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// ============================================================
 // Main component
 // ============================================================
 
 const GaleriaPage: React.FC = () => {
-  // --- Scroll-hiding header ---
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const [scrolled, setScrolled] = useState(false);
-  const lastScrollY = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const heroImgRef = useRef<HTMLImageElement>(null);
+  const heroTitleRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const scrollIndicatorRef = useRef<HTMLDivElement>(null);
 
+  // ---------- Lenis smooth scroll ----------
   useEffect(() => {
-    const handleScroll = () => {
-      const y = window.scrollY;
-      setHeaderVisible(y < lastScrollY.current || y < 80);
-      setScrolled(y > 50);
-      lastScrollY.current = y;
+    if (prefersReducedMotion()) return;
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      touchMultiplier: 1.5,
+    });
+
+    // Sync Lenis → GSAP ScrollTrigger
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+
+    return () => {
+      gsap.ticker.remove(lenis.raf as any);
+      lenis.destroy();
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ---------- Header hide/show via ScrollTrigger ----------
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    // Show header initially
+    gsap.set(header, { yPercent: 0 });
+
+    const showAnim = gsap.from(header, {
+      yPercent: -100,
+      paused: true,
+      duration: 0.3,
+      ease: 'power2.out',
+    }).progress(1);
+
+    const trigger = ScrollTrigger.create({
+      start: 'top top',
+      end: 'max',
+      onUpdate: (self) => {
+        if (self.direction === -1) {
+          showAnim.play();
+        } else if (self.scroll() > 80) {
+          showAnim.reverse();
+        }
+        // Add backdrop when past hero
+        if (self.scroll() > 50) {
+          header.classList.add('header-scrolled');
+        } else {
+          header.classList.remove('header-scrolled');
+        }
+      },
+    });
+
+    return () => {
+      trigger.kill();
+      showAnim.kill();
+    };
+  }, []);
+
+  // ---------- Hero entrance animation ----------
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+      // Image zoom-out: scale 1.15 → 1
+      if (heroImgRef.current) {
+        gsap.set(heroImgRef.current, { scale: 1.15 });
+        tl.to(heroImgRef.current, { scale: 1, duration: 1.8, ease: 'power2.out' }, 0);
+      }
+
+      // Title container fade + rise
+      if (heroTitleRef.current) {
+        const subtitle = heroTitleRef.current.querySelector('.hero-subtitle');
+        const titleLines = heroTitleRef.current.querySelectorAll('.hero-title-line');
+        const indicator = scrollIndicatorRef.current;
+
+        gsap.set([subtitle, ...titleLines], { opacity: 0, y: 30 });
+        if (indicator) gsap.set(indicator, { opacity: 0 });
+
+        tl.to(subtitle, { opacity: 1, y: 0, duration: 0.8 }, 0.3);
+        tl.to(titleLines, { opacity: 1, y: 0, duration: 0.9, stagger: 0.12 }, 0.5);
+        if (indicator) {
+          tl.to(indicator, { opacity: 1, duration: 0.6 }, 1.2);
+        }
+      }
+    }, heroRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // ---------- Gallery scroll reveals + parallax ----------
+  const setupGalleryAnimations = useCallback(() => {
+    if (prefersReducedMotion()) return;
+
+    const ctx = gsap.context(() => {
+      // --- Reveal animation for each gallery group ---
+      const groups = document.querySelectorAll<HTMLElement>('[data-gallery-group]');
+      groups.forEach((group) => {
+        const cards = group.querySelectorAll<HTMLElement>('[data-gallery-card]');
+        if (!cards.length) return;
+
+        // Start invisible
+        gsap.set(cards, { opacity: 0, y: 40 });
+
+        ScrollTrigger.create({
+          trigger: group,
+          start: 'top 85%',
+          once: true,
+          onEnter: () => {
+            gsap.to(cards, {
+              opacity: 1,
+              y: 0,
+              duration: 0.8,
+              stagger: 0.1,
+              ease: 'power3.out',
+            });
+          },
+        });
+      });
+
+      // --- Reveal for CTA sections ---
+      const ctas = document.querySelectorAll<HTMLElement>('[data-gallery-cta]');
+      ctas.forEach((cta) => {
+        gsap.set(cta, { opacity: 0, y: 30 });
+        ScrollTrigger.create({
+          trigger: cta,
+          start: 'top 85%',
+          once: true,
+          onEnter: () => {
+            gsap.to(cta, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+          },
+        });
+      });
+
+      // --- Parallax on gallery images ---
+      const parallaxImages = document.querySelectorAll<HTMLElement>('[data-parallax]');
+      parallaxImages.forEach((img) => {
+        const speed = parseFloat(img.dataset.parallax || '0.15');
+        gsap.to(img, {
+          yPercent: speed * 100,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: img.closest('[data-gallery-card]') || img,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: true,
+          },
+        });
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  useEffect(() => {
+    const cleanup = setupGalleryAnimations();
+    return cleanup;
+  }, [setupGalleryAnimations]);
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#f5f0e8]">
+    <div ref={containerRef} className="min-h-screen bg-[#0a0a0a] text-[#f5f0e8]">
       <Seo
         title="Galería | Atitlán Experiences — Fotos del Lago de Atitlán"
         description="Explora nuestra galería de fotos del Lago de Atitlán, Guatemala. Paisajes, cultura, gastronomía y aventuras premium en el lago más hermoso del mundo."
@@ -164,20 +330,21 @@ const GaleriaPage: React.FC = () => {
       />
 
       {/* ================================
-          HEADER — Minimal, hides on scroll
+          HEADER — Minimal, GSAP hide/show
           ================================ */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
-          headerVisible ? 'translate-y-0' : '-translate-y-full'
-        }`}
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-50 will-change-transform"
       >
-        <div
-          className={`flex items-center justify-between px-5 sm:px-8 lg:px-12 py-4 transition-colors duration-300 ${
-            scrolled
-              ? 'bg-[#0a0a0a]/80 backdrop-blur-xl'
-              : 'bg-transparent'
-          }`}
-        >
+        {/* Inline style tag for the scrolled state (avoids extra CSS file) */}
+        <style>{`
+          .header-scrolled .header-inner {
+            background: rgba(10, 10, 10, 0.8);
+            -webkit-backdrop-filter: blur(24px);
+            backdrop-filter: blur(24px);
+          }
+        `}</style>
+        <div className="header-inner flex items-center justify-between px-5 sm:px-8 lg:px-12 py-4 transition-[background,backdrop-filter] duration-300">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
@@ -201,32 +368,33 @@ const GaleriaPage: React.FC = () => {
       </header>
 
       {/* ================================
-          HERO — Fullscreen opening image
+          HERO — Fullscreen with entrance anim
           ================================ */}
-      <section className="relative h-[100svh] min-h-[600px] overflow-hidden">
+      <section ref={heroRef} className="relative h-[100svh] min-h-[600px] overflow-hidden">
         <img
+          ref={heroImgRef}
           src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2000&q=80"
           alt="Vista panorámica del Lago de Atitlán al amanecer"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover will-change-transform"
           loading="eager"
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/50 via-transparent to-[#0a0a0a]" />
 
         {/* Title */}
-        <div className="relative z-10 h-full flex flex-col justify-end px-5 sm:px-8 lg:px-16 pb-20 sm:pb-24">
-          <p className="font-dm-sans text-xs sm:text-sm uppercase tracking-[0.35em] text-[#f5f0e8]/50 mb-3">
+        <div ref={heroTitleRef} className="relative z-10 h-full flex flex-col justify-end px-5 sm:px-8 lg:px-16 pb-20 sm:pb-24">
+          <p className="hero-subtitle font-dm-sans text-xs sm:text-sm uppercase tracking-[0.35em] text-[#f5f0e8]/50 mb-3">
             Atitlán Experiences
           </p>
           <h1 className="font-playfair text-[2.75rem] sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[0.95] tracking-tight">
-            Galería de
+            <span className="hero-title-line inline-block">Galería de</span>
             <br />
-            <span className="italic">Experiencias</span>
+            <span className="hero-title-line inline-block italic">Experiencias</span>
           </h1>
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
+        <div ref={scrollIndicatorRef} className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
           <span className="font-dm-sans text-[10px] uppercase tracking-[0.3em] text-[#f5f0e8]/40">
             Scroll
           </span>
@@ -240,35 +408,41 @@ const GaleriaPage: React.FC = () => {
       <main className="px-3 sm:px-5 lg:px-10 xl:px-16 pt-[8vh] pb-[10vh]">
 
         {/* ---- Group 1: Large landscape + Medium portrait ---- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5">
-          <div className="lg:col-span-8">
-            <GalleryCard item={galleryItems[0]} heightClass="h-[55vh] sm:h-[60vh] lg:h-[70vh]" />
+        <div data-gallery-group="1" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5">
+          <div className="lg:col-span-8" data-gallery-card>
+            <GalleryCard item={galleryItems[0]} heightClass="h-[55vh] sm:h-[60vh] lg:h-[70vh]" parallaxSpeed={0.1} />
           </div>
-          <div className="lg:col-span-4">
-            <GalleryCard item={galleryItems[1]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[70vh]" />
+          <div className="lg:col-span-4" data-gallery-card>
+            <GalleryCard item={galleryItems[1]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[70vh]" parallaxSpeed={0.18} />
           </div>
         </div>
 
         {/* ---- Group 2: Full-width large landscape ---- */}
-        <div className="mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
-          <GalleryCard item={galleryItems[2]} heightClass="h-[55vh] sm:h-[60vh] lg:h-[75vh]" />
+        <div data-gallery-group="2" className="mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
+          <div data-gallery-card>
+            <GalleryCard item={galleryItems[2]} heightClass="h-[55vh] sm:h-[60vh] lg:h-[75vh]" parallaxSpeed={0.12} />
+          </div>
         </div>
 
         {/* ---- Group 3: Medium landscape + Small + Small ---- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
-          <div className="md:col-span-2 lg:col-span-7">
-            <GalleryCard item={galleryItems[3]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[55vh]" />
+        <div data-gallery-group="3" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
+          <div className="md:col-span-2 lg:col-span-7" data-gallery-card>
+            <GalleryCard item={galleryItems[3]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[55vh]" parallaxSpeed={0.15} />
           </div>
           <div className="lg:col-span-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 lg:gap-5 h-full">
-              <GalleryCard item={galleryItems[4]} heightClass="h-[40vh] sm:h-[35vh] lg:h-auto lg:flex-1" />
-              <GalleryCard item={galleryItems[5]} heightClass="h-[55vh] sm:h-[35vh] lg:h-auto lg:flex-1" />
+              <div data-gallery-card>
+                <GalleryCard item={galleryItems[4]} heightClass="h-[40vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.08} />
+              </div>
+              <div data-gallery-card>
+                <GalleryCard item={galleryItems[5]} heightClass="h-[55vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.2} />
+              </div>
             </div>
           </div>
         </div>
 
         {/* ---- Inline CTA ---- */}
-        <div className="my-[8vh] sm:my-[10vh] max-w-3xl mx-auto text-center">
+        <div data-gallery-cta className="my-[8vh] sm:my-[10vh] max-w-3xl mx-auto text-center">
           <p className="font-dm-sans text-xs uppercase tracking-[0.3em] text-[#1a3a5c] mb-4">
             Experiencias Premium
           </p>
@@ -305,31 +479,37 @@ const GaleriaPage: React.FC = () => {
         </div>
 
         {/* ---- Group 4: Large landscape (full) ---- */}
-        <div>
-          <GalleryCard item={galleryItems[6]} heightClass="h-[55vh] sm:h-[65vh] lg:h-[80vh]" />
+        <div data-gallery-group="4">
+          <div data-gallery-card>
+            <GalleryCard item={galleryItems[6]} heightClass="h-[55vh] sm:h-[65vh] lg:h-[80vh]" parallaxSpeed={0.1} />
+          </div>
         </div>
 
-        {/* ---- Group 5: Medium landscape + Medium portrait ---- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
-          <div className="lg:col-span-5">
-            <GalleryCard item={galleryItems[9]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" />
+        {/* ---- Group 5: Medium portrait + Medium landscape ---- */}
+        <div data-gallery-group="5" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
+          <div className="lg:col-span-5" data-gallery-card>
+            <GalleryCard item={galleryItems[9]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.2} />
           </div>
-          <div className="lg:col-span-7">
-            <GalleryCard item={galleryItems[7]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" />
+          <div className="lg:col-span-7" data-gallery-card>
+            <GalleryCard item={galleryItems[7]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.12} />
           </div>
         </div>
 
         {/* ---- Group 6: Small + Small (closing pair) ---- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
-          <GalleryCard item={galleryItems[8]} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" />
-          <GalleryCard item={galleryItems[4]} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" />
+        <div data-gallery-group="6" className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
+          <div data-gallery-card>
+            <GalleryCard item={galleryItems[8]} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.15} />
+          </div>
+          <div data-gallery-card>
+            <GalleryCard item={galleryItems[4]} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.08} />
+          </div>
         </div>
       </main>
 
       {/* ================================
           CLOSING CTA
           ================================ */}
-      <section className="px-5 sm:px-8 lg:px-16 py-16 sm:py-24 lg:py-32 border-t border-[#f5f0e8]/5">
+      <section data-gallery-cta className="px-5 sm:px-8 lg:px-16 py-16 sm:py-24 lg:py-32 border-t border-[#f5f0e8]/5">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="font-playfair text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 sm:mb-6">
             ¿Listo para tu
@@ -369,21 +549,24 @@ const GaleriaPage: React.FC = () => {
 };
 
 // ============================================================
-// Gallery Card — Single image with overlay
+// Gallery Card — Image with overlay + parallax data attr
 // ============================================================
 
 const GalleryCard: React.FC<{
   item: GalleryItem;
   heightClass: string;
-}> = ({ item, heightClass }) => (
+  parallaxSpeed?: number;
+}> = ({ item, heightClass, parallaxSpeed = 0.15 }) => (
   <Link
     to={item.tourLink}
     className={`group relative block w-full overflow-hidden rounded-xl sm:rounded-2xl bg-[#141414] ${heightClass}`}
   >
+    {/* Image with parallax data attribute — extra height for parallax room */}
     <img
       src={item.src}
       alt={item.alt}
-      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+      data-parallax={parallaxSpeed}
+      className="absolute inset-[-15%] w-[130%] h-[130%] object-cover will-change-transform transition-transform duration-500 ease-out group-hover:scale-[1.03]"
       loading="lazy"
     />
 
