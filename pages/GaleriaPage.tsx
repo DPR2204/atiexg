@@ -22,6 +22,7 @@ interface GalleryItem {
   location: string;
   price: string;
   tourLink: string;
+  color: string;
   size: 'large' | 'medium' | 'small';
   orientation: 'landscape' | 'portrait';
 }
@@ -35,6 +36,7 @@ const galleryItems: GalleryItem[] = [
     location: 'Panajachel',
     price: 'Desde $45 USD',
     tourLink: '/tours/sunrise-kayak',
+    color: '#1a2d45',
     size: 'large',
     orientation: 'landscape',
   },
@@ -46,6 +48,7 @@ const galleryItems: GalleryItem[] = [
     location: 'San Juan la Laguna',
     price: 'Desde $35 USD',
     tourLink: '/tours/village-walk',
+    color: '#6b5a3d',
     size: 'medium',
     orientation: 'portrait',
   },
@@ -57,6 +60,7 @@ const galleryItems: GalleryItem[] = [
     location: 'Indian Nose',
     price: 'Desde $55 USD',
     tourLink: '/tours/volcano-sunset',
+    color: '#2d3a2e',
     size: 'large',
     orientation: 'landscape',
   },
@@ -68,6 +72,7 @@ const galleryItems: GalleryItem[] = [
     location: 'Santa Cruz la Laguna',
     price: 'Desde $40 USD',
     tourLink: '/tours/lake-kayak',
+    color: '#1a4050',
     size: 'medium',
     orientation: 'landscape',
   },
@@ -79,6 +84,7 @@ const galleryItems: GalleryItem[] = [
     location: 'Santiago Atitlán',
     price: 'Desde $60 USD',
     tourLink: '/tours/foodie-tour',
+    color: '#5a3a20',
     size: 'small',
     orientation: 'landscape',
   },
@@ -90,6 +96,7 @@ const galleryItems: GalleryItem[] = [
     location: 'San Juan la Laguna',
     price: 'Desde $30 USD',
     tourLink: '/tours/weaving-workshop',
+    color: '#3a2535',
     size: 'small',
     orientation: 'portrait',
   },
@@ -101,6 +108,7 @@ const galleryItems: GalleryItem[] = [
     location: 'Lago de Atitlán',
     price: 'Desde $75 USD',
     tourLink: '/tours/sunset-cruise',
+    color: '#4a3520',
     size: 'large',
     orientation: 'landscape',
   },
@@ -112,6 +120,7 @@ const galleryItems: GalleryItem[] = [
     location: 'Cerro de Oro',
     price: 'Desde $50 USD',
     tourLink: '/tours/highland-trek',
+    color: '#2a3540',
     size: 'medium',
     orientation: 'landscape',
   },
@@ -123,6 +132,7 @@ const galleryItems: GalleryItem[] = [
     location: 'San Marcos la Laguna',
     price: 'Desde $65 USD',
     tourLink: '/tours/farm-to-table',
+    color: '#2a2218',
     size: 'small',
     orientation: 'landscape',
   },
@@ -134,6 +144,7 @@ const galleryItems: GalleryItem[] = [
     location: 'Santa Catarina Palopó',
     price: 'Desde $45 USD',
     tourLink: '/tours/waterfall-adventure',
+    color: '#1a3525',
     size: 'medium',
     orientation: 'portrait',
   },
@@ -169,6 +180,29 @@ function supportsShaderReveal(): boolean {
   const cores = navigator.hardwareConcurrency || 4;
   const memory = (navigator as any).deviceMemory || 4;
   return cores > 2 && memory > 2;
+}
+
+// ============================================================
+// Responsive image helper — Unsplash srcSet
+// ============================================================
+
+function buildUnsplashSrcSet(
+  src: string,
+  widths = [800, 1200, 1800],
+): { srcSet: string; sizes: string } {
+  const srcSet = widths
+    .map((w) => {
+      const url = new URL(src);
+      url.searchParams.set('w', String(w));
+      url.searchParams.set('q', w <= 800 ? '75' : '80');
+      return `${url.href} ${w}w`;
+    })
+    .join(', ');
+
+  return {
+    srcSet,
+    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
+  };
 }
 
 // ============================================================
@@ -479,6 +513,7 @@ const GaleriaPage: React.FC = () => {
             target="_blank"
             rel="noreferrer"
             className="bg-[#f5f0e8] text-[#0a0a0a] px-5 py-2 rounded-full font-dm-sans text-sm font-semibold hover:bg-white transition-colors duration-200"
+            aria-label="Reservar tour por WhatsApp"
           >
             Reservar
           </a>
@@ -492,9 +527,15 @@ const GaleriaPage: React.FC = () => {
         <img
           ref={heroImgRef}
           src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2000&q=80"
+          srcSet={buildUnsplashSrcSet(
+            'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2000&q=80',
+            [800, 1200, 2000],
+          ).srcSet}
+          sizes="100vw"
           alt="Vista panorámica del Lago de Atitlán al amanecer"
           className="absolute inset-0 w-full h-full object-cover will-change-transform"
           loading="eager"
+          fetchPriority="high"
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/50 via-transparent to-[#0a0a0a]" />
@@ -594,8 +635,9 @@ const GaleriaPage: React.FC = () => {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 border border-[#f5f0e8]/20 text-[#f5f0e8]/70 px-7 py-3 rounded-full font-dm-sans text-sm hover:bg-[#f5f0e8]/5 hover:text-[#f5f0e8] transition-colors duration-200"
+              aria-label="Consultar disponibilidad por WhatsApp"
             >
-              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
               </svg>
               WhatsApp
@@ -668,8 +710,9 @@ const GaleriaPage: React.FC = () => {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-2.5 border border-[#f5f0e8]/15 text-[#f5f0e8]/80 min-h-[52px] px-9 py-3.5 rounded-full font-dm-sans font-medium text-base hover:bg-[#f5f0e8]/5 hover:text-[#f5f0e8] transition-colors duration-200"
+              aria-label="Hablar con nosotros por WhatsApp"
             >
-              <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
               </svg>
               Hablar con nosotros
@@ -692,8 +735,9 @@ const GaleriaPage: React.FC = () => {
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-2.5 bg-[#f5f0e8]/[0.08] backdrop-blur-2xl border border-[#f5f0e8]/[0.12] text-[#f5f0e8] px-6 py-3.5 sm:px-7 sm:py-3.5 rounded-full font-dm-sans text-sm font-medium shadow-lg shadow-black/25 hover:bg-[#f5f0e8]/[0.14] hover:border-[#f5f0e8]/20 transition-all duration-200"
+          aria-label="Reservar experiencia en Lago de Atitlán"
         >
-          <svg className="w-4 h-4 text-[#f5f0e8]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-[#f5f0e8]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           Reservar experiencia
@@ -726,6 +770,8 @@ const GalleryCard: React.FC<{
   parallaxSpeed?: number;
   onOpen: (index: number, sourceEl: HTMLElement) => void;
 }> = ({ item, itemIndex, heightClass, parallaxSpeed = 0.15, onOpen }) => {
+  const [loaded, setLoaded] = useState(false);
+
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     onOpen(itemIndex, e.currentTarget);
   };
@@ -737,21 +783,35 @@ const GalleryCard: React.FC<{
     }
   };
 
+  const { srcSet, sizes } = buildUnsplashSrcSet(item.src);
+
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      aria-label={`Ver ${item.title} en pantalla completa`}
       className={`group relative block w-full overflow-hidden rounded-xl sm:rounded-2xl bg-[#141414] cursor-pointer select-none ${heightClass}`}
     >
+      {/* Blur placeholder — dominant color */}
+      <div
+        className={`absolute inset-0 transition-opacity duration-700 ${loaded ? 'opacity-0' : 'opacity-100'}`}
+        style={{ backgroundColor: item.color }}
+        aria-hidden="true"
+      />
+
       {/* Image with parallax data attribute — extra height for parallax room */}
       <img
         src={item.src}
+        srcSet={srcSet}
+        sizes={sizes}
         alt={item.alt}
         data-parallax={parallaxSpeed}
-        className="absolute inset-[-15%] w-[130%] h-[130%] object-cover will-change-transform transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+        className={`absolute inset-[-15%] w-[130%] h-[130%] object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
         loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
         draggable={false}
       />
 
