@@ -1082,7 +1082,7 @@ const GalleryCard: React.FC<{
         sizes={sizes}
         alt={item.alt}
         data-parallax={parallaxSpeed}
-        className={`absolute inset-[-15%] w-[130%] h-[130%] object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
         loading="lazy"
         decoding="async"
         onLoad={() => setLoaded(true)}
