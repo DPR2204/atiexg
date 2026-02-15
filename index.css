@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Hide pre-rendered SEO content until React hydrates */
+#root > nav,
+#root > header:not([class]),
+#root > main:not([class]) {
+  display: none;
+}
+
 /* Base Styles */
 body {
   font-family: 'Poppins', sans-serif;
