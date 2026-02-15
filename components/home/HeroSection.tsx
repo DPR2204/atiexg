@@ -75,7 +75,7 @@ const HeroSection: React.FC = () => {
                             <div className="space-y-4">
                                 <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-500">
                                     <TourImage
-                                        src="https://picsum.photos/seed/hero-1/600/800"
+                                        src="DSC04336_bqmz9o"
                                         alt="Experiencia en el lago"
                                         className="w-full h-full object-cover"
                                         sizes="(max-width: 768px) 50vw, 25vw"
@@ -83,7 +83,7 @@ const HeroSection: React.FC = () => {
                                 </div>
                                 <div className="aspect-square rounded-3xl overflow-hidden shadow-xl transform hover:scale-[1.02] transition-transform duration-500">
                                     <TourImage
-                                        src="https://picsum.photos/seed/hero-3/400/400"
+                                        src="DSC04192_yvloo0"
                                         alt="Cultura local"
                                         className="w-full h-full object-cover"
                                         sizes="(max-width: 768px) 50vw, 25vw"
@@ -93,7 +93,7 @@ const HeroSection: React.FC = () => {
                             <div className="space-y-4 pt-8">
                                 <div className="aspect-square rounded-3xl overflow-hidden shadow-xl transform hover:scale-[1.02] transition-transform duration-500">
                                     <TourImage
-                                        src="https://picsum.photos/seed/hero-2/400/400"
+                                        src="DSC03858_qvws23"
                                         alt="Atardecer en Atitlán"
                                         className="w-full h-full object-cover"
                                         sizes="(max-width: 768px) 50vw, 25vw"
@@ -101,7 +101,7 @@ const HeroSection: React.FC = () => {
                                 </div>
                                 <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-500">
                                     <TourImage
-                                        src="https://picsum.photos/seed/hero-4/600/800"
+                                        src="DSC04101_ktjtcp"
                                         alt="Aventura en lancha"
                                         className="w-full h-full object-cover"
                                         sizes="(max-width: 768px) 50vw, 25vw"
