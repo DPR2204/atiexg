@@ -994,6 +994,84 @@ body {
    SOCIAL PROOF MARQUEE
    ======================================== */
 
+/* Outer wrapper — clips overflow */
+.marquee-wrapper {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* The sliding track — must be wider than viewport */
+.marquee-track {
+  display: inline-flex;
+  gap: 1rem;
+  width: max-content;
+  animation: marqueeScroll 30s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track--reverse {
+  animation-direction: reverse;
+  animation-duration: 36s;
+}
+
+/* Pause on hover (desktop) */
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Each photo card — fixed pixel widths to avoid mobile sizing bugs */
+.marquee-card {
+  flex-shrink: 0;
+  width: 260px;
+  height: 195px;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .marquee-card {
+    width: 300px;
+    height: 225px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .marquee-card {
+    width: 340px;
+    height: 255px;
+  }
+}
+
+/* Fade edges */
+.marquee-fade-left,
+.marquee-fade-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+
+  .marquee-fade-left,
+  .marquee-fade-right {
+    width: 6rem;
+  }
+}
+
+.marquee-fade-left {
+  left: 0;
+  background: linear-gradient(to right, rgb(249 250 251 / 0.9), transparent);
+}
+
+.marquee-fade-right {
+  right: 0;
+  background: linear-gradient(to left, rgb(249 250 251 / 0.9), transparent);
+}
+
 @keyframes marqueeScroll {
   0% {
     transform: translateX(0);
@@ -1002,21 +1080,6 @@ body {
   100% {
     transform: translateX(-50%);
   }
-}
-
-.social-marquee {
-  animation: marqueeScroll 35s linear infinite;
-  will-change: transform;
-}
-
-.social-marquee--reverse {
-  animation-direction: reverse;
-  animation-duration: 40s;
-}
-
-.social-marquee:hover,
-.social-marquee--reverse:hover {
-  animation-play-state: paused;
 }
 
 /* ========================================

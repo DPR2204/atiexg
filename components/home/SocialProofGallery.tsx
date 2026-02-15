@@ -27,8 +27,36 @@ const TOUR_PHOTOS = [
     },
 ];
 
-// Duplicate photos for seamless infinite scroll
-const MARQUEE_PHOTOS = [...TOUR_PHOTOS, ...TOUR_PHOTOS];
+const PhotoCard: React.FC<{ src: string; alt: string }> = ({ src, alt }) => (
+    <div className="marquee-card">
+        <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            draggable={false}
+            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+        />
+    </div>
+);
+
+const MarqueeRow: React.FC<{ reverse?: boolean }> = ({ reverse }) => (
+    <div className="marquee-wrapper">
+        {/* Fade edges */}
+        <div className="marquee-fade-left" />
+        <div className="marquee-fade-right" />
+
+        <div className={`marquee-track ${reverse ? 'marquee-track--reverse' : ''}`}>
+            {/* First set */}
+            {TOUR_PHOTOS.map((photo, i) => (
+                <PhotoCard key={`a-${i}`} src={photo.src} alt={photo.alt} />
+            ))}
+            {/* Duplicate for seamless loop */}
+            {TOUR_PHOTOS.map((photo, i) => (
+                <PhotoCard key={`b-${i}`} src={photo.src} alt={photo.alt} />
+            ))}
+        </div>
+    </div>
+);
 
 const SocialProofGallery: React.FC = () => {
     return (
@@ -47,51 +75,14 @@ const SocialProofGallery: React.FC = () => {
                 </p>
             </div>
 
-            {/* Marquee row 1 – scrolls left */}
-            <div className="relative mb-4">
-                {/* Fade edges */}
-                <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-r from-gray-50/90 to-transparent z-10 pointer-events-none" />
-                <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-l from-gray-50/90 to-transparent z-10 pointer-events-none" />
+            {/* Row 1 – scrolls left */}
+            <MarqueeRow />
 
-                <div className="flex gap-4 social-marquee">
-                    {MARQUEE_PHOTOS.map((photo, i) => (
-                        <div
-                            key={`row1-${i}`}
-                            className="flex-shrink-0 w-64 sm:w-72 lg:w-80 aspect-[4/3] rounded-2xl overflow-hidden group"
-                        >
-                            <img
-                                src={photo.src}
-                                alt={photo.alt}
-                                loading="lazy"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter saturate-[1.1]"
-                            />
-                        </div>
-                    ))}
-                </div>
-            </div>
+            {/* Spacer */}
+            <div className="h-4" />
 
-            {/* Marquee row 2 – scrolls right (reverse) */}
-            <div className="relative">
-                {/* Fade edges */}
-                <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-r from-gray-50/90 to-transparent z-10 pointer-events-none" />
-                <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-32 bg-gradient-to-l from-gray-50/90 to-transparent z-10 pointer-events-none" />
-
-                <div className="flex gap-4 social-marquee social-marquee--reverse">
-                    {MARQUEE_PHOTOS.map((photo, i) => (
-                        <div
-                            key={`row2-${i}`}
-                            className="flex-shrink-0 w-64 sm:w-72 lg:w-80 aspect-[4/3] rounded-2xl overflow-hidden group"
-                        >
-                            <img
-                                src={photo.src}
-                                alt={photo.alt}
-                                loading="lazy"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter saturate-[1.1]"
-                            />
-                        </div>
-                    ))}
-                </div>
-            </div>
+            {/* Row 2 – scrolls right */}
+            <MarqueeRow reverse />
         </section>
     );
 };
