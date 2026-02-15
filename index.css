@@ -18,6 +18,14 @@ body {
   font-family: 'IBM Plex Mono', monospace;
 }
 
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-dm-sans {
+  font-family: 'DM Sans', sans-serif;
+}
+
 /* Hide Scrollbar */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
