@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 
 const TOUR_PHOTOS = [
     {
@@ -27,36 +27,92 @@ const TOUR_PHOTOS = [
     },
 ];
 
-const PhotoCard: React.FC<{ src: string; alt: string }> = ({ src, alt }) => (
-    <div className="marquee-card">
-        <img
-            src={src}
-            alt={alt}
-            loading="lazy"
-            draggable={false}
-            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-        />
-    </div>
-);
+/* ── Infinite Marquee Row (JS-driven) ─────────────────────── */
 
-const MarqueeRow: React.FC<{ reverse?: boolean }> = ({ reverse }) => (
-    <div className="marquee-wrapper">
-        {/* Fade edges */}
-        <div className="marquee-fade-left" />
-        <div className="marquee-fade-right" />
+interface MarqueeRowProps {
+    speed?: number;   // px per second
+    reverse?: boolean;
+}
 
-        <div className={`marquee-track ${reverse ? 'marquee-track--reverse' : ''}`}>
-            {/* First set */}
-            {TOUR_PHOTOS.map((photo, i) => (
-                <PhotoCard key={`a-${i}`} src={photo.src} alt={photo.alt} />
-            ))}
-            {/* Duplicate for seamless loop */}
-            {TOUR_PHOTOS.map((photo, i) => (
-                <PhotoCard key={`b-${i}`} src={photo.src} alt={photo.alt} />
-            ))}
+const MarqueeRow: React.FC<MarqueeRowProps> = ({ speed = 40, reverse = false }) => {
+    const trackRef = useRef<HTMLDivElement>(null);
+    const offsetRef = useRef(0);
+    const rafRef = useRef<number>(0);
+    const lastTimeRef = useRef<number>(0);
+
+    const animate = useCallback(
+        (timestamp: number) => {
+            if (!trackRef.current) return;
+
+            if (!lastTimeRef.current) lastTimeRef.current = timestamp;
+            const delta = (timestamp - lastTimeRef.current) / 1000; // seconds
+            lastTimeRef.current = timestamp;
+
+            const direction = reverse ? 1 : -1;
+            offsetRef.current += speed * delta * direction;
+
+            // Get the width of exactly one set of photos (half the track)
+            const halfWidth = trackRef.current.scrollWidth / 2;
+
+            // Reset seamlessly when we've scrolled one full set
+            if (!reverse && offsetRef.current <= -halfWidth) {
+                offsetRef.current += halfWidth;
+            } else if (reverse && offsetRef.current >= 0) {
+                offsetRef.current -= halfWidth;
+            }
+
+            trackRef.current.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
+            rafRef.current = requestAnimationFrame(animate);
+        },
+        [speed, reverse],
+    );
+
+    useEffect(() => {
+        // Start reverse rows offset by half so they look different
+        if (reverse && trackRef.current) {
+            offsetRef.current = -(trackRef.current.scrollWidth / 2);
+        }
+        rafRef.current = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(rafRef.current);
+    }, [animate, reverse]);
+
+    return (
+        <div className="marquee-wrapper">
+            {/* Fade edges */}
+            <div className="marquee-fade-left" />
+            <div className="marquee-fade-right" />
+
+            <div ref={trackRef} className="marquee-track">
+                {/* First set */}
+                {TOUR_PHOTOS.map((photo, i) => (
+                    <div key={`a-${i}`} className="marquee-card">
+                        <img
+                            src={photo.src}
+                            alt={photo.alt}
+                            loading="lazy"
+                            draggable={false}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                ))}
+                {/* Duplicate for seamless loop */}
+                {TOUR_PHOTOS.map((photo, i) => (
+                    <div key={`b-${i}`} className="marquee-card">
+                        <img
+                            src={photo.src}
+                            alt={photo.alt}
+                            loading="lazy"
+                            draggable={false}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                ))}
+            </div>
         </div>
-    </div>
-);
+    );
+};
+
+/* ── Main Section ─────────────────────────────────────────── */
 
 const SocialProofGallery: React.FC = () => {
     return (
@@ -76,13 +132,13 @@ const SocialProofGallery: React.FC = () => {
             </div>
 
             {/* Row 1 – scrolls left */}
-            <MarqueeRow />
+            <MarqueeRow speed={40} />
 
             {/* Spacer */}
             <div className="h-4" />
 
             {/* Row 2 – scrolls right */}
-            <MarqueeRow reverse />
+            <MarqueeRow speed={35} reverse />
         </section>
     );
 };

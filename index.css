@@ -1001,26 +1001,15 @@ body {
   width: 100%;
 }
 
-/* The sliding track — must be wider than viewport */
+/* The sliding track — JS drives the transform */
 .marquee-track {
   display: inline-flex;
   gap: 1rem;
   width: max-content;
-  animation: marqueeScroll 30s linear infinite;
   will-change: transform;
 }
 
-.marquee-track--reverse {
-  animation-direction: reverse;
-  animation-duration: 36s;
-}
-
-/* Pause on hover (desktop) */
-.marquee-track:hover {
-  animation-play-state: paused;
-}
-
-/* Each photo card — fixed pixel widths to avoid mobile sizing bugs */
+/* Each photo card — fixed pixel widths for mobile compat */
 .marquee-card {
   flex-shrink: 0;
   width: 260px;
@@ -1070,16 +1059,6 @@ body {
 .marquee-fade-right {
   right: 0;
   background: linear-gradient(to left, rgb(249 250 251 / 0.9), transparent);
-}
-
-@keyframes marqueeScroll {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(-50%);
-  }
 }
 
 /* ========================================
