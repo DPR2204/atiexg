@@ -48,6 +48,7 @@ async function syncAssets() {
 
             assets.push(...folderAssets.map((resource: any) => ({
                 public_id: resource.public_id,
+                display_name: resource.display_name || resource.public_id,
                 width: resource.width,
                 height: resource.height,
                 format: resource.format,
