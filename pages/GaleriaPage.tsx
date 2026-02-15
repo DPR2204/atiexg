@@ -148,6 +148,30 @@ function prefersReducedMotion(): boolean {
 }
 
 // ============================================================
+// Shader reveal capability check
+// ============================================================
+
+function supportsShaderReveal(): boolean {
+  if (prefersReducedMotion()) return false;
+
+  // Requires CSS @property for animating custom properties in gradients
+  if (typeof CSS === 'undefined' || !('registerProperty' in CSS)) return false;
+
+  // Check CSS mask-image support
+  if (
+    !CSS.supports('mask-image', 'linear-gradient(black,transparent)') &&
+    !CSS.supports('-webkit-mask-image', 'linear-gradient(black,transparent)')
+  ) {
+    return false;
+  }
+
+  // Skip on low-end devices (≤2 cores or ≤2 GB RAM)
+  const cores = navigator.hardwareConcurrency || 4;
+  const memory = (navigator as any).deviceMemory || 4;
+  return cores > 2 && memory > 2;
+}
+
+// ============================================================
 // Main component
 // ============================================================
 
@@ -292,6 +316,8 @@ const GaleriaPage: React.FC = () => {
   const setupGalleryAnimations = useCallback(() => {
     if (prefersReducedMotion()) return;
 
+    const shaderCapable = supportsShaderReveal();
+
     const ctx = gsap.context(() => {
       // --- Reveal animation for each gallery group ---
       const groups = document.querySelectorAll<HTMLElement>('[data-gallery-group]');
@@ -302,7 +328,16 @@ const GaleriaPage: React.FC = () => {
         const labels = group.querySelectorAll<HTMLElement>('[data-card-label]');
 
         // Start invisible
-        gsap.set(cards, { opacity: 0, y: 40 });
+        if (shaderCapable) {
+          // Shader path: hidden by mask (opacity stays 0 as safety net until onEnter)
+          cards.forEach((c) => {
+            c.setAttribute('data-shader-reveal', '');
+            c.style.setProperty('--reveal', '0');
+          });
+          gsap.set(cards, { opacity: 0, y: 15 });
+        } else {
+          gsap.set(cards, { opacity: 0, y: 40 });
+        }
         if (labels.length) gsap.set(labels, { opacity: 0, y: 10 });
 
         ScrollTrigger.create({
@@ -310,20 +345,34 @@ const GaleriaPage: React.FC = () => {
           start: 'top 85%',
           once: true,
           onEnter: () => {
-            gsap.to(cards, {
-              opacity: 1,
-              y: 0,
-              duration: 0.8,
-              stagger: 0.1,
-              ease: 'power3.out',
-            });
+            if (shaderCapable) {
+              // Shader reveal: gradient mask wipe + subtle lift
+              gsap.set(cards, { opacity: 1 }); // Opaque, but hidden by mask
+              gsap.to(cards, {
+                '--reveal': 1,
+                y: 0,
+                duration: 1.2,
+                stagger: 0.15,
+                ease: 'power2.out',
+              });
+            } else {
+              // Fallback: simple fade + rise
+              gsap.to(cards, {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'power3.out',
+              });
+            }
+
             // Labels reveal with 0.2s delay after each card
             if (labels.length) {
               gsap.to(labels, {
                 opacity: 1,
                 y: 0,
                 duration: 0.6,
-                stagger: 0.1,
+                stagger: shaderCapable ? 0.15 : 0.1,
                 delay: 0.2,
                 ease: 'power2.out',
               });
@@ -387,12 +436,30 @@ const GaleriaPage: React.FC = () => {
         ref={headerRef}
         className="fixed top-0 left-0 right-0 z-50 will-change-transform"
       >
-        {/* Inline style tag for the scrolled state (avoids extra CSS file) */}
+        {/* Inline styles — header + shader reveal */}
         <style>{`
           .header-scrolled .header-inner {
             background: rgba(10, 10, 10, 0.8);
             -webkit-backdrop-filter: blur(24px);
             backdrop-filter: blur(24px);
+          }
+          @property --reveal {
+            syntax: '<number>';
+            initial-value: 0;
+            inherits: false;
+          }
+          [data-shader-reveal] {
+            --reveal: 0;
+            -webkit-mask-image: linear-gradient(
+              to top,
+              rgba(0,0,0,1) calc(var(--reveal) * 140% - 40%),
+              rgba(0,0,0,0) calc(var(--reveal) * 140%)
+            );
+            mask-image: linear-gradient(
+              to top,
+              rgba(0,0,0,1) calc(var(--reveal) * 140% - 40%),
+              rgba(0,0,0,0) calc(var(--reveal) * 140%)
+            );
           }
         `}</style>
         <div className="header-inner flex items-center justify-between px-5 sm:px-8 lg:px-12 py-4 transition-[background,backdrop-filter] duration-300">
