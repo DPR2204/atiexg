@@ -5,6 +5,7 @@ import {
   HeroSection,
   FeaturesSection,
   FeaturedTours,
+  SocialProofGallery,
   CTASection,
 } from '../components/home';
 import {
@@ -30,6 +31,7 @@ const InicioPage = () => {
         <HeroSection />
         <FeaturesSection />
         <FeaturedTours />
+        <SocialProofGallery />
         <CTASection />
       </main>
 

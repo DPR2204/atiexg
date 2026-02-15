@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /* Hide pre-rendered SEO content until React hydrates */
-#root > nav,
-#root > header:not([class]),
-#root > main:not([class]) {
+#root>nav,
+#root>header:not([class]),
+#root>main:not([class]) {
   display: none;
 }
 
@@ -988,6 +988,35 @@ body {
     bottom: 16px;
     padding: 8px 16px;
   }
+}
+
+/* ========================================
+   SOCIAL PROOF MARQUEE
+   ======================================== */
+
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.social-marquee {
+  animation: marqueeScroll 35s linear infinite;
+  will-change: transform;
+}
+
+.social-marquee--reverse {
+  animation-direction: reverse;
+  animation-duration: 40s;
+}
+
+.social-marquee:hover,
+.social-marquee--reverse:hover {
+  animation-play-state: paused;
 }
 
 /* ========================================
