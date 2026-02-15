@@ -8,6 +8,7 @@ import GalleryViewer from '../components/GalleryViewer';
 import { GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
 import { getCloudinaryUrl } from '../src/utils/cloudinary';
+import cloudinaryAssets from '../src/data/cloudinary-assets.json';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -139,6 +140,68 @@ const galleryItems: GalleryItem[] = [
     orientation: 'portrait',
   },
 ];
+
+// ============================================================
+// Build full gallery from Cloudinary assets
+// ============================================================
+
+function extractLocation(displayName: string): string {
+  const patterns: [RegExp, string][] = [
+    [/San Antonio Palopó/i, 'San Antonio Palopó'],
+    [/Santa Catarina Palopó/i, 'Santa Catarina Palopó'],
+    [/Santa Catarina/i, 'Santa Catarina Palopó'],
+    [/San Juan la Laguna/i, 'San Juan la Laguna'],
+    [/San Juan/i, 'San Juan la Laguna'],
+    [/San Pedro la Laguna/i, 'San Pedro la Laguna'],
+    [/San Pedro/i, 'San Pedro la Laguna'],
+    [/Santiago Atitlán/i, 'Santiago Atitlán'],
+    [/Santiago/i, 'Santiago Atitlán'],
+    [/San Lucas Tolimán/i, 'San Lucas Tolimán'],
+    [/San Lucas/i, 'San Lucas Tolimán'],
+    [/San Marcos la Laguna/i, 'San Marcos la Laguna'],
+    [/San Marcos/i, 'San Marcos la Laguna'],
+    [/Panajachel/i, 'Panajachel'],
+    [/San Antonio/i, 'San Antonio Palopó'],
+  ];
+  for (const [re, loc] of patterns) {
+    if (re.test(displayName)) return loc;
+  }
+  return 'Lago de Atitlán';
+}
+
+const TOUR_LINKS: Record<string, string> = {
+  'San Antonio Palopó': '/experiencias/palopo-art-route',
+  'Santa Catarina Palopó': '/experiencias/palopo-art-route',
+  'San Juan la Laguna': '/experiencias/atitlan-artisan-day',
+  'Santiago Atitlán': '/experiencias/atitlan-signature',
+  'San Lucas Tolimán': '/experiencias/hidden-south-shore',
+  'San Pedro la Laguna': '/experiencias/san-pedro-foodies',
+  'San Marcos la Laguna': '/experiencias/atitlan-signature',
+  'Panajachel': '/experiencias/atitlan-signature',
+};
+
+const COLORS = ['#1a3a50', '#4a3d2e', '#1a2d3e', '#1a4050', '#5a3a20', '#3a2535', '#2d3a2e', '#2a3540', '#2a2218', '#1a3525'];
+
+const curatedIds = new Set(galleryItems.map((item) => item.src));
+
+const remainingItems: GalleryItem[] = cloudinaryAssets
+  .filter((asset) => !curatedIds.has(asset.public_id))
+  .map((asset, index) => {
+    const location = extractLocation(asset.display_name);
+    return {
+      id: galleryItems.length + index + 1,
+      src: asset.public_id,
+      alt: asset.display_name,
+      title: asset.display_name,
+      location,
+      tourLink: TOUR_LINKS[location] || '/catalogo',
+      color: COLORS[index % COLORS.length],
+      size: 'medium' as const,
+      orientation: (asset.width > asset.height ? 'landscape' : 'portrait') as const,
+    };
+  });
+
+const allGalleryItems: GalleryItem[] = [...galleryItems, ...remainingItems];
 
 // ============================================================
 // Reduced-motion helper
@@ -554,7 +617,7 @@ const GaleriaPage: React.FC = () => {
         {/* ---- Experience counter ---- */}
         <div className="flex justify-end mb-4 sm:mb-6 lg:mb-8 px-1">
           <span className="font-dm-sans text-[11px] sm:text-xs uppercase tracking-[0.25em] text-[#f5f0e8]/25">
-            {galleryItems.length} experiencias
+            {allGalleryItems.length} experiencias
           </span>
         </div>
 
@@ -656,6 +719,23 @@ const GaleriaPage: React.FC = () => {
             <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
           </div>
         </div>
+
+        {/* ---- Remaining gallery images ---- */}
+        {remainingItems.length > 0 && (
+          <div data-gallery-group="remaining" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
+            {remainingItems.map((item, idx) => (
+              <div key={item.id} data-gallery-card>
+                <GalleryCard
+                  item={item}
+                  itemIndex={galleryItems.length + idx}
+                  heightClass="h-[35vh] sm:h-[40vh]"
+                  parallaxSpeed={0.1}
+                  onOpen={handleOpenViewer}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* ================================
@@ -734,7 +814,7 @@ const GaleriaPage: React.FC = () => {
           ================================ */}
       {viewerState && (
         <GalleryViewer
-          items={galleryItems}
+          items={allGalleryItems}
           initialIndex={viewerState.index}
           sourceEl={viewerState.sourceEl}
           onClose={handleCloseViewer}

@@ -37,6 +37,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [hasNavigated, setHasNavigated] = useState(false);
+  const [imageReady, setImageReady] = useState(true);
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +49,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
   const touchStart = useRef({ x: 0, y: 0 });
   const touchDelta = useRef({ x: 0, y: 0 });
   const isDraggingDown = useRef(false);
+  const pendingNavigation = useRef(false);
 
   const item = items[currentIndex];
 
@@ -211,35 +213,51 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
     }
   }, [hasNavigated, onClose]);
 
+  // ---------- Image load sync (prevents text/image desync) ----------
+  const handleImageLoad = useCallback(() => {
+    if (!pendingNavigation.current) return;
+    pendingNavigation.current = false;
+
+    const imgContainer = imageContainerRef.current;
+    const content = contentRef.current;
+
+    requestAnimationFrame(() => {
+      if (imgContainer) gsap.set(imgContainer, { opacity: 1 });
+      if (content) {
+        gsap.set(content, { opacity: 0, y: 15 });
+        gsap.to(content, {
+          opacity: 1,
+          y: 0,
+          duration: 0.3,
+          delay: 0.05,
+          ease: 'power2.out',
+        });
+      }
+      setImageReady(true);
+      isAnimating.current = false;
+    });
+  }, []);
+
   // ---------- Navigate ----------
   const navigateTo = useCallback(
     (newIndex: number) => {
       if (isAnimating.current) return;
       isAnimating.current = true;
       setHasNavigated(true);
+      pendingNavigation.current = true;
 
       const imgContainer = imageContainerRef.current;
       const content = contentRef.current;
 
-      // Fade out
+      // Fade out image + text together
       const tl = gsap.timeline();
       if (imgContainer) tl.to(imgContainer, { opacity: 0, duration: 0.2 }, 0);
       if (content) tl.to(content, { opacity: 0, y: 10, duration: 0.2 }, 0);
 
       tl.call(() => {
+        setImageReady(false);
         setCurrentIndex(newIndex);
-        requestAnimationFrame(() => {
-          if (imgContainer) gsap.set(imgContainer, { opacity: 1 });
-          if (content) gsap.set(content, { opacity: 0, y: 15 });
-          gsap.to(content, {
-            opacity: 1,
-            y: 0,
-            duration: 0.3,
-            delay: 0.05,
-            ease: 'power2.out',
-          });
-          isAnimating.current = false;
-        });
+        // Fade-in is deferred until handleImageLoad (via img onLoad)
       });
     },
     [],
@@ -352,8 +370,17 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
           alt={item.alt}
           className="w-full h-full object-cover"
           draggable={false}
+          onLoad={handleImageLoad}
+          onError={handleImageLoad}
         />
       </div>
+
+      {/* ---- Loading indicator ---- */}
+      {!imageReady && (
+        <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
+          <div className="w-8 h-8 border-2 border-[#f5f0e8]/20 border-t-[#f5f0e8]/60 rounded-full animate-spin" />
+        </div>
+      )}
 
       {/* ---- Bottom gradient ---- */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/80 via-[#0a0a0a]/25 to-transparent pointer-events-none" />
