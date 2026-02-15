@@ -7,6 +7,7 @@ import Seo from '../components/Seo';
 import GalleryViewer from '../components/GalleryViewer';
 import { GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
+import { getCloudinaryUrl } from '../src/utils/cloudinary';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,7 +21,6 @@ interface GalleryItem {
   alt: string;
   title: string;
   location: string;
-  price: string;
   tourLink: string;
   color: string;
   size: 'large' | 'medium' | 'small';
@@ -30,120 +30,110 @@ interface GalleryItem {
 const galleryItems: GalleryItem[] = [
   {
     id: 1,
-    src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Vista panorámica de un lago rodeado de montañas al amanecer',
-    title: 'Sunrise Kayak Tour',
-    location: 'Panajachel',
-    price: 'Desde $45 USD',
-    tourLink: '/tours/sunrise-kayak',
-    color: '#1a2d45',
+    src: 'DSC04496_noiz4x',
+    alt: 'Vista panorámica del Lago de Atitlán desde el mirador de San Antonio Palopó',
+    title: 'Mirador San Antonio Palopó',
+    location: 'San Antonio Palopó',
+    tourLink: '/experiencias/palopo-art-route',
+    color: '#1a3a50',
     size: 'large',
     orientation: 'landscape',
   },
   {
     id: 2,
-    src: 'https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=800&q=80',
-    alt: 'Calle colorida de un pueblo guatemalteco',
-    title: 'Village Walking Tour',
+    src: 'DSC04042_ktnwye',
+    alt: 'Calle colorida en el centro de San Juan la Laguna',
+    title: 'Calles de San Juan la Laguna',
     location: 'San Juan la Laguna',
-    price: 'Desde $35 USD',
-    tourLink: '/tours/village-walk',
-    color: '#6b5a3d',
+    tourLink: '/experiencias/atitlan-artisan-day',
+    color: '#4a3d2e',
     size: 'medium',
     orientation: 'portrait',
   },
   {
     id: 3,
-    src: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Volcanes cubiertos de niebla al atardecer',
-    title: 'Volcano Sunset Experience',
-    location: 'Indian Nose',
-    price: 'Desde $55 USD',
-    tourLink: '/tours/volcano-sunset',
-    color: '#2d3a2e',
+    src: 'DSC04094_vht4pi',
+    alt: 'Vista del lago y volcanes en la ruta de lancha San Pedro a Santiago Atitlán',
+    title: 'Ruta en Lancha por el Lago',
+    location: 'Lago de Atitlán',
+    tourLink: '/experiencias/atitlan-signature',
+    color: '#1a2d3e',
     size: 'large',
     orientation: 'landscape',
   },
   {
     id: 4,
-    src: 'https://images.unsplash.com/photo-1543039625-14cbd3802e7d?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Kayak navegando en aguas cristalinas',
-    title: 'Lake Kayak Adventure',
-    location: 'Santa Cruz la Laguna',
-    price: 'Desde $40 USD',
-    tourLink: '/tours/lake-kayak',
+    src: 'DSC04374_rdep9d',
+    alt: 'Playa con aguas cristalinas en Santa Catarina Palopó',
+    title: 'Playa Santa Catarina Palopó',
+    location: 'Santa Catarina Palopó',
+    tourLink: '/experiencias/palopo-art-route',
     color: '#1a4050',
     size: 'medium',
     orientation: 'landscape',
   },
   {
     id: 5,
-    src: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
-    alt: 'Platillos de comida local guatemalteca',
-    title: 'Foodie Tour',
+    src: 'DSC04185_rgqgug',
+    alt: 'Platillos de comida local en el mercado de Santiago Atitlán',
+    title: 'Gastronomía Local',
     location: 'Santiago Atitlán',
-    price: 'Desde $60 USD',
-    tourLink: '/tours/foodie-tour',
+    tourLink: '/experiencias/san-pedro-foodies',
     color: '#5a3a20',
     size: 'small',
     orientation: 'landscape',
   },
   {
     id: 6,
-    src: 'https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=800&q=80',
-    alt: 'Textiles tradicionales mayas tejidos a mano',
-    title: 'Weaving Workshop',
+    src: 'DSC04045_etlucg',
+    alt: 'Güipiles tradicionales mayas tejidos a mano en San Juan la Laguna',
+    title: 'Textiles Mayas',
     location: 'San Juan la Laguna',
-    price: 'Desde $30 USD',
-    tourLink: '/tours/weaving-workshop',
+    tourLink: '/experiencias/atitlan-artisan-day',
     color: '#3a2535',
     size: 'small',
     orientation: 'portrait',
   },
   {
     id: 7,
-    src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Atardecer dorado sobre el lago con silueta de volcanes',
-    title: 'Sunset Cruise',
-    location: 'Lago de Atitlán',
-    price: 'Desde $75 USD',
-    tourLink: '/tours/sunset-cruise',
-    color: '#4a3520',
+    src: 'DSC04361_iuucat',
+    alt: 'Playa de arena junto al lago en San Lucas Tolimán con volcanes de fondo',
+    title: 'Playa San Lucas Tolimán',
+    location: 'San Lucas Tolimán',
+    tourLink: '/experiencias/hidden-south-shore',
+    color: '#2d3a2e',
     size: 'large',
     orientation: 'landscape',
   },
   {
     id: 8,
-    src: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Sendero de montaña con vista al lago',
-    title: 'Highland Trek',
-    location: 'Cerro de Oro',
-    price: 'Desde $50 USD',
-    tourLink: '/tours/highland-trek',
+    src: 'DSC04466_mxfzds',
+    alt: 'Callejones pintados de colores en San Antonio Palopó',
+    title: 'Callejones de San Antonio',
+    location: 'San Antonio Palopó',
+    tourLink: '/experiencias/palopo-art-route',
     color: '#2a3540',
     size: 'medium',
     orientation: 'landscape',
   },
   {
     id: 9,
-    src: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80',
-    alt: 'Plato gourmet con ingredientes locales',
-    title: 'Farm to Table',
-    location: 'San Marcos la Laguna',
-    price: 'Desde $65 USD',
-    tourLink: '/tours/farm-to-table',
+    src: 'DSC04238_swyart',
+    alt: 'Tabla de vino y queso gourmet junto al Lago de Atitlán',
+    title: 'Experiencia Gourmet',
+    location: 'San Lucas Tolimán',
+    tourLink: '/experiencias/coffee-lab',
     color: '#2a2218',
     size: 'small',
     orientation: 'landscape',
   },
   {
     id: 10,
-    src: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Vista aérea de cascada tropical rodeada de vegetación',
-    title: 'Waterfall Adventure',
+    src: 'DSC04381_ro3yne',
+    alt: 'Vista del lago desde el mirador público de Santa Catarina Palopó',
+    title: 'Mirador Santa Catarina',
     location: 'Santa Catarina Palopó',
-    price: 'Desde $45 USD',
-    tourLink: '/tours/waterfall-adventure',
+    tourLink: '/experiencias/palopo-art-route',
     color: '#1a3525',
     size: 'medium',
     orientation: 'portrait',
@@ -183,19 +173,17 @@ function supportsShaderReveal(): boolean {
 }
 
 // ============================================================
-// Responsive image helper — Unsplash srcSet
+// Responsive image helper — Cloudinary srcSet
 // ============================================================
 
-function buildUnsplashSrcSet(
-  src: string,
+function buildCloudinarySrcSet(
+  publicId: string,
   widths = [800, 1200, 1800],
 ): { srcSet: string; sizes: string } {
   const srcSet = widths
     .map((w) => {
-      const url = new URL(src);
-      url.searchParams.set('w', String(w));
-      url.searchParams.set('q', w <= 800 ? '75' : '80');
-      return `${url.href} ${w}w`;
+      const url = getCloudinaryUrl(publicId, { width: w });
+      return `${url} ${w}w`;
     })
     .join(', ');
 
@@ -526,13 +514,10 @@ const GaleriaPage: React.FC = () => {
       <section ref={heroRef} className="relative h-[100svh] min-h-[600px] overflow-hidden">
         <img
           ref={heroImgRef}
-          src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2000&q=80"
-          srcSet={buildUnsplashSrcSet(
-            'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2000&q=80',
-            [800, 1200, 2000],
-          ).srcSet}
+          src={getCloudinaryUrl('DSC04387_zcq91s', { width: 2000 })}
+          srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [800, 1200, 2000]).srcSet}
           sizes="100vw"
-          alt="Vista panorámica del Lago de Atitlán al amanecer"
+          alt="Vista panorámica del Lago de Atitlán desde el mirador de Santa Catarina Palopó"
           className="absolute inset-0 w-full h-full object-cover will-change-transform"
           loading="eager"
           fetchPriority="high"
@@ -783,7 +768,7 @@ const GalleryCard: React.FC<{
     }
   };
 
-  const { srcSet, sizes } = buildUnsplashSrcSet(item.src);
+  const { srcSet, sizes } = buildCloudinarySrcSet(item.src);
 
   return (
     <div
@@ -803,7 +788,7 @@ const GalleryCard: React.FC<{
 
       {/* Image with parallax data attribute — extra height for parallax room */}
       <img
-        src={item.src}
+        src={getCloudinaryUrl(item.src, { width: 1600 })}
         srcSet={srcSet}
         sizes={sizes}
         alt={item.alt}
@@ -829,7 +814,7 @@ const GalleryCard: React.FC<{
         <p className="font-dm-sans text-[13px] sm:text-sm font-medium text-[#f5f0e8]/90 leading-snug">
           {item.title}
           <span className="text-[#f5f0e8]/25 mx-1.5">·</span>
-          <span className="text-[#f5f0e8]/50">{item.price}</span>
+          <span className="text-[#f5f0e8]/50">{item.location}</span>
         </p>
       </div>
     </div>

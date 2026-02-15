@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
+import { getCloudinaryUrl } from '../src/utils/cloudinary';
 
 // ============================================================
 // Types (matches GaleriaPage GalleryItem)
@@ -12,7 +13,6 @@ export interface GalleryItem {
   alt: string;
   title: string;
   location: string;
-  price: string;
   tourLink: string;
   size: 'large' | 'medium' | 'small';
   orientation: 'landscape' | 'portrait';
@@ -348,7 +348,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
         className="absolute inset-0 will-change-[clip-path,transform]"
       >
         <img
-          src={item.src}
+          src={getCloudinaryUrl(item.src, { width: 2400 })}
           alt={item.alt}
           className="w-full h-full object-cover"
           draggable={false}
@@ -407,18 +407,13 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
           <h2 className="font-playfair text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-[#f5f0e8] leading-tight mb-2">
             {item.title}
           </h2>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-1.5">
-            <p className="font-dm-sans text-sm sm:text-base text-[#f5f0e8]/60 flex items-center gap-1.5">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {item.location}
-            </p>
-            <span className="font-dm-sans text-sm sm:text-base font-medium text-[#f5f0e8]/80">
-              {item.price}
-            </span>
-          </div>
+          <p className="font-dm-sans text-sm sm:text-base text-[#f5f0e8]/60 flex items-center gap-1.5 mb-1.5">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {item.location}
+          </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 mt-5 sm:mt-6">
