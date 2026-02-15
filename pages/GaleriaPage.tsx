@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import Seo from '../components/Seo';
+import GalleryViewer from '../components/GalleryViewer';
 import { GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
 
@@ -157,6 +158,23 @@ const GaleriaPage: React.FC = () => {
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const scrollIndicatorRef = useRef<HTMLDivElement>(null);
+
+  // ---------- Fullscreen viewer state ----------
+  const [viewerState, setViewerState] = useState<{
+    index: number;
+    sourceEl: HTMLElement;
+  } | null>(null);
+
+  const handleOpenViewer = useCallback(
+    (itemIndex: number, sourceEl: HTMLElement) => {
+      setViewerState({ index: itemIndex, sourceEl });
+    },
+    [],
+  );
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerState(null);
+  }, []);
 
   // ---------- Lenis smooth scroll ----------
   useEffect(() => {
@@ -410,32 +428,32 @@ const GaleriaPage: React.FC = () => {
         {/* ---- Group 1: Large landscape + Medium portrait ---- */}
         <div data-gallery-group="1" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5">
           <div className="lg:col-span-8" data-gallery-card>
-            <GalleryCard item={galleryItems[0]} heightClass="h-[55vh] sm:h-[60vh] lg:h-[70vh]" parallaxSpeed={0.1} />
+            <GalleryCard item={galleryItems[0]} itemIndex={0} heightClass="h-[55vh] sm:h-[60vh] lg:h-[70vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
           </div>
           <div className="lg:col-span-4" data-gallery-card>
-            <GalleryCard item={galleryItems[1]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[70vh]" parallaxSpeed={0.18} />
+            <GalleryCard item={galleryItems[1]} itemIndex={1} heightClass="h-[55vh] sm:h-[50vh] lg:h-[70vh]" parallaxSpeed={0.18} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 2: Full-width large landscape ---- */}
         <div data-gallery-group="2" className="mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[2]} heightClass="h-[55vh] sm:h-[60vh] lg:h-[75vh]" parallaxSpeed={0.12} />
+            <GalleryCard item={galleryItems[2]} itemIndex={2} heightClass="h-[55vh] sm:h-[60vh] lg:h-[75vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 3: Medium landscape + Small + Small ---- */}
         <div data-gallery-group="3" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div className="md:col-span-2 lg:col-span-7" data-gallery-card>
-            <GalleryCard item={galleryItems[3]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[55vh]" parallaxSpeed={0.15} />
+            <GalleryCard item={galleryItems[3]} itemIndex={3} heightClass="h-[55vh] sm:h-[50vh] lg:h-[55vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
           </div>
           <div className="lg:col-span-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 lg:gap-5 h-full">
               <div data-gallery-card>
-                <GalleryCard item={galleryItems[4]} heightClass="h-[40vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.08} />
+                <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[40vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
               </div>
               <div data-gallery-card>
-                <GalleryCard item={galleryItems[5]} heightClass="h-[55vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.2} />
+                <GalleryCard item={galleryItems[5]} itemIndex={5} heightClass="h-[55vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
               </div>
             </div>
           </div>
@@ -481,27 +499,27 @@ const GaleriaPage: React.FC = () => {
         {/* ---- Group 4: Large landscape (full) ---- */}
         <div data-gallery-group="4">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[6]} heightClass="h-[55vh] sm:h-[65vh] lg:h-[80vh]" parallaxSpeed={0.1} />
+            <GalleryCard item={galleryItems[6]} itemIndex={6} heightClass="h-[55vh] sm:h-[65vh] lg:h-[80vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 5: Medium portrait + Medium landscape ---- */}
         <div data-gallery-group="5" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div className="lg:col-span-5" data-gallery-card>
-            <GalleryCard item={galleryItems[9]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.2} />
+            <GalleryCard item={galleryItems[9]} itemIndex={9} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
           </div>
           <div className="lg:col-span-7" data-gallery-card>
-            <GalleryCard item={galleryItems[7]} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.12} />
+            <GalleryCard item={galleryItems[7]} itemIndex={7} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 6: Small + Small (closing pair) ---- */}
         <div data-gallery-group="6" className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[8]} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.15} />
+            <GalleryCard item={galleryItems[8]} itemIndex={8} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
           </div>
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[4]} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.08} />
+            <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
           </div>
         </div>
       </main>
@@ -544,59 +562,90 @@ const GaleriaPage: React.FC = () => {
       </section>
 
       <GlassFooter />
+
+      {/* ================================
+          FULLSCREEN VIEWER
+          ================================ */}
+      {viewerState && (
+        <GalleryViewer
+          items={galleryItems}
+          initialIndex={viewerState.index}
+          sourceEl={viewerState.sourceEl}
+          onClose={handleCloseViewer}
+        />
+      )}
     </div>
   );
 };
 
 // ============================================================
-// Gallery Card — Image with overlay + parallax data attr
+// Gallery Card — Clickable image with overlay + parallax
 // ============================================================
 
 const GalleryCard: React.FC<{
   item: GalleryItem;
+  itemIndex: number;
   heightClass: string;
   parallaxSpeed?: number;
-}> = ({ item, heightClass, parallaxSpeed = 0.15 }) => (
-  <Link
-    to={item.tourLink}
-    className={`group relative block w-full overflow-hidden rounded-xl sm:rounded-2xl bg-[#141414] ${heightClass}`}
-  >
-    {/* Image with parallax data attribute — extra height for parallax room */}
-    <img
-      src={item.src}
-      alt={item.alt}
-      data-parallax={parallaxSpeed}
-      className="absolute inset-[-15%] w-[130%] h-[130%] object-cover will-change-transform transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-      loading="lazy"
-    />
+  onOpen: (index: number, sourceEl: HTMLElement) => void;
+}> = ({ item, itemIndex, heightClass, parallaxSpeed = 0.15, onOpen }) => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    onOpen(itemIndex, e.currentTarget);
+  };
 
-    {/* Permanent subtle bottom gradient */}
-    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/60 via-[#0a0a0a]/0 to-transparent" />
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onOpen(itemIndex, e.currentTarget);
+    }
+  };
 
-    {/* Hover overlay — darker */}
-    <div className="absolute inset-0 bg-[#0a0a0a]/0 group-hover:bg-[#0a0a0a]/30 transition-colors duration-300" />
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      className={`group relative block w-full overflow-hidden rounded-xl sm:rounded-2xl bg-[#141414] cursor-pointer select-none ${heightClass}`}
+    >
+      {/* Image with parallax data attribute — extra height for parallax room */}
+      <img
+        src={item.src}
+        alt={item.alt}
+        data-parallax={parallaxSpeed}
+        className="absolute inset-[-15%] w-[130%] h-[130%] object-cover will-change-transform transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+        loading="lazy"
+        draggable={false}
+      />
 
-    {/* Info overlay — always visible on mobile, hover on desktop */}
-    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 lg:p-6 lg:translate-y-2 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 transition-all duration-300">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h3 className="font-playfair text-lg sm:text-xl lg:text-2xl font-semibold text-[#f5f0e8] mb-1 leading-tight">
-            {item.title}
-          </h3>
-          <p className="font-dm-sans text-xs sm:text-sm text-[#f5f0e8]/60 flex items-center gap-1">
-            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            {item.location}
-          </p>
+      {/* Permanent subtle bottom gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/60 via-[#0a0a0a]/0 to-transparent" />
+
+      {/* Hover overlay — darker */}
+      <div className="absolute inset-0 bg-[#0a0a0a]/0 group-hover:bg-[#0a0a0a]/30 transition-colors duration-300" />
+
+      {/* Info overlay — always visible on mobile, hover on desktop */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 lg:p-6 lg:translate-y-2 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 transition-all duration-300">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h3 className="font-playfair text-lg sm:text-xl lg:text-2xl font-semibold text-[#f5f0e8] mb-1 leading-tight">
+              {item.title}
+            </h3>
+            <p className="font-dm-sans text-xs sm:text-sm text-[#f5f0e8]/60 flex items-center gap-1">
+              <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {item.location}
+            </p>
+          </div>
+          <span className="font-dm-sans text-xs sm:text-sm font-medium text-[#f5f0e8]/80 whitespace-nowrap bg-[#0a0a0a]/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            {item.price}
+          </span>
         </div>
-        <span className="font-dm-sans text-xs sm:text-sm font-medium text-[#f5f0e8]/80 whitespace-nowrap bg-[#0a0a0a]/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
-          {item.price}
-        </span>
       </div>
     </div>
-  </Link>
-);
+  );
+};
 
 export default GaleriaPage;
