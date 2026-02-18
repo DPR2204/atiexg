@@ -23,6 +23,7 @@ const CalendarioPage = lazy(() => import('./pages/backoffice/CalendarioPage'));
 const KanbanPage = lazy(() => import('./pages/backoffice/KanbanPage'));
 const LogisticaPage = lazy(() => import('./pages/backoffice/LogisticaPage'));
 const RecursosPage = lazy(() => import('./pages/backoffice/RecursosPage'));
+const ToursPage = lazy(() => import('./pages/backoffice/ToursPage'));
 
 const ReservationCheckinPage = lazy(() => import('./pages/public/ReservationCheckinPage'));
 
@@ -114,6 +115,10 @@ export const routes: RouteObject[] = [
       {
         path: 'recursos',
         element: <SuspenseWrapper><RecursosPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'tours',
+        element: <SuspenseWrapper><ToursPage /></SuspenseWrapper>,
       },
     ],
   },

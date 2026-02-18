@@ -8,6 +8,7 @@ import CommandPalette from './CommandPalette';
 const NAV_ITEMS = [
     { path: '/backoffice', label: 'Dashboard', icon: '▣', end: true },
     { path: '/backoffice/reservas', label: 'Reservas', icon: '≡', end: false },
+    { path: '/backoffice/tours', label: 'Tours', icon: '★', end: false },
     { path: '/backoffice/kanban', label: 'Tablero', icon: '⊞', end: false },
     { path: '/backoffice/calendario', label: 'Calendario', icon: '◫', end: false },
     { path: '/backoffice/logistica', label: 'Logística', icon: '⊡', end: false },

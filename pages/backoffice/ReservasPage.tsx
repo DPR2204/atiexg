@@ -6,6 +6,7 @@ import { TOURS } from '../../data';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation } from '../../lib/reservation-logic';
 import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
+import type { CustomTourData } from '../../types/shared';
 import { STATUS_CONFIG, MEAL_TYPE_LABELS, AUDIT_ACTION_LABELS } from '../../types/backoffice';
 import type { ReservationStatus, MealType } from '../../types/backoffice';
 
@@ -17,7 +18,7 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
     const config = STATUS_CONFIG[status];
     return (
         <span
-            className="bo-status-badge"
+            className="px-2 py-0.5 rounded text-xs font-medium inline-block whitespace-nowrap"
             style={{ backgroundColor: config.bg, color: config.color }}
         >
             {config.label}
@@ -27,13 +28,13 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
 
 function AuditLogView({ logs }: { logs: AuditLogEntry[] }) {
     if (!logs || logs.length === 0) return (
-        <div className="bo-empty-state">
-            <p>No hay historial registrado para esta reserva.</p>
+        <div className="text-gray-500 text-sm italic p-4 text-center bg-gray-50 rounded-lg border border-gray-100">
+            No hay historial registrado para esta reserva.
         </div>
     );
 
     return (
-        <div className="bo-audit-timeline">
+        <div className="space-y-4 pl-2 text-sm">
             {logs.map((log) => {
                 const date = new Date(log.created_at);
                 const day = date.getDate();
@@ -41,25 +42,27 @@ function AuditLogView({ logs }: { logs: AuditLogEntry[] }) {
                 const time = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
                 return (
-                    <div key={log.id} className="bo-audit-item">
-                        <div className="bo-audit-marker">
-                            <span className="day">{day}</span>
-                            <span className="month">{month}</span>
+                    <div key={log.id} className="flex gap-4 group">
+                        <div className="flex flex-col items-center min-w-[3rem] pt-0.5">
+                            <span className="text-xl font-bold text-gray-900 leading-none">{day}</span>
+                            <span className="text-[10px] uppercase text-gray-500 font-bold">{month}</span>
                         </div>
-                        <div className="bo-audit-content">
-                            <div className="bo-audit-header">
-                                <span className="bo-audit-agent">{log.agent_name}</span>
-                                <span className="bo-audit-action">{AUDIT_ACTION_LABELS[log.action] || log.action}</span>
-                                <span className="text-xs text-muted ml-auto">{time}</span>
+                        <div className="flex-1 pb-4 border-b border-gray-100 group-last:border-0">
+                            <div className="flex justify-between items-start mb-1">
+                                <div>
+                                    <span className="font-medium text-gray-900 mr-2">{log.agent_name}</span>
+                                    <span className="text-xs text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{AUDIT_ACTION_LABELS[log.action] || log.action}</span>
+                                </div>
+                                <span className="text-xs text-gray-400">{time}</span>
                             </div>
-                            <div className="bo-audit-details">
+                            <div className="text-gray-600 mt-1">
                                 {log.field_changed ? (
                                     <>
-                                        Modificó <strong>{log.field_changed}</strong>
+                                        Modificó <strong className="font-medium text-gray-800">{log.field_changed}</strong>
                                         {(log.old_value || log.new_value) && (
-                                            <div className="bo-audit-diff">
-                                                {log.old_value && <div className="old"><code>{log.old_value}</code></div>}
-                                                {log.new_value && <div className="new"><code>{log.new_value}</code></div>}
+                                            <div className="mt-2 bg-gray-50 p-2 rounded text-xs font-mono grid gap-1 border border-gray-100">
+                                                {log.old_value && <div className="text-red-700 line-through opacity-70">-{log.old_value}</div>}
+                                                {log.new_value && <div className="text-green-700 font-medium">+{log.new_value}</div>}
                                             </div>
                                         )}
                                     </>
@@ -137,6 +140,9 @@ export default function ReservasPage() {
     // Menu Config State (V5)
     const [menuConfig, setMenuConfig] = useState<{ type: string; options: string[] }[]>([]);
 
+    // Custom Tour Data State (V7)
+    const [customTourForm, setCustomTourForm] = useState<any>({ itinerary: [], includes: '' });
+
     useEffect(() => {
         fetchAll();
     }, [filterStatus]);
@@ -147,6 +153,12 @@ export default function ReservasPage() {
             .from('reservations')
             .select(`
                 *,
+                custom_tour_data,
+                tour:tours(
+                    name,
+                    includes,
+                    itinerary
+                ),
                 public_token,
                 agent:agents(name),
                 boat:boats(name),
@@ -243,7 +255,7 @@ export default function ReservasPage() {
                     agent_id: agent.id,
                     agent_name: agent.name,
                     action: 'created',
-                    new_value: `Nueva reserva: ${data.tour_name}`
+                    new_value: `Nueva reserva: ${data.tour_name} `
                 }]);
             }
         }
@@ -305,7 +317,7 @@ export default function ReservasPage() {
                 const text = await res.text();
                 // If text is HTML, it's likely a 404 or 500 from Vercel/Next
                 console.error("Non-JSON response:", text);
-                throw new Error(`Respuesta inválida del servidor (${res.status}). Posiblemente la API no está disponible.`);
+                throw new Error(`Respuesta inválida del servidor(${res.status}).Posiblemente la API no está disponible.`);
             }
 
             const data = await res.json();
@@ -319,10 +331,10 @@ export default function ReservasPage() {
 
                 await logAudit(showPaymentModal.id, 'updated', {
                     field_changed: 'payment_link_generated',
-                    new_value: `$${paymentAmount}`
+                    new_value: `$${paymentAmount} `
                 });
 
-                alert(`Link generado: ${data.checkoutUrl}\n(Copiado al portapapeles)`);
+                alert(`Link generado: ${data.checkoutUrl} \n(Copiado al portapapeles)`);
                 navigator.clipboard.writeText(data.checkoutUrl);
 
                 setShowPaymentModal(null);
@@ -349,13 +361,13 @@ export default function ReservasPage() {
         supabase
             .from('reservations')
             .select(`
-                *,
-                agent:agents(*),
-                boat:boats(*),
-                driver:staff!reservations_driver_id_fkey(*),
-                guide:staff!reservations_guide_id_fkey(*),
-                passengers(*, meals:passenger_meals(*))
-            `)
+            *,
+            agent: agents(*),
+                boat: boats(*),
+                    driver: staff!reservations_driver_id_fkey(*),
+                        guide: staff!reservations_guide_id_fkey(*),
+                            passengers(*, meals: passenger_meals(*))
+                                `)
             .eq('id', res.id)
             .single()
             .then(({ data }) => {
@@ -389,6 +401,25 @@ export default function ReservasPage() {
 
                 // Load Menu
                 setQuickMenu(res.meal_options?.available_meals || []);
+
+                // Load Custom Tour Data (V7)
+                if (res.custom_tour_data) {
+                    setCustomTourForm(res.custom_tour_data);
+                } else {
+                    // Pre-fill with default tour data if available
+                    // @ts-ignore
+                    const tourData = res.tour; // Fixed alias from 'tours' to 'tour'
+                    if (tourData) {
+                        setCustomTourForm({
+                            tour_name: tourData.name || res.tour_name,
+                            includes: tourData.includes || '',
+                            itinerary: tourData.itinerary || []
+                        });
+                    } else {
+                        // Fallback if no tour data linked yet
+                        setCustomTourForm({ itinerary: [], includes: '' });
+                    }
+                }
             }
         }
     }
@@ -405,6 +436,36 @@ export default function ReservasPage() {
             fetchAll();
         }
     }
+
+    async function saveCustomTour(id: number) {
+        const { error } = await supabase
+            .from('reservations')
+            .update({ custom_tour_data: customTourForm })
+            .eq('id', id);
+
+        if (error) alert('Error al guardar info del tour');
+        else {
+            alert('Info del tour actualizada correctamente');
+            fetchAll();
+        }
+    }
+
+    function importFromOriginal(tourId: number) {
+        const original = TOURS.find(t => t.id === tourId);
+        if (original) {
+            setCustomTourForm({
+                tour_name: original.name,
+                itinerary: original.itinerary,
+                includes: original.includes
+            });
+        }
+    }
+    // ... (skip other handlers) ...
+
+    // RENDER SECTION - Expanded Row Content
+    // This needs to be inside the render block, but I am replacing the chunk causing issues.
+    // Let's target the toggleExpanded function specifically first to fix the logic bug.
+
 
     async function addPassenger(resId: number) {
         if (!passengerForm.full_name.trim()) return;
@@ -553,26 +614,44 @@ export default function ReservasPage() {
     if (loading) return <div className="bo-loading"><div className="bo-loading-spinner" /></div>;
 
     return (
-        <div className="bo-reservas">
+        <div className="p-6 max-w-[1600px] mx-auto">
             {/* Header */}
-            <header className="bo-header bo-flex bo-justify-between bo-align-center">
+            <header className="flex justify-between items-center mb-8">
                 <div>
-                    <h2 className="bo-title">Reservas</h2>
-                    <p className="bo-subtitle">{reservations.length} servicios registrados • Comisión estimada: ${reservations.reduce((acc, curr) => acc + (curr.total_amount * (agent?.commission_rate || 5) / 100), 0).toFixed(2)}</p>
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Reservas</h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                        {reservations.length} servicios registrados • Comisión estimada: <span className="font-mono text-gray-700">${reservations.reduce((acc, curr) => acc + (curr.total_amount * (agent?.commission_rate || 5) / 100), 0).toFixed(2)}</span>
+                    </p>
                 </div>
-                <button className="bo-btn bo-btn--primary" onClick={() => { resetForm(); setShowForm(true); }}>
+                <button
+                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-2"
+                    onClick={() => { resetForm(); setShowForm(true); }}
+                >
                     + Nueva Reserva
                 </button>
             </header>
 
             {/* Filters */}
-            <div className="bo-filters">
-                <button className={`bo-filter-chip ${filterStatus === 'all' ? 'bo-filter-chip--active' : ''}`} onClick={() => setFilterStatus('all')}>Todas</button>
-                {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                    <button key={key} className={`bo-filter-chip ${filterStatus === key ? 'bo-filter-chip--active' : ''}`} style={filterStatus === key ? { borderColor: config.color, color: config.color } : {}} onClick={() => setFilterStatus(key)}>
-                        {config.label}
-                    </button>
-                ))}
+            <div className="flex flex-wrap gap-2 mb-6">
+                <button
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${filterStatus === 'all' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                    onClick={() => setFilterStatus('all')}
+                >
+                    Todas
+                </button>
+                {Object.entries(STATUS_CONFIG).map(([key, config]) => {
+                    const isActive = filterStatus === key;
+                    return (
+                        <button
+                            key={key}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isActive ? '' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                            style={isActive ? { backgroundColor: config.bg, color: config.color, borderColor: config.color } : {}}
+                            onClick={() => setFilterStatus(key)}
+                        >
+                            {config.label}
+                        </button>
+                    )
+                })}
             </div>
 
             {/* Payment Modal */}
@@ -701,84 +780,91 @@ export default function ReservasPage() {
             )}
 
             {/* List */}
-            <div className="bo-table-container">
-                <table className="bo-table">
-                    <thead>
-                        <tr>
-                            <th style={{ width: 50 }}></th>
-                            <th>ID</th>
-                            <th>Tour / Fecha</th>
-                            <th>Cliente / Pax</th>
-                            <th>Pagos</th>
-                            <th>Staff</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {reservations.map(res => {
-                            const commission = (res.total_amount * (agent?.commission_rate || 5) / 100).toFixed(2);
-                            const isExpanded = expandedId === res.id;
-                            const pending = res.total_amount - res.paid_amount;
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+                                <th className="p-3 w-10 text-center"></th>
+                                <th className="p-3">ID</th>
+                                <th className="p-3">Tour / Fecha</th>
+                                <th className="p-3">Cliente / Pax</th>
+                                <th className="p-3">Pagos</th>
+                                <th className="p-3">Staff</th>
+                                <th className="p-3">Estado</th>
+                                <th className="p-3 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {reservations.map(res => {
+                                const commission = (res.total_amount * (agent?.commission_rate || 5) / 100).toFixed(2);
+                                const isExpanded = expandedId === res.id;
+                                const pending = res.total_amount - res.paid_amount;
 
-                            return (
-                                <React.Fragment key={res.id}>
-                                    <tr>
-                                        <td>
-                                            <button className="bo-icon-btn" onClick={() => toggleExpanded(res.id)}>
-                                                {isExpanded ? '▼' : '▶'}
-                                            </button>
-                                        </td>
-                                        <td className="font-mono text-xs text-muted">#{res.id}</td>
-                                        <td>
-                                            <div className="font-medium">{res.tour_name}</div>
-                                            <div className="text-sm text-muted">
-                                                {/* Append T12:00:00 to prevent timezone shift */}
-                                                {new Date(res.tour_date + 'T12:00:00').toLocaleDateString()} • {res.start_time.substring(0, 5)}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div>{res.passengers?.[0]?.full_name || 'Sin nombre'}</div>
-                                            <div className="text-sm text-muted">{res.pax_count} pax</div>
-                                        </td>
-                                        <td>
-                                            <div className="font-medium">${res.total_amount}</div>
-                                            {pending > 0 ? (
-                                                <span className="bo-badge-red">Debe: ${pending}</span>
-                                            ) : (
-                                                <span className="bo-badge-green">Pagado</span>
-                                            )}
-                                            <div className="text-xs text-muted mt-1">Com: ${commission}</div>
-                                        </td>
-                                        <td>
-                                            <div className="text-xs">
-                                                {res.boat?.name || 'S/A'} • {res.driver?.name?.split(' ')[0] || '?'}
-                                            </div>
-                                        </td>
-                                        <td><StatusBadge status={res.status} /></td>
-                                        <td>
-                                            <div className="bo-actions">
-                                                <button className="bo-icon-btn" title="Editar" onClick={() => startEdit(res)}>✏️</button>
-                                                <button className="bo-icon-btn" title="PDF" onClick={() => handlePrint(res)}>📄</button>
-                                                <button className="bo-icon-btn" title="Cobrar" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
-                                                <button className="bo-icon-btn bo-text-red" title="Eliminar" onClick={() => deleteReservation(res.id)}>🗑️</button>
-                                            </div>
-                                            {res.payment_url && (
-                                                <div className="text-xs mt-1">
-                                                    <a href={res.payment_url} target="_blank" rel="noreferrer" className="bo-link">Link Pago 🔗</a>
+                                return (
+                                    <React.Fragment key={res.id}>
+                                        <tr className={`hover:bg-gray-50 transition-colors ${isExpanded ? 'bg-blue-50/30' : ''}`}>
+                                            <td className="p-3 text-center">
+                                                <button
+                                                    className="text-gray-400 hover:text-blue-600 transition-colors"
+                                                    onClick={() => toggleExpanded(res.id)}
+                                                >
+                                                    {isExpanded ? '▼' : '▶'}
+                                                </button>
+                                            </td>
+                                            <td className="p-3">
+                                                <span className="font-mono text-xs text-gray-500">#{res.id}</span>
+                                            </td>
+                                            <td className="p-3">
+                                                <div className="font-medium text-gray-900">{res.tour_name}</div>
+                                                <div className="text-xs text-gray-500 mt-0.5">
+                                                    {new Date(res.tour_date + 'T12:00:00').toLocaleDateString()} • {res.start_time.substring(0, 5)}
                                                 </div>
-                                            )}
-                                            {res.public_token && (
-                                                <div className="text-xs mt-1">
-                                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                                        <a href={`/reservas/checkin/${res.public_token}`} target="_blank" rel="noreferrer" className="bo-link text-blue-600">
-                                                            Link Guest 🔗
+                                            </td>
+                                            <td className="p-3">
+                                                <div className="text-gray-900">{res.passengers?.[0]?.full_name || 'Sin nombre'}</div>
+                                                <div className="text-xs text-gray-500">{res.pax_count} pax</div>
+                                            </td>
+                                            <td className="p-3">
+                                                <div className="font-medium text-gray-900">${res.total_amount}</div>
+                                                <div className="flex flex-col gap-1 items-start mt-1">
+                                                    {pending > 0 ? (
+                                                        <span className="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Debe: ${pending}</span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Pagado</span>
+                                                    )}
+                                                    <div className="text-[10px] text-gray-400">Com: ${commission}</div>
+                                                </div>
+                                            </td>
+                                            <td className="p-3">
+                                                <div className="text-xs text-gray-600">
+                                                    <div title="Lancha">🚤 {res.boat?.name || 'S/A'}</div>
+                                                    <div title="Capitán">⚓ {res.driver?.name?.split(' ')[0] || '?'}</div>
+                                                </div>
+                                            </td>
+                                            <td className="p-3"><StatusBadge status={res.status} /></td>
+                                            <td className="p-3 text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    <button className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors" title="Editar" onClick={() => startEdit(res)}>✏️</button>
+                                                    <button className="p-1 text-gray-400 hover:text-purple-600 rounded hover:bg-purple-50 transition-colors" title="PDF" onClick={() => handlePrint(res)}>📄</button>
+                                                    <button className="p-1 text-gray-400 hover:text-green-600 rounded hover:bg-green-50 transition-colors" title="Cobrar" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
+                                                    <button className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors" title="Eliminar" onClick={() => deleteReservation(res.id)}>🗑️</button>
+                                                </div>
+                                                {res.payment_url && (
+                                                    <div className="text-xs mt-1">
+                                                        <a href={res.payment_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Link Pago 🔗</a>
+                                                    </div>
+                                                )}
+                                                {res.public_token && (
+                                                    <div className="text-xs mt-1 flex justify-end gap-2 items-center">
+                                                        <a href={`/reservas/checkin/${res.public_token}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                                                            Guest 🔗
                                                         </a>
                                                         <button
-                                                            className="bo-icon-btn bo-icon-btn--xs"
-                                                            title="Copiar"
+                                                            className="text-gray-400 hover:text-gray-600"
+                                                            title="Copiar Link"
                                                             onClick={(e) => {
-                                                                e.stopPropagation(); // prevent row toggle
+                                                                e.stopPropagation();
                                                                 const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
                                                                 navigator.clipboard.writeText(url);
                                                                 alert('Link copiado al portapapeles');
@@ -787,242 +873,348 @@ export default function ReservasPage() {
                                                             📋
                                                         </button>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                    {isExpanded && (
-                                        <tr className="bo-expanded-row">
-                                            <td colSpan={8}>
-                                                <div className="bo-expanded-content">
-                                                    <div className="bo-tabs">
-                                                        <button
-                                                            className={`bo-tab ${expandedTab === 'passengers' ? 'active' : ''}`}
-                                                            onClick={() => setExpandedTab('passengers')}
-                                                        >
-                                                            Pasajeros & Comidas
-                                                        </button>
-                                                        <button
-                                                            className={`bo-tab ${expandedTab === 'audit' ? 'active' : ''}`}
-                                                            onClick={() => setExpandedTab('audit')}
-                                                        >
-                                                            Historial ({auditLogs.length})
-                                                        </button>
-                                                        <button
-                                                            className={`bo-tab ${expandedTab === 'menu' ? 'active' : ''}`}
-                                                            onClick={() => setExpandedTab('menu')}
-                                                        >
-                                                            Configurar Menú 🍽️
-                                                        </button>
-                                                    </div>
-
-                                                    {expandedTab === 'menu' ? (
-                                                        <div className="p-4 bg-gray-50 rounded border border-gray-200">
-                                                            <h4 className="font-bold mb-4 text-blue-900">Configuración de Menú para Invitados</h4>
-                                                            <p className="text-sm text-gray-600 mb-4">Define las opciones que verán los invitados al hacer check-in. Si está vacío, verán un campo de texto libre.</p>
-
-                                                            {quickMenu.map((meal, idx) => (
-                                                                <div key={idx} className="bg-white p-3 rounded shadow-sm mb-3 border bo-menu-item">
-                                                                    <div className="flex justify-between mb-2">
-                                                                        <input
-                                                                            className="bo-input font-bold"
-                                                                            placeholder="Tipo de Comida (Ej. Almuerzo)"
-                                                                            value={meal.type}
-                                                                            onChange={e => {
-                                                                                const newMenu = [...quickMenu];
-                                                                                newMenu[idx].type = e.target.value;
-                                                                                setQuickMenu(newMenu);
-                                                                            }}
-                                                                        />
-                                                                        <button className="text-red-500 hover:text-red-700 font-bold px-2" onClick={() => {
-                                                                            const newMenu = quickMenu.filter((_, i) => i !== idx);
-                                                                            setQuickMenu(newMenu);
-                                                                        }}>Eliminar</button>
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="text-xs font-bold text-gray-500 mb-1 block">Opciones (separadas por coma)</label>
-                                                                        <input
-                                                                            className="bo-input"
-                                                                            placeholder="Ej. Pollo, Carne, Vegetariano"
-                                                                            value={meal.options?.join(', ')}
-                                                                            onChange={e => {
-                                                                                const newMenu = [...quickMenu];
-                                                                                newMenu[idx].options = e.target.value.split(',').map(s => s.trim());
-                                                                                setQuickMenu(newMenu);
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-
+                                                )}
+                                            </td>
+                                        </tr>
+                                        {isExpanded && (
+                                            <tr className="bg-gray-50/50">
+                                                <td colSpan={8} className="p-0 border-b border-gray-100">
+                                                    <div className="bg-white m-4 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                                        {/* Tabs */}
+                                                        <div className="flex border-b border-gray-200 bg-gray-50">
                                                             <button
-                                                                className="bo-btn bo-btn--outline bo-btn--sm mb-4"
-                                                                onClick={() => setQuickMenu([...quickMenu, { type: '', options: [] }])}
+                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'passengers' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                onClick={() => setExpandedTab('passengers')}
                                                             >
-                                                                + Agregar Tiempo de Comida
+                                                                Pasajeros
                                                             </button>
-
-                                                            <div className="flex justify-end pt-4 border-t">
-                                                                <button
-                                                                    className="bo-btn bo-btn--primary"
-                                                                    onClick={() => saveQuickMenu(res.id)}
-                                                                >
-                                                                    Guardar Menú
-                                                                </button>
-                                                            </div>
+                                                            <button
+                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'menu' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                onClick={() => setExpandedTab('menu')}
+                                                            >
+                                                                Menú y Dieta
+                                                            </button>
+                                                            <button
+                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'tour' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                onClick={() => setExpandedTab('tour')}
+                                                            >
+                                                                Itinerario & Info
+                                                            </button>
+                                                            <button
+                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'audit' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                onClick={() => setExpandedTab('audit')}
+                                                            >
+                                                                Historial
+                                                            </button>
                                                         </div>
-                                                    ) : expandedTab === 'passengers' ? (
-                                                        <div className="bo-passenger-manage">
-                                                            {res.public_token && (
-                                                                <div className="bg-blue-50 p-3 rounded mb-4 border border-blue-100 flex justify-between items-center text-sm">
-                                                                    <div>
-                                                                        <span className="font-bold text-blue-800">Link para Invitados:</span>
-                                                                        <span className="text-blue-600 ml-2">/reservas/checkin/{res.public_token.slice(0, 8)}...</span>
+
+                                                        <div className="p-6">
+                                                            {expandedTab === 'passengers' && (
+                                                                <div className="space-y-6">
+                                                                    {res.public_token && (
+                                                                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex justify-between items-center text-sm">
+                                                                            <div>
+                                                                                <span className="font-bold text-blue-800">Link para Invitados:</span>
+                                                                                <span className="text-blue-600 ml-2 font-mono">/reservas/checkin/{res.public_token.slice(0, 8)}...</span>
+                                                                            </div>
+                                                                            <div className="flex gap-3">
+                                                                                <a
+                                                                                    href={`/reservas/checkin/${res.public_token}`}
+                                                                                    target="_blank"
+                                                                                    rel="noreferrer"
+                                                                                    className="text-blue-700 underline hover:text-blue-900 font-medium"
+                                                                                >
+                                                                                    Abrir Vista
+                                                                                </a>
+                                                                                <button
+                                                                                    className="text-blue-700 hover:text-blue-900 font-medium flex items-center gap-1"
+                                                                                    onClick={() => {
+                                                                                        const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
+                                                                                        navigator.clipboard.writeText(url);
+                                                                                        alert('Link copiado!');
+                                                                                    }}
+                                                                                >
+                                                                                    <span>📋</span> Copiar
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="space-y-2">
+                                                                        {passengers.map(p => (
+                                                                            <div key={p.id} className="bg-white border rounded-lg p-4 flex justify-between items-center hover:border-gray-300 transition-colors">
+                                                                                <div>
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <span className="font-bold text-gray-900 text-base">{p.full_name}</span>
+                                                                                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                                                            {p.age ? `${p.age} años` : 'Edad N/A'}
+                                                                                            {p.id_document ? ` • ${p.id_document}` : ''}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                                                                                        {p.email && <span>✉️ {p.email}</span>}
+                                                                                        {p.phone && <span>📞 {p.phone}</span>}
+                                                                                    </div>
+                                                                                    {/* Meals display */}
+                                                                                    {p.meals && p.meals.length > 0 && (
+                                                                                        <div className="mt-3 flex flex-wrap gap-2">
+                                                                                            {p.meals.map(m => (
+                                                                                                <div key={m.id} className="text-xs bg-gray-50 border border-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                                                                                                    <span className="font-medium text-gray-700">{MEAL_TYPE_LABELS[m.meal_type]}:</span>
+                                                                                                    <span className="text-gray-600">{m.food_order}</span>
+                                                                                                    {m.dietary_notes && <span className="text-amber-600 bg-amber-50 px-1 rounded font-bold ml-1" title={m.dietary_notes}>⚠️ {m.dietary_notes}</span>}
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                <button className="text-gray-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition-colors" title="Eliminar Pasajero" onClick={() => removePassenger(p.id, res.id)}>✕</button>
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
-                                                                    <div className="flex gap-2">
-                                                                        <a
-                                                                            href={`/reservas/checkin/${res.public_token}`}
-                                                                            target="_blank"
-                                                                            rel="noreferrer"
-                                                                            className="text-blue-700 underline hover:text-blue-900"
-                                                                        >
-                                                                            Abrir
-                                                                        </a>
-                                                                        <button
-                                                                            className="text-blue-700 hover:text-blue-900 font-medium"
-                                                                            onClick={() => {
-                                                                                const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
-                                                                                navigator.clipboard.writeText(url);
-                                                                                alert('Link copiado!');
-                                                                            }}
-                                                                        >
-                                                                            Copiar
+
+                                                                    {/* Add Passenger Form */}
+                                                                    <div className="pt-6 border-t border-gray-100">
+                                                                        <h4 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Agregar Pasajero</h4>
+                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                                            <input
+                                                                                placeholder="Nombre completo"
+                                                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                                value={passengerForm.full_name}
+                                                                                onChange={e => setPassengerForm({ ...passengerForm, full_name: e.target.value })}
+                                                                            />
+                                                                            <div className="flex gap-2">
+                                                                                <input
+                                                                                    placeholder="Edad"
+                                                                                    className="w-24 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                                    value={passengerForm.age}
+                                                                                    onChange={e => setPassengerForm({ ...passengerForm, age: e.target.value })}
+                                                                                />
+                                                                                <input
+                                                                                    placeholder="DPI / Pasaporte"
+                                                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                                    value={passengerForm.id_document}
+                                                                                    onChange={e => setPassengerForm({ ...passengerForm, id_document: e.target.value })}
+                                                                                />
+                                                                            </div>
+                                                                            <input
+                                                                                placeholder="Email (opcional)"
+                                                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                                value={passengerForm.email}
+                                                                                onChange={e => setPassengerForm({ ...passengerForm, email: e.target.value })}
+                                                                            />
+                                                                            <input
+                                                                                placeholder="Teléfono (opcional)"
+                                                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                                value={passengerForm.phone}
+                                                                                onChange={e => setPassengerForm({ ...passengerForm, phone: e.target.value })}
+                                                                            />
+                                                                        </div>
+
+                                                                        {/* Dynamic Meal Fields */}
+                                                                        {currentTourMeals.length > 0 && (
+                                                                            <div className="mb-4 bg-gray-50/80 p-4 rounded border border-gray-200/60">
+                                                                                <p className="text-xs font-bold text-gray-500 mb-3 uppercase">Preferencias Alimenticias</p>
+                                                                                <div className="grid grid-cols-1 gap-3">
+                                                                                    {currentTourMeals.map(mealType => (
+                                                                                        <div key={mealType} className="flex gap-2 items-center">
+                                                                                            <label className="text-xs w-24 text-gray-600 font-medium">{MEAL_TYPE_LABELS[mealType]}</label>
+                                                                                            <input
+                                                                                                placeholder="Selección (ej. Pollo)"
+                                                                                                className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:border-blue-500 outline-none"
+                                                                                                value={passengerForm.meals[mealType]?.food || ''}
+                                                                                                onChange={e => setPassengerForm({
+                                                                                                    ...passengerForm,
+                                                                                                    meals: {
+                                                                                                        ...passengerForm.meals,
+                                                                                                        [mealType]: { ...passengerForm.meals[mealType], food: e.target.value }
+                                                                                                    }
+                                                                                                })}
+                                                                                            />
+                                                                                            <input
+                                                                                                placeholder="Alergias / Notas"
+                                                                                                className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:border-blue-500 outline-none"
+                                                                                                value={passengerForm.meals[mealType]?.notes || ''}
+                                                                                                onChange={e => setPassengerForm({
+                                                                                                    ...passengerForm,
+                                                                                                    meals: {
+                                                                                                        ...passengerForm.meals,
+                                                                                                        [mealType]: { ...passengerForm.meals[mealType], notes: e.target.value }
+                                                                                                    }
+                                                                                                })}
+                                                                                            />
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        <button className="px-5 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-black text-sm font-medium transition-colors" onClick={() => addPassenger(res.id)}>
+                                                                            + Agregar Pasajero
                                                                         </button>
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                            <div className="bo-pax-list">
-                                                                {passengers.map(p => (
-                                                                    <div key={p.id} className="bo-pax-card">
-                                                                        <div className="bo-pax-header">
-                                                                            <strong>{p.full_name}</strong>
-                                                                            <span className="text-xs text-muted">
-                                                                                {p.age ? `${p.age} años` : ''}
-                                                                                {p.id_document ? ` • ID: ${p.id_document}` : ''}
-                                                                            </span>
-                                                                            {p.email && <span className="text-xs text-muted">✉️ {p.email}</span>}
-                                                                            {p.phone && <span className="text-xs text-muted">📞 {p.phone}</span>}
-                                                                            <button className="bo-delete-btn" onClick={() => removePassenger(p.id, res.id)}>×</button>
-                                                                        </div>
-                                                                        <div className="bo-pax-meals">
-                                                                            {p.meals?.map(m => (
-                                                                                <div key={m.id} className="bo-meal-tag">
-                                                                                    <span className="bo-meal-icon">🍽️</span>
-                                                                                    <span>{MEAL_TYPE_LABELS[m.meal_type]}: {m.food_order}</span>
-                                                                                    {m.dietary_notes && <span className="bo-diet-warning">⚠️ {m.dietary_notes}</span>}
+
+                                                            {expandedTab === 'menu' && (
+                                                                <div className="bg-white max-w-3xl">
+                                                                    <h4 className="font-bold mb-1 text-gray-900">Configuración de Menú</h4>
+                                                                    <p className="text-sm text-gray-500 mb-6">Define las opciones que verán los invitados al hacer check-in.</p>
+
+                                                                    <div className="space-y-3 mb-6">
+                                                                        {quickMenu.map((meal, idx) => (
+                                                                            <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200 flex items-start gap-3">
+                                                                                <div className="flex-1 space-y-2">
+                                                                                    <input
+                                                                                        className="w-1/3 px-2 py-1 border-b border-gray-300 font-medium text-sm focus:border-blue-500 outline-none placeholder-gray-400"
+                                                                                        placeholder="Tipo de Comida (ej. Almuerzo)"
+                                                                                        value={meal.type}
+                                                                                        onChange={e => {
+                                                                                            const newMenu = [...quickMenu];
+                                                                                            newMenu[idx].type = e.target.value;
+                                                                                            setQuickMenu(newMenu);
+                                                                                        }}
+                                                                                    />
+                                                                                    <input
+                                                                                        className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded text-sm focus:bg-white focus:border-blue-500 outline-none transition-colors"
+                                                                                        placeholder="Opciones (ej. Pollo, Carne, Vegetariano)"
+                                                                                        value={meal.options?.join(', ')}
+                                                                                        onChange={e => {
+                                                                                            const newMenu = [...quickMenu];
+                                                                                            newMenu[idx].options = e.target.value.split(',').map(s => s.trim());
+                                                                                            setQuickMenu(newMenu);
+                                                                                        }}
+                                                                                    />
                                                                                 </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-
-                                                            {/* Add Passenger Form */}
-                                                            <div className="bo-add-pax-form">
-                                                                <h4>Agregar Pasajero</h4>
-                                                                <div className="bo-form-row">
-                                                                    <input
-                                                                        placeholder="Nombre completo"
-                                                                        className="bo-input"
-                                                                        value={passengerForm.full_name}
-                                                                        onChange={e => setPassengerForm({ ...passengerForm, full_name: e.target.value })}
-                                                                    />
-                                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                                                                        <input
-                                                                            placeholder="Edad"
-                                                                            className="bo-input"
-                                                                            style={{ width: 80 }}
-                                                                            value={passengerForm.age}
-                                                                            onChange={e => setPassengerForm({ ...passengerForm, age: e.target.value })}
-                                                                        />
-                                                                        <input
-                                                                            placeholder="DPI / Pasaporte"
-                                                                            className="bo-input"
-                                                                            style={{ flex: 1 }}
-                                                                            value={passengerForm.id_document}
-                                                                            onChange={e => setPassengerForm({ ...passengerForm, id_document: e.target.value })}
-                                                                        />
-                                                                    </div>
-                                                                    <div className="bo-form-row mt-2">
-                                                                        <input
-                                                                            placeholder="Email (opcional)"
-                                                                            className="bo-input"
-                                                                            value={passengerForm.email}
-                                                                            onChange={e => setPassengerForm({ ...passengerForm, email: e.target.value })}
-                                                                        />
-                                                                        <input
-                                                                            placeholder="Teléfono (opcional)"
-                                                                            className="bo-input"
-                                                                            value={passengerForm.phone}
-                                                                            onChange={e => setPassengerForm({ ...passengerForm, phone: e.target.value })}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Dynamic Meal Fields */}
-                                                                {currentTourMeals.length > 0 && (
-                                                                    <div className="bo-meals-form">
-                                                                        <p className="text-xs font-bold text-muted mb-2">Preferencias Alimenticias</p>
-                                                                        {currentTourMeals.map(mealType => (
-                                                                            <div key={mealType} className="bo-meal-input-group">
-                                                                                <label>{MEAL_TYPE_LABELS[mealType]}</label>
-                                                                                <input
-                                                                                    placeholder="Selección (ej. Pollo, Vegetariano)"
-                                                                                    className="bo-input bo-input--sm"
-                                                                                    value={passengerForm.meals[mealType]?.food || ''}
-                                                                                    onChange={e => setPassengerForm({
-                                                                                        ...passengerForm,
-                                                                                        meals: {
-                                                                                            ...passengerForm.meals,
-                                                                                            [mealType]: { ...passengerForm.meals[mealType], food: e.target.value }
-                                                                                        }
-                                                                                    })}
-                                                                                />
-                                                                                <input
-                                                                                    placeholder="Alergias / Notas"
-                                                                                    className="bo-input bo-input--sm"
-                                                                                    value={passengerForm.meals[mealType]?.notes || ''}
-                                                                                    onChange={e => setPassengerForm({
-                                                                                        ...passengerForm,
-                                                                                        meals: {
-                                                                                            ...passengerForm.meals,
-                                                                                            [mealType]: { ...passengerForm.meals[mealType], notes: e.target.value }
-                                                                                        }
-                                                                                    })}
-                                                                                />
+                                                                                <button className="text-gray-400 hover:text-red-500 p-1" onClick={() => {
+                                                                                    const newMenu = quickMenu.filter((_, i) => i !== idx);
+                                                                                    setQuickMenu(newMenu);
+                                                                                }}>✕</button>
                                                                             </div>
                                                                         ))}
                                                                     </div>
-                                                                )}
 
-                                                                <button className="bo-btn bo-btn--outline bo-btn--sm mt-3" onClick={() => addPassenger(res.id)}>
-                                                                    + Agregar Pasajero
-                                                                </button>
-                                                            </div>
+                                                                    <button
+                                                                        className="px-4 py-2 text-sm border border-dashed border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors w-full text-center mb-6"
+                                                                        onClick={() => setQuickMenu([...quickMenu, { type: '', options: [] }])}
+                                                                    >
+                                                                        + Agregar Tiempo de Comida
+                                                                    </button>
+
+                                                                    <div className="flex justify-end pt-4 border-t border-gray-100">
+                                                                        <button
+                                                                            className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors"
+                                                                            onClick={() => saveQuickMenu(res.id)}
+                                                                        >
+                                                                            Guardar Configuración
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {expandedTab === 'tour' && (
+                                                                <div className="bg-white max-w-4xl">
+                                                                    <div className="flex justify-between items-center mb-6">
+                                                                        <h4 className="font-bold text-gray-900">Personalizar Itinerario</h4>
+                                                                        <button
+                                                                            className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                                                                            onClick={() => importFromOriginal(res.tour_id)}
+                                                                        >
+                                                                            Restaurar Original
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <div className="mb-6">
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Tour (Vista Cliente)</label>
+                                                                        <input
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-colors"
+                                                                            value={customTourForm.tour_name || ''}
+                                                                            onChange={e => setCustomTourForm({ ...customTourForm, tour_name: e.target.value })}
+                                                                            placeholder={res.tour_name}
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="mb-6">
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Qué Incluye</label>
+                                                                        <textarea
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-colors resize-none"
+                                                                            rows={4}
+                                                                            value={customTourForm.includes || ''}
+                                                                            onChange={e => setCustomTourForm({ ...customTourForm, includes: e.target.value })}
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="mb-6">
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-3">Itinerario</label>
+                                                                        <div className="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                                                            {customTourForm.itinerary?.map((step: any, idx: number) => (
+                                                                                <div key={idx} className="flex gap-3 items-center group">
+                                                                                    <input
+                                                                                        className="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
+                                                                                        value={step.time}
+                                                                                        onChange={e => {
+                                                                                            const newItinerary = [...(customTourForm.itinerary || [])];
+                                                                                            newItinerary[idx] = { ...step, time: e.target.value };
+                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
+                                                                                        }}
+                                                                                        placeholder="Hora"
+                                                                                    />
+                                                                                    <input
+                                                                                        className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
+                                                                                        value={step.activity}
+                                                                                        onChange={e => {
+                                                                                            const newItinerary = [...(customTourForm.itinerary || [])];
+                                                                                            newItinerary[idx] = { ...step, activity: e.target.value };
+                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
+                                                                                        }}
+                                                                                        placeholder="Actividad"
+                                                                                    />
+                                                                                    <button
+                                                                                        className="text-gray-400 hover:text-red-500 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                        onClick={() => {
+                                                                                            const newItinerary = customTourForm.itinerary.filter((_: any, i: number) => i !== idx);
+                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
+                                                                                        }}
+                                                                                    >
+                                                                                        <span className="sr-only">Eliminar</span>
+                                                                                        🗑️
+                                                                                    </button>
+                                                                                </div>
+                                                                            ))}
+                                                                            <button
+                                                                                className="text-sm text-blue-600 font-medium hover:text-blue-800 mt-2"
+                                                                                onClick={() => setCustomTourForm({ ...customTourForm, itinerary: [...(customTourForm.itinerary || []), { time: '', activity: '' }] })}
+                                                                            >
+                                                                                + Agregar Paso
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex justify-end pt-4 border-t border-gray-100">
+                                                                        <button
+                                                                            className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors"
+                                                                            onClick={() => saveCustomTour(res.id)}
+                                                                        >
+                                                                            Guardar Cambios
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {expandedTab === 'audit' && (
+                                                                <AuditLogView logs={auditLogs} />
+                                                            )}
                                                         </div>
-                                                    ) : (
-                                                        <AuditLogView logs={auditLogs} />
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        </div >
     );
 }

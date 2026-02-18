@@ -143,7 +143,9 @@ export default function ReservationCheckinPage() {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">{reservation.tour_name}</h2>
+                            <h2 className="text-xl font-bold text-gray-900">
+                                {reservation.custom_tour_data?.tour_name || reservation.tour_name}
+                            </h2>
                             <p className="text-blue-600 font-medium">{reservation.tour_date}</p>
                         </div>
                         <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
@@ -155,6 +157,34 @@ export default function ReservationCheckinPage() {
                         <p>👥 Pasajeros registrados: <strong>{reservation.passengers?.length || 0}</strong> / {reservation.pax_count}</p>
                     </div>
                 </div>
+
+                {/* Tour Details (Itinerary & Includes) */}
+                {(reservation.custom_tour_data?.includes || reservation.tour_includes) && (
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Qué incluye</h3>
+                        <p className="text-gray-600 text-sm whitespace-pre-line">
+                            {reservation.custom_tour_data?.includes || reservation.tour_includes}
+                        </p>
+                    </div>
+                )}
+
+                {(reservation.custom_tour_data?.itinerary || reservation.tour_itinerary) && (
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">Itinerario</h3>
+                        <div className="space-y-4 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-blue-100">
+                            {(reservation.custom_tour_data?.itinerary || reservation.tour_itinerary).map((step: any, idx: number) => (
+                                <div key={idx} className="relative flex gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0 z-10 border-4 border-white">
+                                        {step.time}
+                                    </div>
+                                    <div className="pt-2 pb-4">
+                                        <p className="text-gray-800 text-sm">{step.activity}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {submitted ? (
                     <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center animate-fade-in">

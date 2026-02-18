@@ -2,6 +2,8 @@
 // Back-Office Types — V2
 // ============================================
 
+import { CustomTourData } from './shared';
+
 export type ReservationStatus = 'offered' | 'reserved' | 'paid' | 'in_progress' | 'completed' | 'cancelled';
 export type StaffRole = 'lanchero' | 'guia';
 export type AgentRole = 'admin' | 'agent';
@@ -79,6 +81,8 @@ export interface Reservation {
             options: string[];
         }[];
     };
+    // V7 Fields
+    custom_tour_data?: CustomTourData;
 }
 
 export interface CustomStop {
