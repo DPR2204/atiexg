@@ -24,6 +24,8 @@ const KanbanPage = lazy(() => import('./pages/backoffice/KanbanPage'));
 const LogisticaPage = lazy(() => import('./pages/backoffice/LogisticaPage'));
 const RecursosPage = lazy(() => import('./pages/backoffice/RecursosPage'));
 
+const ReservationCheckinPage = lazy(() => import('./pages/public/ReservationCheckinPage'));
+
 const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<LoadingSpinner />}>
     {children}
@@ -31,6 +33,11 @@ const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const routes: RouteObject[] = [
+  // Guest Portal (No Layout)
+  {
+    path: '/reservas/checkin/:token',
+    element: <SuspenseWrapper><ReservationCheckinPage /></SuspenseWrapper>,
+  },
   // Public site
   {
     path: '/',

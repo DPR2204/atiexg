@@ -11,6 +11,7 @@ export default function DashboardPage() {
     const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, revenue: 0 });
     const [prevStats, setPrevStats] = useState({ total: 0, revenue: 0 });
     const [topTours, setTopTours] = useState<{ name: string, count: number }[]>([]);
+    const [agentRanking, setAgentRanking] = useState<{ name: string, amount: number, count: number }[]>([]);
     const [missingBoats, setMissingBoats] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
@@ -56,7 +57,34 @@ export default function DashboardPage() {
         const total = monthData?.length || 0;
         const pending = monthData?.filter(r => r.status === 'offered' || r.status === 'reserved').length || 0;
         const confirmed = monthData?.filter(r => r.status === 'paid' || r.status === 'in_progress' || r.status === 'completed').length || 0;
+
+
         const revenue = monthData?.reduce((sum, r) => sum + (r.paid_amount || 0), 0) || 0;
+
+        // Calculate Agent Ranking (Total Sales)
+        // We use total_amount for ranking sales volume
+        const agentSales: Record<string, { amount: number, count: number }> = {};
+        // We need to fetch agent names for this, let's grab them from a separate query or join if possible
+        // Actually, let's fetch montData with agent names
+        const { data: monthDataWithAgents } = await supabase
+            .from('reservations')
+            .select('total_amount, agent:agents(name)')
+            .gte('tour_date', monthStart)
+            .neq('status', 'cancelled');
+
+        if (monthDataWithAgents) {
+            monthDataWithAgents.forEach((r: any) => {
+                const name = r.agent?.name || 'Desconocido';
+                if (!agentSales[name]) agentSales[name] = { amount: 0, count: 0 };
+                agentSales[name].amount += (r.total_amount || 0);
+                agentSales[name].count += 1;
+            });
+        }
+
+        const ranking = Object.entries(agentSales)
+            .map(([name, data]) => ({ name, ...data }))
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, 5);
 
         // Calculate Top Tours
         const tourCounts: Record<string, number> = {};
@@ -87,6 +115,7 @@ export default function DashboardPage() {
         setStats({ total, pending, confirmed, revenue });
         setPrevStats({ total: prevTotal, revenue: prevRevenue });
         setTopTours(top);
+        setAgentRanking(ranking);
         setLoading(false);
     }
 
@@ -210,6 +239,27 @@ export default function DashboardPage() {
                                     <span className="bo-top-tour-rank">#{i + 1}</span>
                                     <span className="bo-top-tour-name">{t.name}</span>
                                     <span className="bo-top-tour-count">{t.count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Agent Ranking */}
+                    <section className="bo-section">
+                        <div className="bo-section-header">
+                            <h3 className="bo-section-title">Ranking Agentes (Venta Total)</h3>
+                        </div>
+                        <div className="bo-ranking-list">
+                            {agentRanking.length === 0 ? <p className="text-sm text-muted">Sin ventas registradas</p> : agentRanking.map((a, i) => (
+                                <div key={a.name} className="bo-ranking-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--bo-border)' }}>
+                                    <div>
+                                        <span className="font-bold mr-2">#{i + 1}</span>
+                                        <span>{a.name}</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold">${a.amount.toLocaleString()}</div>
+                                        <div className="text-xs text-muted">{a.count} ventas</div>
+                                    </div>
                                 </div>
                             ))}
                         </div>

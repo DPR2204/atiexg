@@ -58,7 +58,6 @@ export interface Reservation {
     payment_id?: string;
     custom_stops: CustomStop[];
     notes?: string;
-    created_at: string;
     updated_at: string;
     // Joined relations (optional)
     agent?: Agent;
@@ -68,6 +67,18 @@ export interface Reservation {
     passengers?: Passenger[];
     meal_schedules?: MealSchedule[];
     audit_log?: AuditLogEntry[];
+    // V3 Fields
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    // V4 Fields
+    public_token?: string;
+    // V5 Fields
+    meal_options?: {
+        available_meals: {
+            type: string;
+            options: string[];
+        }[];
+    };
 }
 
 export interface CustomStop {
@@ -82,6 +93,8 @@ export interface Passenger {
     full_name: string;
     age?: number;
     id_document?: string;
+    email?: string; // V3
+    phone?: string; // V3
     food_order?: string;      // legacy single field
     dietary_notes?: string;   // legacy single field
     notes?: string;

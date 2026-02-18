@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { TOURS } from '../../data';
 import { generateReservationPDF } from '../../lib/generatePDF';
+import { updateReservation } from '../../lib/reservation-logic';
 import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
 import { STATUS_CONFIG, MEAL_TYPE_LABELS, AUDIT_ACTION_LABELS } from '../../types/backoffice';
 import type { ReservationStatus, MealType } from '../../types/backoffice';
@@ -93,9 +94,11 @@ export default function ReservasPage() {
 
     // Expanded View State
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [expandedTab, setExpandedTab] = useState<'passengers' | 'audit'>('passengers');
+    const [expandedTab, setExpandedTab] = useState<'passengers' | 'audit' | 'menu'>('passengers');
     const [passengers, setPassengers] = useState<Passenger[]>([]);
     const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+    // Menu Config for Expanded View (Quick Edit)
+    const [quickMenu, setQuickMenu] = useState<{ type: string; options: string[] }[]>([]);
 
     // Payment Modal State
     const [showPaymentModal, setShowPaymentModal] = useState<Reservation | null>(null);
@@ -117,6 +120,8 @@ export default function ReservasPage() {
         deposit_amount: 50,
         notes: '',
         status: 'offered' as ReservationStatus,
+        emergency_contact_name: '',
+        emergency_contact_phone: ''
     });
 
     // Passenger Form State (V2 with dynamic meals)
@@ -124,8 +129,13 @@ export default function ReservasPage() {
         full_name: '',
         age: '',
         id_document: '',
+        email: '',
+        phone: '',
         meals: {} as Record<MealType, { food: string; notes: string }>
     });
+
+    // Menu Config State (V5)
+    const [menuConfig, setMenuConfig] = useState<{ type: string; options: string[] }[]>([]);
 
     useEffect(() => {
         fetchAll();
@@ -137,6 +147,7 @@ export default function ReservasPage() {
             .from('reservations')
             .select(`
                 *,
+                public_token,
                 agent:agents(name),
                 boat:boats(name),
                 driver:staff!reservations_driver_id_fkey(name),
@@ -221,26 +232,28 @@ export default function ReservasPage() {
 
             if (!error) {
                 // Log significant changes
-                if (oldRes?.status !== payload.status) {
-                    logAudit(editingId, 'status_changed', {
-                        field_changed: 'status',
-                        old_value: oldRes?.status,
-                        new_value: payload.status
-                    });
-                }
-                if (oldRes?.total_amount !== payload.total_amount) {
-                    logAudit(editingId, 'updated', {
-                        field_changed: 'total_amount',
-                        old_value: oldRes?.total_amount.toString(),
-                        new_value: payload.total_amount.toString()
-                    });
-                }
-                await logAudit(editingId, 'updated', { field_changed: 'general_update' });
+                // REMOVED: Custom audit logging here, handled by updateReservation below
             }
         } else {
             const { data, error } = await supabase.from('reservations').insert([payload]).select().single();
             if (!error && data) {
-                await logAudit(data.id, 'created', { new_value: `Nueva reserva: ${data.tour_name}` });
+                // Log creation
+                await supabase.from('reservation_audit_log').insert([{
+                    reservation_id: data.id,
+                    agent_id: agent.id,
+                    agent_name: agent.name,
+                    action: 'created',
+                    new_value: `Nueva reserva: ${data.tour_name}`
+                }]);
+            }
+        }
+
+        if (editingId) {
+            // Use unified logic for updates
+            const result = await updateReservation(editingId, payload, agent);
+            if (!result.success) {
+                alert('Error al actualizar: ' + JSON.stringify(result.error));
+                return;
             }
         }
 
@@ -249,15 +262,12 @@ export default function ReservasPage() {
     }
 
     async function updateStatus(id: number, newStatus: ReservationStatus) {
-        const oldRes = reservations.find(r => r.id === id);
-        if (!oldRes) return;
+        if (!agent) return;
 
-        await supabase.from('reservations').update({ status: newStatus }).eq('id', id);
-        await logAudit(id, 'status_changed', {
-            field_changed: 'status',
-            old_value: oldRes.status,
-            new_value: newStatus
-        });
+        const result = await updateReservation(id, { status: newStatus }, agent);
+        if (!result.success) {
+            alert('Error al actualizar estado');
+        }
 
         fetchAll();
     }
@@ -335,26 +345,43 @@ export default function ReservasPage() {
     // Expanded View Handlers
     // ==========================================
 
-    async function toggleExpanded(resId: number) {
-        if (expandedId === resId) {
+    async function toggleExpanded(id: number) {
+        if (expandedId === id) {
             setExpandedId(null);
             setPassengers([]);
             setAuditLogs([]);
+            setQuickMenu([]); // Clear quick menu when collapsing
         } else {
-            setExpandedId(resId);
-            setExpandedTab('passengers');
-            fetchExpandedData(resId);
+            setExpandedId(id);
+            setExpandedTab('passengers'); // Default to passengers tab
+            // Load details
+            const res = reservations.find(r => r.id === id);
+            if (res) {
+                // Load passengers
+                const { data: pax } = await supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', id);
+                setPassengers((pax as any[]) || []);
+
+                // Load audit
+                const { data: audits } = await supabase.from('reservation_audit_log').select('*').eq('reservation_id', id).order('created_at', { ascending: false });
+                setAuditLogs((audits as AuditLogEntry[]) || []);
+
+                // Load Menu
+                setQuickMenu(res.meal_options?.available_meals || []);
+            }
         }
     }
 
-    async function fetchExpandedData(resId: number) {
-        const [paxRes, auditRes] = await Promise.all([
-            supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', resId).order('created_at'),
-            supabase.from('reservation_audit_log').select('*').eq('reservation_id', resId).order('created_at', { ascending: false })
-        ]);
+    async function saveQuickMenu(id: number) {
+        const { error } = await supabase
+            .from('reservations')
+            .update({ meal_options: { available_meals: quickMenu } })
+            .eq('id', id);
 
-        setPassengers((paxRes.data as any[]) || []);
-        setAuditLogs((auditRes.data as AuditLogEntry[]) || []);
+        if (error) alert('Error al guardar menú');
+        else {
+            alert('Menú actualizado correctamente');
+            fetchAll();
+        }
     }
 
     async function addPassenger(resId: number) {
@@ -366,6 +393,8 @@ export default function ReservasPage() {
             full_name: passengerForm.full_name,
             age: passengerForm.age ? Number(passengerForm.age) : null,
             id_document: passengerForm.id_document || null,
+            email: passengerForm.email || null,
+            phone: passengerForm.phone || null,
         }]).select().single();
 
         if (error || !pax) return;
@@ -374,8 +403,8 @@ export default function ReservasPage() {
         const mealInserts = Object.entries(passengerForm.meals).map(([type, data]) => ({
             passenger_id: pax.id,
             meal_type: type,
-            food_order: data.food || '',
-            dietary_notes: data.notes || ''
+            food_order: (data as any).food || '',
+            dietary_notes: (data as any).notes || ''
         })).filter(m => m.food_order || m.dietary_notes); // Only insert if has data
 
         if (mealInserts.length > 0) {
@@ -383,14 +412,45 @@ export default function ReservasPage() {
         }
 
         // Reset and refresh
-        setPassengerForm({ full_name: '', age: '', id_document: '', meals: {} as any });
-        fetchExpandedData(resId);
-        logAudit(resId, 'updated', { field_changed: 'passenger_added', new_value: pax.full_name });
+        setPassengerForm({ full_name: '', age: '', id_document: '', email: '', phone: '', meals: {} as any });
+        // Re-fetch expanded data to include new passenger and meals
+        const res = reservations.find(r => r.id === resId);
+        if (res) {
+            const { data: paxRes } = await supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', resId).order('created_at');
+            setPassengers((paxRes as any[]) || []);
+        }
+
+        // We use unified log for main reservation, but here we can add a custom log if needed, though updateReservation logic is cleaner for main updates.
+        // For now, let's just log this specific action manually as it's a sub-resource
+        supabase.from('reservation_audit_log').insert([{
+            reservation_id: resId,
+            agent_id: agent!.id,
+            agent_name: agent!.name,
+            action: 'updated',
+            field_changed: 'passenger_added',
+            new_value: pax.full_name
+        }]);
     }
 
     async function removePassenger(passId: number, resId: number) {
         await supabase.from('passengers').delete().eq('id', passId);
-        fetchExpandedData(resId);
+        // Re-fetch expanded data to reflect removal
+        const res = reservations.find(r => r.id === resId);
+        if (res) {
+            const { data: paxRes } = await supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', resId).order('created_at');
+            setPassengers((paxRes as any[]) || []);
+        }
+    }
+
+    async function deleteReservation(id: number) {
+        if (!confirm('¿Estás seguro de ELIMINAR esta reserva? Esta acción no se puede deshacer.')) return;
+
+        const { error } = await supabase.from('reservations').delete().eq('id', id);
+        if (error) {
+            alert('Error al eliminar: ' + error.message);
+        } else {
+            fetchAll();
+        }
     }
 
     // ==========================================
@@ -414,18 +474,27 @@ export default function ReservasPage() {
             deposit_amount: 50,
             notes: '',
             status: 'offered',
+            emergency_contact_name: '',
+            emergency_contact_phone: '',
+            meal_options: { available_meals: [] } // Initialize meal_options
         });
+        setMenuConfig([]); // Clear menu config when resetting form
     }
 
     function handleTourChange(tourId: number) {
         const tour = TOURS.find(t => t.id === tourId);
         if (tour) {
+            // Auto-populate meal configuration based on tour
+            const defaultMenu = tour.meals?.map(m => ({ type: m, options: [] })) || [];
+
             setForm(prev => ({
                 ...prev,
                 tour_id: tourId,
                 tour_name: tour.name,
-                total_amount: tour.price
+                total_amount: tour.price,
+                meal_options: { available_meals: defaultMenu }
             }));
+            setMenuConfig(defaultMenu);
         }
     }
 
@@ -435,16 +504,24 @@ export default function ReservasPage() {
             tour_name: res.tour_name,
             tour_date: res.tour_date,
             end_date: res.end_date || '',
-            start_time: res.start_time || '08:00',
+            start_time: res.start_time.substring(0, 5),
             boat_id: res.boat_id?.toString() || '',
             driver_id: res.driver_id?.toString() || '',
             guide_id: res.guide_id?.toString() || '',
             pax_count: res.pax_count,
             total_amount: res.total_amount,
-            deposit_amount: res.deposit_amount,
+            deposit_amount: res.deposit_amount || 0,
             notes: res.notes || '',
             status: res.status,
+            emergency_contact_name: res.emergency_contact_name || '',
+            emergency_contact_phone: res.emergency_contact_phone || '',
+            meal_options: res.meal_options?.available_meals ? res.meal_options : { available_meals: TOURS.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || [] }
         });
+
+        // Also set menu config state
+        setMenuConfig(res.meal_options?.available_meals || TOURS.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || []);
+        setQuickMenu(res.meal_options?.available_meals || []); // For valid existing logic
+
         setEditingId(res.id);
         setShowForm(true);
     }
@@ -547,6 +624,21 @@ export default function ReservasPage() {
                                     <label className="bo-label">Pax</label>
                                     <input className="bo-input" type="number" min="1" value={form.pax_count} onChange={e => setForm({ ...form, pax_count: Number(e.target.value) })} />
                                 </div>
+                                <div className="bo-form-group">
+                                    <label className="bo-label">Contacto Emergencia</label>
+                                    <input
+                                        className="bo-input"
+                                        placeholder="Nombre"
+                                        value={form.emergency_contact_name}
+                                        onChange={e => setForm({ ...form, emergency_contact_name: e.target.value })}
+                                    />
+                                    <input
+                                        className="bo-input mt-1"
+                                        placeholder="Teléfono"
+                                        value={form.emergency_contact_phone}
+                                        onChange={e => setForm({ ...form, emergency_contact_phone: e.target.value })}
+                                    />
+                                </div>
                                 {/* Staff assignment fields */}
                                 <div className="bo-form-group">
                                     <label className="bo-label">Lancha</label>
@@ -612,7 +704,8 @@ export default function ReservasPage() {
                                         <td>
                                             <div className="font-medium">{res.tour_name}</div>
                                             <div className="text-sm text-muted">
-                                                {new Date(res.tour_date).toLocaleDateString()} • {res.start_time}
+                                                {/* Append T12:00:00 to prevent timezone shift */}
+                                                {new Date(res.tour_date + 'T12:00:00').toLocaleDateString()} • {res.start_time.substring(0, 5)}
                                             </div>
                                         </td>
                                         <td>
@@ -639,7 +732,34 @@ export default function ReservasPage() {
                                                 <button className="bo-icon-btn" title="Editar" onClick={() => startEdit(res)}>✏️</button>
                                                 <button className="bo-icon-btn" title="PDF" onClick={() => handlePrint(res)}>📄</button>
                                                 <button className="bo-icon-btn" title="Cobrar" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
+                                                <button className="bo-icon-btn bo-text-red" title="Eliminar" onClick={() => deleteReservation(res.id)}>🗑️</button>
                                             </div>
+                                            {res.payment_url && (
+                                                <div className="text-xs mt-1">
+                                                    <a href={res.payment_url} target="_blank" rel="noreferrer" className="bo-link">Link Pago 🔗</a>
+                                                </div>
+                                            )}
+                                            {res.public_token && (
+                                                <div className="text-xs mt-1">
+                                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                        <a href={`/reservas/checkin/${res.public_token}`} target="_blank" rel="noreferrer" className="bo-link text-blue-600">
+                                                            Link Guest 🔗
+                                                        </a>
+                                                        <button
+                                                            className="bo-icon-btn bo-icon-btn--xs"
+                                                            title="Copiar"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation(); // prevent row toggle
+                                                                const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
+                                                                navigator.clipboard.writeText(url);
+                                                                alert('Link copiado al portapapeles');
+                                                            }}
+                                                        >
+                                                            📋
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                     {isExpanded && (
@@ -659,16 +779,110 @@ export default function ReservasPage() {
                                                         >
                                                             Historial ({auditLogs.length})
                                                         </button>
+                                                        <button
+                                                            className={`bo-tab ${expandedTab === 'menu' ? 'active' : ''}`}
+                                                            onClick={() => setExpandedTab('menu')}
+                                                        >
+                                                            Configurar Menú 🍽️
+                                                        </button>
                                                     </div>
 
-                                                    {expandedTab === 'passengers' ? (
+                                                    {expandedTab === 'menu' ? (
+                                                        <div className="p-4 bg-gray-50 rounded border border-gray-200">
+                                                            <h4 className="font-bold mb-4 text-blue-900">Configuración de Menú para Invitados</h4>
+                                                            <p className="text-sm text-gray-600 mb-4">Define las opciones que verán los invitados al hacer check-in. Si está vacío, verán un campo de texto libre.</p>
+
+                                                            {quickMenu.map((meal, idx) => (
+                                                                <div key={idx} className="bg-white p-3 rounded shadow-sm mb-3 border bo-menu-item">
+                                                                    <div className="flex justify-between mb-2">
+                                                                        <input
+                                                                            className="bo-input font-bold"
+                                                                            placeholder="Tipo de Comida (Ej. Almuerzo)"
+                                                                            value={meal.type}
+                                                                            onChange={e => {
+                                                                                const newMenu = [...quickMenu];
+                                                                                newMenu[idx].type = e.target.value;
+                                                                                setQuickMenu(newMenu);
+                                                                            }}
+                                                                        />
+                                                                        <button className="text-red-500 hover:text-red-700 font-bold px-2" onClick={() => {
+                                                                            const newMenu = quickMenu.filter((_, i) => i !== idx);
+                                                                            setQuickMenu(newMenu);
+                                                                        }}>Eliminar</button>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-xs font-bold text-gray-500 mb-1 block">Opciones (separadas por coma)</label>
+                                                                        <input
+                                                                            className="bo-input"
+                                                                            placeholder="Ej. Pollo, Carne, Vegetariano"
+                                                                            value={meal.options?.join(', ')}
+                                                                            onChange={e => {
+                                                                                const newMenu = [...quickMenu];
+                                                                                newMenu[idx].options = e.target.value.split(',').map(s => s.trim());
+                                                                                setQuickMenu(newMenu);
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+
+                                                            <button
+                                                                className="bo-btn bo-btn--outline bo-btn--sm mb-4"
+                                                                onClick={() => setQuickMenu([...quickMenu, { type: '', options: [] }])}
+                                                            >
+                                                                + Agregar Tiempo de Comida
+                                                            </button>
+
+                                                            <div className="flex justify-end pt-4 border-t">
+                                                                <button
+                                                                    className="bo-btn bo-btn--primary"
+                                                                    onClick={() => saveQuickMenu(res.id)}
+                                                                >
+                                                                    Guardar Menú
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : expandedTab === 'passengers' ? (
                                                         <div className="bo-passenger-manage">
+                                                            {res.public_token && (
+                                                                <div className="bg-blue-50 p-3 rounded mb-4 border border-blue-100 flex justify-between items-center text-sm">
+                                                                    <div>
+                                                                        <span className="font-bold text-blue-800">Link para Invitados:</span>
+                                                                        <span className="text-blue-600 ml-2">/reservas/checkin/{res.public_token.slice(0, 8)}...</span>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                        <a
+                                                                            href={`/reservas/checkin/${res.public_token}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="text-blue-700 underline hover:text-blue-900"
+                                                                        >
+                                                                            Abrir
+                                                                        </a>
+                                                                        <button
+                                                                            className="text-blue-700 hover:text-blue-900 font-medium"
+                                                                            onClick={() => {
+                                                                                const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
+                                                                                navigator.clipboard.writeText(url);
+                                                                                alert('Link copiado!');
+                                                                            }}
+                                                                        >
+                                                                            Copiar
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                             <div className="bo-pax-list">
                                                                 {passengers.map(p => (
                                                                     <div key={p.id} className="bo-pax-card">
                                                                         <div className="bo-pax-header">
                                                                             <strong>{p.full_name}</strong>
-                                                                            <span>{p.age ? `${p.age} años` : ''}</span>
+                                                                            <span className="text-xs text-muted">
+                                                                                {p.age ? `${p.age} años` : ''}
+                                                                                {p.id_document ? ` • ID: ${p.id_document}` : ''}
+                                                                            </span>
+                                                                            {p.email && <span className="text-xs text-muted">✉️ {p.email}</span>}
+                                                                            {p.phone && <span className="text-xs text-muted">📞 {p.phone}</span>}
                                                                             <button className="bo-delete-btn" onClick={() => removePassenger(p.id, res.id)}>×</button>
                                                                         </div>
                                                                         <div className="bo-pax-meals">
@@ -694,13 +908,36 @@ export default function ReservasPage() {
                                                                         value={passengerForm.full_name}
                                                                         onChange={e => setPassengerForm({ ...passengerForm, full_name: e.target.value })}
                                                                     />
-                                                                    <input
-                                                                        placeholder="Edad"
-                                                                        className="bo-input"
-                                                                        style={{ width: 80 }}
-                                                                        value={passengerForm.age}
-                                                                        onChange={e => setPassengerForm({ ...passengerForm, age: e.target.value })}
-                                                                    />
+                                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                                                        <input
+                                                                            placeholder="Edad"
+                                                                            className="bo-input"
+                                                                            style={{ width: 80 }}
+                                                                            value={passengerForm.age}
+                                                                            onChange={e => setPassengerForm({ ...passengerForm, age: e.target.value })}
+                                                                        />
+                                                                        <input
+                                                                            placeholder="DPI / Pasaporte"
+                                                                            className="bo-input"
+                                                                            style={{ flex: 1 }}
+                                                                            value={passengerForm.id_document}
+                                                                            onChange={e => setPassengerForm({ ...passengerForm, id_document: e.target.value })}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="bo-form-row mt-2">
+                                                                        <input
+                                                                            placeholder="Email (opcional)"
+                                                                            className="bo-input"
+                                                                            value={passengerForm.email}
+                                                                            onChange={e => setPassengerForm({ ...passengerForm, email: e.target.value })}
+                                                                        />
+                                                                        <input
+                                                                            placeholder="Teléfono (opcional)"
+                                                                            className="bo-input"
+                                                                            value={passengerForm.phone}
+                                                                            onChange={e => setPassengerForm({ ...passengerForm, phone: e.target.value })}
+                                                                        />
+                                                                    </div>
                                                                 </div>
 
                                                                 {/* Dynamic Meal Fields */}

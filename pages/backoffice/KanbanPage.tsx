@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import {
     DndContext,
     closestCorners,
@@ -21,6 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
+import { updateReservation } from '../../lib/reservation-logic';
 import { Reservation, ReservationStatus, STATUS_CONFIG } from '../../types/backoffice';
 import { LayoutGrid, Loader2, Calendar, User, Ship } from 'lucide-react';
 
@@ -152,6 +154,7 @@ const KanbanColumn = ({ status, reservations, id }: KanbanColumnProps) => {
 const COLUMNS: ReservationStatus[] = ['offered', 'reserved', 'paid', 'in_progress', 'completed'];
 
 export default function KanbanPage() {
+    const { agent } = useAuth();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeId, setActiveId] = useState<number | null>(null);
@@ -246,14 +249,18 @@ export default function KanbanPage() {
 
         const resId = active.id as number;
         const res = reservations.find(r => r.id === resId);
-        const newStatus = res?.status;
+        const newStatus = res?.status; // This seems wrong in original code, it should be the status of the column we dropped in, but logic was:
+        // logic was: "handleDragOver" already updated local state "reservations". So "res" here has the NEW status. 
+        // So we just need to persist "res.status".
 
-        if (newStatus) {
+        if (newStatus && agent) {
             try {
-                await supabase
-                    .from('reservations')
-                    .update({ status: newStatus })
-                    .eq('id', resId);
+                // Use unified update logic
+                const result = await updateReservation(resId, { status: newStatus }, agent);
+                if (!result.success) {
+                    console.error('Error updating status:', result.error);
+                    fetchReservations(); // Rollback
+                }
             } catch (err) {
                 console.error('Error updating status:', err);
                 fetchReservations(); // Rollback
