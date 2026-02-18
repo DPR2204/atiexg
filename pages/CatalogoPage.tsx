@@ -17,7 +17,7 @@ import {
   buildWebSiteSchema,
 } from '../seo';
 
-const FILTERS = ['Todos', 'Premium', 'Privado', 'Aventura', 'Cultural', 'Gastronomía'];
+const FILTERS = ['Todos', 'Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'];
 
 const GENERAL_ADDONS = [
   {

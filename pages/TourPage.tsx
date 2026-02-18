@@ -33,11 +33,13 @@ const TourPage = () => {
   const seoMeta = useMemo(() => (tour ? getTourMeta(tour) : null), [tour]);
   const [selectedPriceId, setSelectedPriceId] = useState(tour?.prices[0]?.id ?? '');
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     if (!tour) return;
     setSelectedPriceId(tour.prices[0]?.id ?? '');
     setSelectedAddonIds([]);
+    setSelectedImageIndex(0);
   }, [tour]);
 
   // Get related tours (same category, excluding current)
@@ -80,6 +82,8 @@ const TourPage = () => {
   const selectedPrice = tour.prices.find((price) => price.id === selectedPriceId);
   const selectedAddons = tour.addons.filter((addon) => selectedAddonIds.includes(addon.id));
   const selectedAddonLabels = selectedAddons.map((addon) => `${addon.label} ($${addon.price})`);
+  const galleryImages = tour.gallery && tour.gallery.length > 0 ? tour.gallery : [tour.image];
+  const currentImage = galleryImages[selectedImageIndex] || tour.image;
 
   return (
     <div className="min-h-screen bg-white">
@@ -113,9 +117,10 @@ const TourPage = () => {
         {/* Hero Section */}
         <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] items-start">
           <div className="animate-fade-in-up">
+            {/* Main Image */}
             <div className="relative rounded-3xl overflow-hidden glass-card">
               <TourImage
-                src={tour.image}
+                src={currentImage}
                 alt={tour.name}
                 className="w-full aspect-[4/3] object-cover"
                 sizes="(max-width: 1024px) 100vw, 60vw"
@@ -127,11 +132,40 @@ const TourPage = () => {
                     Popular
                   </span>
                 )}
+                {tour.isNew && (
+                  <span className="px-3 py-1.5 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
+                    Nuevo
+                  </span>
+                )}
                 <span className="px-3 py-1.5 glass-card text-[10px] font-bold uppercase tracking-wider rounded-full">
                   {tour.category}
                 </span>
               </div>
             </div>
+
+            {/* Thumbnail Strip */}
+            {galleryImages.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {galleryImages.map((img, idx) => (
+                  <button
+                    key={img}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${idx === selectedImageIndex
+                        ? 'border-red-500 shadow-lg shadow-red-500/20 scale-[1.02]'
+                        : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                  >
+                    <TourImage
+                      src={img}
+                      alt={`${tour.name} - foto ${idx + 1}`}
+                      className="w-16 h-12 sm:w-20 sm:h-14 object-cover"
+                      sizes="80px"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>

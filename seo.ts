@@ -87,17 +87,17 @@ export const getTourUrl = (tour: Tour) => `${SITE_URL}${getTourPath(tour)}`;
 
 // Keywords por categoría para mejorar SEO
 const CATEGORY_KEYWORDS: Record<string, string> = {
-  Premium: 'tour premium en Panajachel',
-  Privado: 'lancha privada Lago Atitlán',
-  Aventura: 'actividades de aventura en Guatemala',
-  Cultural: 'tour cultural pueblos mayas',
-  Gastronomía: 'experiencia gastronómica Atitlán',
+  'Signature': 'tour premium en Panajachel',
+  'Lago & Momentos': 'lancha privada Lago Atitlán, atardecer Atitlán',
+  'Cultura & Pueblos': 'tour cultural pueblos mayas, artesanías Guatemala',
+  'Sabores del Lago': 'experiencia gastronómica Atitlán, café Guatemala',
+  'Días de Campo': 'día de campo Lago Atitlán, picnic San Lucas Tolimán',
 };
 
 export const getTourMeta = (tour: Tour): PageMeta => {
   const categoryKeyword = CATEGORY_KEYWORDS[tour.category] || 'tour en Panajachel';
   return {
-    title: `${tour.name} | ${tour.category === 'Privado' ? 'Lancha Privada' : 'Tour'} en Panajachel, Lago Atitlán`,
+    title: `${tour.name} | Experiencia en Panajachel, Lago Atitlán`,
     description: `${tour.description} ${categoryKeyword}. Desde $${tour.price} USD. Duración ${tour.duration}. Reserva en Panajachel, Guatemala.`,
     path: getTourPath(tour),
     ogImage: tour.image,
