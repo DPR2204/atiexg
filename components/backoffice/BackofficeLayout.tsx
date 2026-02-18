@@ -171,21 +171,38 @@ export default function BackofficeLayout() {
                             </div>
                         </div>
                         <button
-                            onClick={signOut}
+                            onClick={async () => {
+                                await signOut();
+                                // Force hard redirect to clear all contexts
+                                window.location.href = '/backoffice/login';
+                            }}
                             title="Cerrar sesión"
+                            className="bo-logout-btn"
                             style={{
-                                background: 'none',
-                                border: 'none',
+                                background: 'rgba(55, 53, 47, 0.05)',
+                                border: '1px solid rgba(55, 53, 47, 0.1)',
                                 cursor: 'pointer',
                                 color: '#64748b',
-                                fontSize: '0.875rem',
-                                padding: '0.25rem',
-                                borderRadius: '4px',
-                                transition: 'color 150ms ease',
+                                fontSize: '1rem',
+                                padding: '0.4rem',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 150ms ease',
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#f8fafc')}
-                            onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.color = '#d44020';
+                                e.currentTarget.style.background = '#fbe4e4';
+                                e.currentTarget.style.borderColor = '#f7caca';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.color = '#64748b';
+                                e.currentTarget.style.background = 'rgba(55, 53, 47, 0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(55, 53, 47, 0.1)';
+                            }}
                         >
+                            <span style={{ fontSize: '12px', fontWeight: 600, marginRight: '4px' }}>Salir</span>
                             ⎋
                         </button>
                     </div>

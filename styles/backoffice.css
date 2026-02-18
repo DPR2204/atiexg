@@ -395,12 +395,19 @@
   gap: 0.625rem;
   padding: 0.5rem 0.75rem;
   border-radius: var(--bo-radius-sm);
-  cursor: pointer;
   transition: background var(--bo-transition);
 }
 
 .bo-user-card:hover {
   background: var(--bo-sidebar-active-bg);
+}
+
+.bo-logout-btn:hover {
+  transform: scale(1.05);
+}
+
+.bo-logout-btn:active {
+  transform: scale(0.95);
 }
 
 .bo-user-avatar {
