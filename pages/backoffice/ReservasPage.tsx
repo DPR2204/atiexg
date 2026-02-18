@@ -272,9 +272,16 @@ export default function ReservasPage() {
         fetchAll();
     }
 
+    // Add error state
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+
     async function generatePaymentLink() {
         if (!showPaymentModal || !agent) return;
         setPaymentLoading(true);
+        setPaymentError(null);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
         try {
             const res = await fetch('/api/checkout', {
@@ -287,8 +294,19 @@ export default function ReservasPage() {
                     customerName: showPaymentModal.passengers?.[0]?.full_name || 'Cliente',
                     depositAmount: paymentAmount,
                     selectedItems: []
-                })
+                }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
+
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await res.text();
+                // If text is HTML, it's likely a 404 or 500 from Vercel/Next
+                console.error("Non-JSON response:", text);
+                throw new Error(`Respuesta inválida del servidor (${res.status}). Posiblemente la API no está disponible.`);
+            }
 
             const data = await res.json();
 
@@ -310,11 +328,15 @@ export default function ReservasPage() {
                 setShowPaymentModal(null);
                 fetchAll();
             } else {
-                alert('Error al generar link: ' + data.error);
+                setPaymentError(data.error || 'Error desconocido al generar el link.');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert('Error al conectar con el servicio de pagos');
+            if (err.name === 'AbortError') {
+                setPaymentError('Tiempo de espera agotado. El servicio de pagos no responde.');
+            } else {
+                setPaymentError(err.message || 'Error al conectar con el servicio de pagos.');
+            }
         } finally {
             setPaymentLoading(false);
         }
@@ -574,6 +596,13 @@ export default function ReservasPage() {
                                 />
                                 <p className="bo-hint">Sugerido: 50% anticipo (${(showPaymentModal.total_amount / 2).toFixed(2)})</p>
                             </div>
+
+                            {paymentError && (
+                                <div className="bo-alert bo-alert--error mb-4" style={{ color: 'red', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                    {paymentError}
+                                </div>
+                            )}
+
                             <button
                                 className="bo-btn bo-btn--primary bo-btn--block"
                                 onClick={generatePaymentLink}
