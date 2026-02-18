@@ -403,12 +403,14 @@ export default function ReservasPage() {
                 setQuickMenu(res.meal_options?.available_meals || []);
 
                 // Load Custom Tour Data (V7)
-                if (res.custom_tour_data) {
+                // Use custom data if it HAS content, otherwise fallback to tour defaults
+                if (res.custom_tour_data && (res.custom_tour_data.itinerary?.length || res.custom_tour_data.includes)) {
                     setCustomTourForm(res.custom_tour_data);
                 } else {
                     // Pre-fill with default tour data if available
-                    // @ts-ignore
-                    const tourData = res.tour; // Fixed alias from 'tours' to 'tour'
+                    // Handle case where Supabase returns join as an array
+                    const tourData = Array.isArray(res.tour) ? res.tour[0] : res.tour;
+
                     if (tourData) {
                         setCustomTourForm({
                             tour_name: tourData.name || res.tour_name,
@@ -417,7 +419,11 @@ export default function ReservasPage() {
                         });
                     } else {
                         // Fallback if no tour data linked yet
-                        setCustomTourForm({ itinerary: [], includes: '' });
+                        setCustomTourForm({
+                            tour_name: res.tour_name,
+                            itinerary: [],
+                            includes: ''
+                        });
                     }
                 }
             }

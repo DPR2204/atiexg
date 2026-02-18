@@ -83,6 +83,11 @@ export interface Reservation {
     };
     // V7 Fields
     custom_tour_data?: CustomTourData;
+    tour?: {
+        name: string;
+        includes: string;
+        itinerary: any[];
+    };
 }
 
 export interface CustomStop {
