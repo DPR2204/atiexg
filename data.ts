@@ -56,7 +56,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a1-1", label: "Fotografía profesional", price: "80-120" },
       { id: "a1-2", label: "Drone (clips + fotos)", price: "80-150" }
-    ]
+    ],
+    meals: ['desayuno', 'almuerzo', 'coffee_break']
   },
   {
     id: 2,
@@ -143,7 +144,8 @@ export const TOURS: Tour[] = [
       { id: "a3-1", label: "Fotógrafo 60-90 min", price: "120-180" },
       { id: "a3-2", label: "Kit propuesta", price: "120-220" },
       { id: "a3-3", label: "Reel vertical 30-60s", price: "250-450" }
-    ]
+    ],
+    meals: ['snacks']
   },
   {
     id: 4,
@@ -184,7 +186,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a4-1", label: "Fotógrafo 60-90 min", price: "120-180" },
       { id: "a4-2", label: "Drone add-on", price: "80-150" }
-    ]
+    ],
+    meals: ['desayuno']
   },
   {
     id: 5,
@@ -226,7 +229,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a5-1", label: "Masaje 60 min", price: "26-52 p/p" },
       { id: "a5-2", label: "Concierge WhatsApp", price: "15-35" }
-    ]
+    ],
+    meals: ['almuerzo']
   },
 
   // ==================== CULTURA & PUEBLOS ====================
@@ -281,7 +285,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a6-1", label: "Fotografía estándar", price: "150-230" },
       { id: "a6-2", label: "Empaque seguro de cerámica", price: "10-25" }
-    ]
+    ],
+    meals: ['almuerzo']
   },
   {
     id: 7,
@@ -338,7 +343,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a7-1", label: "Fotografía profesional", price: "80-120" },
       { id: "a7-2", label: "Concierge WhatsApp", price: "15-35" }
-    ]
+    ],
+    meals: ['almuerzo']
   },
 
   // ==================== SABORES DEL LAGO ====================
@@ -429,7 +435,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a9-1", label: "Fotografía profesional", price: "80-120" },
       { id: "a9-2", label: "Upgrade cena en Panajachel", price: "25-45 p/p" }
-    ]
+    ],
+    meals: ['almuerzo']
   },
 
   // ==================== DÍAS DE CAMPO ====================
@@ -473,7 +480,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a10-1", label: "Kayak/SUP (renta)", price: "10-16 p/p" },
       { id: "a10-2", label: "Upgrade a canasta premium", price: "+15 p/p" }
-    ]
+    ],
+    meals: ['picnic']
   },
   {
     id: 11,
@@ -521,7 +529,8 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a11-1", label: "Kayak/SUP (renta)", price: "10-16 p/p" },
       { id: "a11-2", label: "Upgrade a Celebración", price: "+15 p/p" }
-    ]
+    ],
+    meals: ['picnic']
   },
   {
     id: 12,
@@ -569,6 +578,7 @@ export const TOURS: Tour[] = [
     addons: [
       { id: "a12-1", label: "Fotógrafo 60-90 min", price: "120-180" },
       { id: "a12-2", label: "Reel vertical 30-60s", price: "250-450" }
-    ]
+    ],
+    meals: ['picnic']
   }
 ];

@@ -3,7 +3,7 @@ import { RouteObject } from 'react-router-dom';
 import Layout from './components/layouts/Layout';
 import LoadingSpinner from './components/shared/LoadingSpinner';
 
-// Lazy load pages
+// Lazy load public pages
 const HomePage = lazy(() => import('./pages/HomePage'));
 const CatalogoPage = lazy(() => import('./pages/CatalogoPage'));
 const GaleriaPage = lazy(() => import('./pages/GaleriaPage'));
@@ -14,6 +14,16 @@ const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
+// Lazy load back-office pages
+const BackofficeLayout = lazy(() => import('./components/backoffice/BackofficeLayout'));
+const LoginPage = lazy(() => import('./pages/backoffice/LoginPage'));
+const DashboardPage = lazy(() => import('./pages/backoffice/DashboardPage'));
+const ReservasPage = lazy(() => import('./pages/backoffice/ReservasPage'));
+const CalendarioPage = lazy(() => import('./pages/backoffice/CalendarioPage'));
+const KanbanPage = lazy(() => import('./pages/backoffice/KanbanPage'));
+const LogisticaPage = lazy(() => import('./pages/backoffice/LogisticaPage'));
+const RecursosPage = lazy(() => import('./pages/backoffice/RecursosPage'));
+
 const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<LoadingSpinner />}>
     {children}
@@ -21,6 +31,7 @@ const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const routes: RouteObject[] = [
+  // Public site
   {
     path: '/',
     element: <Layout />,
@@ -60,6 +71,42 @@ export const routes: RouteObject[] = [
       {
         path: '*',
         element: <SuspenseWrapper><NotFoundPage /></SuspenseWrapper>,
+      },
+    ],
+  },
+  // Back-office: Login (no layout wrapper)
+  {
+    path: '/backoffice/login',
+    element: <SuspenseWrapper><LoginPage /></SuspenseWrapper>,
+  },
+  // Back-office: Protected routes
+  {
+    path: '/backoffice',
+    element: <SuspenseWrapper><BackofficeLayout /></SuspenseWrapper>,
+    children: [
+      {
+        index: true,
+        element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'reservas',
+        element: <SuspenseWrapper><ReservasPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'kanban',
+        element: <SuspenseWrapper><KanbanPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'calendario',
+        element: <SuspenseWrapper><CalendarioPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'logistica',
+        element: <SuspenseWrapper><LogisticaPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'recursos',
+        element: <SuspenseWrapper><RecursosPage /></SuspenseWrapper>,
       },
     ],
   },

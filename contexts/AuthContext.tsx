@@ -1,0 +1,146 @@
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+import type { User, Session } from '@supabase/supabase-js';
+import type { Agent } from '../types/backoffice';
+
+interface AuthContextType {
+    user: User | null;
+    agent: Agent | null;
+    session: Session | null;
+    loading: boolean;
+    signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+    signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
+    signOut: () => Promise<void>;
+    isAdmin: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const [user, setUser] = useState<User | null>(null);
+    const [agent, setAgent] = useState<Agent | null>(null);
+    const [session, setSession] = useState<Session | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchAgentProfile = useCallback(async (userId: string) => {
+        console.log('[Auth] Fetching agent profile for:', userId);
+        try {
+            const { data, error } = await supabase
+                .from('agents')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (error) {
+                console.warn('[Auth] Agent profile error:', error.message);
+            } else if (data) {
+                console.log('[Auth] Agent profile loaded:', data.role);
+                setAgent(data as Agent);
+            }
+        } catch (err) {
+            console.error('[Auth] Fetch agent profile failed:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        console.log('[Auth] Initializing authentication...');
+
+        let mounted = true;
+
+        // Fallback: Ensure loading state clears eventually
+        const timeout = setTimeout(() => {
+            if (mounted && loading) {
+                console.warn('[Auth] Loading timed out, forcing clear');
+                setLoading(false);
+            }
+        }, 5000);
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!mounted) return;
+            console.log('[Auth] Session loaded:', session ? 'Yes' : 'No');
+            setSession(session);
+            setUser(session?.user ?? null);
+
+            if (session?.user) {
+                fetchAgentProfile(session.user.id).finally(() => {
+                    if (mounted) setLoading(false);
+                });
+            } else {
+                setLoading(false);
+            }
+        }).catch(err => {
+            console.error('[Auth] getSession failed:', err);
+            if (mounted) setLoading(false);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (_event, session) => {
+                if (!mounted) return;
+                console.log('[Auth] State changed:', _event, session?.user?.email);
+                setSession(session);
+                setUser(session?.user ?? null);
+
+                if (session?.user) {
+                    await fetchAgentProfile(session.user.id);
+                } else {
+                    setAgent(null);
+                }
+                setLoading(false);
+            }
+        );
+
+        return () => {
+            mounted = false;
+            clearTimeout(timeout);
+            subscription.unsubscribe();
+        };
+    }, [fetchAgentProfile]);
+
+    const signIn = async (email: string, password: string) => {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        return { error: error?.message ?? null };
+    };
+
+    const signUp = async (email: string, password: string, name: string) => {
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { name } },
+        });
+        return { error: error?.message ?? null };
+    };
+
+    const signOut = async () => {
+        await supabase.auth.signOut();
+        setUser(null);
+        setAgent(null);
+        setSession(null);
+    };
+
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                agent,
+                session,
+                loading,
+                signIn,
+                signUp,
+                signOut,
+                isAdmin: agent?.role === 'admin',
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
+}
+
+export function useAuth() {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+}
+
+export default AuthContext;

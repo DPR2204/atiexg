@@ -12,10 +12,15 @@
     "prebuild": "npm run sitemap"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^1.38.0",
+    "@supabase/supabase-js": "^2.96.0",
     "cloudinary": "^2.9.0",
     "gsap": "^3.14.2",
     "lenis": "^1.3.17",
+    "lucide-react": "^0.574.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-helmet-async": "^2.0.5",
@@ -31,5 +36,10 @@
     "tailwindcss": "^4.1.18",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
+  },
+  "overrides": {
+    "@supabase/supabase-js": {
+      "@supabase/auth-js": "2.61.0"
+    }
   }
 }

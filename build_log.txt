@@ -1,0 +1,36 @@
+
+> atitlán-experiences-premium@0.0.0 prebuild
+> npm run sitemap
+
+
+> atitlán-experiences-premium@0.0.0 sitemap
+> npx tsx --tsconfig tsconfig.node.json scripts/generate-sitemap.ts
+
+Sitemap generado: /Users/davidrodas/atiexg/atiexg/public/sitemap.xml (17 URLs)
+
+> atitlán-experiences-premium@0.0.0 build
+> vite build && npm run sitemap && npm run prerender
+
+vite v6.4.1 building for production...
+transforming...
+✓ 1838 modules transformed.
+✗ Build failed in 2.42s
+error during build:
+lib/generatePDF.ts (1:22): "TOURS" is not exported by "types/backoffice.ts", imported by "lib/generatePDF.ts".
+file: /Users/davidrodas/atiexg/atiexg/lib/generatePDF.ts:1:22
+
+1: import { Reservation, TOURS, MEAL_TYPE_LABELS } from '../types/backoffice';
+                         ^
+2: 
+3: export function generateReservationPDF(reservation: Reservation) {
+
+    at getRollupError (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:17037:16)
+    at Module.traceVariable (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:17449:29)
+    at ModuleScope.findVariable (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:15067:39)
+    at FunctionScope.findVariable (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at MemberExpression.bind (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:7392:49)
+    at CallExpression.bind (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:2829:23)
+    at CallExpression.bind (file:///Users/davidrodas/atiexg/atiexg/node_modules/rollup/dist/es/shared/node-entry.js:12179:15)

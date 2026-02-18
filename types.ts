@@ -37,6 +37,7 @@ export interface Tour {
   prices: TourPrice[];
   addons: Addon[];
   format: string;
+  meals?: ('desayuno' | 'almuerzo' | 'coffee_break' | 'snacks' | 'picnic' | 'cena')[];
 }
 
 export interface SelectedTourConfig {

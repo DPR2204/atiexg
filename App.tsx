@@ -5,16 +5,20 @@ import routes from './routes';
 import ErrorBoundary from './components/ErrorBoundary';
 import SkipLink from './components/SkipLink';
 import ScrollToTop from './components/ScrollToTop';
+import { AuthProvider } from './contexts/AuthContext';
+import './styles/backoffice.css';
 
 const router = createBrowserRouter(routes);
 
 const App = () => (
   <ErrorBoundary>
-    <HelmetProvider>
-      <SkipLink />
-      <RouterProvider router={router} />
-      <ScrollToTop />
-    </HelmetProvider>
+    <AuthProvider>
+      <HelmetProvider>
+        <SkipLink />
+        <RouterProvider router={router} />
+        <ScrollToTop />
+      </HelmetProvider>
+    </AuthProvider>
   </ErrorBoundary>
 );
 
