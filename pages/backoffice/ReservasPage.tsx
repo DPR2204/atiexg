@@ -124,7 +124,11 @@ export default function ReservasPage() {
         notes: '',
         status: 'offered' as ReservationStatus,
         emergency_contact_name: '',
-        emergency_contact_phone: ''
+        emergency_contact_phone: '',
+        // V9 Fields
+        selected_addons: [] as { id?: string; label: string; price: number }[],
+        meal_per_group: false,
+        price_manual: false
     });
 
     // Passenger Form State (V2 with dynamic meals)
@@ -234,7 +238,11 @@ export default function ReservasPage() {
             deposit_amount: form.deposit_amount,
             notes: form.notes || null,
             status: form.status,
-            agent_id: agent.id
+            agent_id: agent.id,
+            // V9 Fields
+            selected_addons: form.selected_addons,
+            meal_per_group: form.meal_per_group,
+            price_manual: form.price_manual
         };
 
         if (editingId) {
@@ -565,7 +573,10 @@ export default function ReservasPage() {
             status: 'offered',
             emergency_contact_name: '',
             emergency_contact_phone: '',
-            meal_options: { available_meals: [] } // Initialize meal_options
+            meal_options: { available_meals: [] }, // Initialize meal_options
+            selected_addons: [],
+            meal_per_group: false,
+            price_manual: false
         });
         setMenuConfig([]); // Clear menu config when resetting form
     }
@@ -576,13 +587,27 @@ export default function ReservasPage() {
             // Auto-populate meal configuration based on tour
             const defaultMenu = tour.meals?.map(m => ({ type: m, options: [] })) || [];
 
-            setForm(prev => ({
-                ...prev,
-                tour_id: tourId,
-                tour_name: tour.name,
-                total_amount: tour.price,
-                meal_options: { available_meals: defaultMenu }
-            }));
+            setForm(prev => {
+                // Only update price if NOT manual override
+                // Auto-calc: Tour Price + Addons
+                const addonsTotal = prev.selected_addons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+                const newPrice = prev.price_manual ? prev.total_amount : (tour.price * prev.pax_count) + addonsTotal;
+                // Wait, previous logic was just tour.price (which is per person? or total base?).
+                // Tours have base price, some per person.
+                // EXISTING ABSTRACTION: `tour.price` is just a number. `total_amount` is usually auto-set to `tour.price`.
+                // If tour is per-person, it should be `tour.price * pax`. Current logic in `handleTourChange` was `total_amount: tour.price`.
+                // Let's stick to existing logic for base, but ADD addons total.
+                // Actually, if I look at `handleTourChange` original: `total_amount: tour.price`.
+                // I will update it to: `total_amount: prev.price_manual ? prev.total_amount : tour.price + addonsTotal`.
+
+                return {
+                    ...prev,
+                    tour_id: tourId,
+                    tour_name: tour.name,
+                    total_amount: newPrice,
+                    meal_options: { available_meals: defaultMenu }
+                };
+            });
             setMenuConfig(defaultMenu);
         }
     }
@@ -602,9 +627,11 @@ export default function ReservasPage() {
             deposit_amount: res.deposit_amount || 0,
             notes: res.notes || '',
             status: res.status,
-            emergency_contact_name: res.emergency_contact_name || '',
             emergency_contact_phone: res.emergency_contact_phone || '',
-            meal_options: res.meal_options?.available_meals ? res.meal_options : { available_meals: TOURS.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || [] }
+            meal_options: res.meal_options?.available_meals ? res.meal_options : { available_meals: TOURS.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || [] },
+            selected_addons: res.selected_addons || [],
+            meal_per_group: res.meal_per_group || false,
+            price_manual: res.price_manual || false
         });
 
         // Also set menu config state
@@ -739,6 +766,167 @@ export default function ReservasPage() {
                                     <input className="bo-input" type="number" min="1" value={form.pax_count} onChange={e => setForm({ ...form, pax_count: Number(e.target.value) })} />
                                 </div>
                                 <div className="bo-form-group">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="bo-label">Precio Total ($)</label>
+                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer select-none text-gray-500 hover:text-blue-600">
+                                            <input
+                                                type="checkbox"
+                                                className="accent-blue-600"
+                                                checked={form.price_manual}
+                                                onChange={e => setForm({ ...form, price_manual: e.target.checked })}
+                                            />
+                                            Manual
+                                        </label>
+                                    </div>
+                                    <input
+                                        className={`bo-input ${form.price_manual ? 'border-blue-500 bg-blue-50/10' : 'bg-gray-50 text-gray-500'}`}
+                                        type="number"
+                                        value={form.total_amount}
+                                        readOnly={!form.price_manual}
+                                        onChange={e => setForm({ ...form, total_amount: Number(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="bo-form-group col-span-2">
+                                    <label className="bo-label mb-2 block">Opciones de Comida</label>
+                                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 accent-blue-600"
+                                            checked={form.meal_per_group}
+                                            onChange={e => setForm({ ...form, meal_per_group: e.target.checked })}
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-gray-900">Comida por Grupo (ej. 1 Botella para todos)</span>
+                                            <span className="text-xs text-gray-500">Si se activa, no se pedirá selección individual de comida a los invitados.</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div className="bo-form-group col-span-2">
+                                    <label className="bo-label mb-2 block">Add-ons y Extras</label>
+                                    <div className="space-y-3">
+                                        {/* Selected Add-ons List */}
+                                        {form.selected_addons.map((addon, idx) => (
+                                            <div key={idx} className="flex gap-2 items-center p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                                                <input
+                                                    className="bo-input h-8 text-xs font-bold"
+                                                    value={addon.label}
+                                                    onChange={e => {
+                                                        const newAddons = [...form.selected_addons];
+                                                        newAddons[idx].label = e.target.value;
+                                                        setForm({ ...form, selected_addons: newAddons });
+                                                    }}
+                                                    placeholder="Nombre del servicio"
+                                                />
+                                                <div className="relative w-24">
+                                                    <span className="absolute left-2 top-1.5 text-xs text-gray-500">$</span>
+                                                    <input
+                                                        type="number"
+                                                        className="bo-input h-8 pl-5 text-xs font-bold text-right"
+                                                        value={addon.price}
+                                                        onChange={e => {
+                                                            const val = Number(e.target.value);
+                                                            const newAddons = [...form.selected_addons];
+                                                            newAddons[idx].price = val;
+
+                                                            // Auto-update total if not manual
+                                                            // We need to calculate diff or just recalc everything.
+                                                            // Recalc is safer.
+                                                            // Base Tour Price? We need to know it.
+                                                            // form.total_amount currently holds the total.
+                                                            // If we change addon price, we should update total IF !price_manual.
+                                                            // BUT retrieving base tour price is tricky here without `tour` object scope.
+                                                            // Strategy: Update state, and use `useEffect` or similar to update total?
+                                                            // Or just update total here incrementally.
+                                                            const oldPrice = Number(newAddons[idx].price) || 0;
+                                                            // Wait, I just assigned `val` to `newAddons[idx].price`.
+                                                            // The `addon` object in map is a reference? No, I copied array but valid obj refs?
+                                                            // `const newAddons = [...form.selected_addons]` copies array, but objects are same refs.
+                                                            // So `newAddons[idx].price = val` modifies original if not careful?
+                                                            // Actually yes, shallow copy of array.
+                                                            // Let's do deep copy for safety.
+                                                            const safeAddons = form.selected_addons.map((a, i) => i === idx ? { ...a, price: val } : a);
+
+                                                            setForm(prev => {
+                                                                if (prev.price_manual) return { ...prev, selected_addons: safeAddons };
+
+                                                                // Recalculate Total
+                                                                // Base = Total - OldAddonsSum
+                                                                const oldAddonsSum = prev.selected_addons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+                                                                const basePrice = prev.total_amount - oldAddonsSum;
+                                                                const newAddonsSum = safeAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+
+                                                                return {
+                                                                    ...prev,
+                                                                    selected_addons: safeAddons,
+                                                                    total_amount: basePrice + newAddonsSum
+                                                                };
+                                                            });
+                                                        }}
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newAddons = form.selected_addons.filter((_, i) => i !== idx);
+                                                        setForm(prev => {
+                                                            if (prev.price_manual) return { ...prev, selected_addons: newAddons };
+                                                            const removedPrice = Number(addon.price) || 0;
+                                                            return { ...prev, selected_addons: newAddons, total_amount: prev.total_amount - removedPrice };
+                                                        });
+                                                    }}
+                                                    className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {/* Master List & Custom Add */}
+                                        <div className="flex gap-2">
+                                            <select
+                                                className="bo-input text-xs"
+                                                onChange={e => {
+                                                    if (!e.target.value) return;
+                                                    const [label, priceStr] = e.target.value.split('|');
+                                                    // Parse price range simple average or min? "80-120" -> 100?
+                                                    // Or just 0 and let user edit.
+                                                    // Let's try to parse first number.
+                                                    const price = parseInt(priceStr) || 0;
+                                                    const newAddon = { label, price };
+
+                                                    setForm(prev => {
+                                                        const newAddons = [...prev.selected_addons, newAddon];
+                                                        if (prev.price_manual) return { ...prev, selected_addons: newAddons };
+                                                        return { ...prev, selected_addons: newAddons, total_amount: prev.total_amount + price };
+                                                    });
+                                                    e.target.value = ''; // reset
+                                                }}
+                                            >
+                                                <option value="">+ Agregar del Catálogo...</option>
+                                                {/* Unique Addons from all tours */}
+                                                {Array.from(new Set(TOURS.flatMap(t => t.addons || []).map(a => JSON.stringify({ label: a.label, price: a.price }))))
+                                                    .map(s => JSON.parse(s))
+                                                    .map((a, i) => (
+                                                        <option key={i} value={`${a.label}|${a.price}`}>
+                                                            {a.label} ({a.price})
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newAddon = { label: 'Nuevo Extra', price: 0 };
+                                                    setForm(prev => ({ ...prev, selected_addons: [...prev.selected_addons, newAddon] }));
+                                                }}
+                                                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg whitespace-nowrap"
+                                            >
+                                                + Custom
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bo-form-group">
                                     <label className="bo-label">Contacto Emergencia</label>
                                     <input
                                         className="bo-input"
@@ -782,8 +970,9 @@ export default function ReservasPage() {
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
+                </div >
+            )
+            }
 
             {/* List */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

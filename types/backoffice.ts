@@ -83,6 +83,10 @@ export interface Reservation {
     };
     // V7 Fields
     custom_tour_data?: CustomTourData;
+    // V9 Fields
+    selected_addons?: { id?: string; label: string; price: number }[];
+    meal_per_group?: boolean;
+    price_manual?: boolean;
     tour?: {
         name: string;
         includes: string;
