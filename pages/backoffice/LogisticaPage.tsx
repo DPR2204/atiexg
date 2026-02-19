@@ -82,24 +82,28 @@ export default function LogisticaPage() {
 
             <div className="bo-stats-grid">
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon">👥</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Pasajeros Total</span>
                         <span className="bo-stat-value">{totalPax}</span>
                     </div>
                 </div>
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon bo-stat-icon--info">⛵</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Tours</span>
                         <span className="bo-stat-value">{reservations.length}</span>
                     </div>
                 </div>
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon bo-stat-icon--warning">🍽️</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Órdenes Comida</span>
                         <span className="bo-stat-value">{allFoodOrders.length}</span>
                     </div>
                 </div>
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon bo-stat-icon--success">📍</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Paradas Especiales</span>
                         <span className="bo-stat-value">
@@ -148,7 +152,9 @@ export default function LogisticaPage() {
                         </div>
                     ) : (
                         <div className="bo-empty-state">
+                            <span className="bo-empty-state-icon">🍽️</span>
                             <p>No hay órdenes de comida registradas para esta fecha</p>
+                            <span className="bo-empty-state-hint">Las órdenes aparecerán cuando los pasajeros tengan comidas asignadas</span>
                         </div>
                     )}
                 </section>
@@ -206,7 +212,9 @@ export default function LogisticaPage() {
                             </div>
                         )) : (
                             <div className="bo-empty-state">
+                                <span className="bo-empty-state-icon">📍</span>
                                 <p>No hay tours programados para esta fecha</p>
+                                <span className="bo-empty-state-hint">Seleccioná otra fecha o creá una reserva</span>
                             </div>
                         )}
                     </div>

@@ -156,14 +156,14 @@ export const MEAL_TYPE_LABELS: Record<MealType, string> = {
     cena: 'Cena',
 };
 
-// Status labels and colors for UI (Notion technical palette)
+// Status labels and colors for UI (AppFlowy palette)
 export const STATUS_CONFIG: Record<ReservationStatus, { label: string; color: string; bg: string }> = {
-    offered: { label: 'Ofrecido', color: '#787774', bg: '#f1f1f0' },
-    reserved: { label: 'Reservado', color: '#b76e00', bg: '#fbf3db' },
-    paid: { label: 'Pagado', color: '#0b6e4f', bg: '#edf3f0' },
-    in_progress: { label: 'En Curso', color: '#0b6e9f', bg: '#ebf5fb' },
-    completed: { label: 'Completado', color: '#37352f', bg: '#f1f1f0' },
-    cancelled: { label: 'Cancelado', color: '#d44020', bg: '#fbe4e4' },
+    offered: { label: 'Ofrecido', color: '#6B6F7B', bg: '#E8EAF0' },
+    reserved: { label: 'Reservado', color: '#E65100', bg: '#FFF3E0' },
+    paid: { label: 'Pagado', color: '#2E7D32', bg: '#E8F5E9' },
+    in_progress: { label: 'En Curso', color: '#1565C0', bg: '#E3F2FD' },
+    completed: { label: 'Completado', color: '#21232A', bg: '#E8EAF0' },
+    cancelled: { label: 'Cancelado', color: '#D32F2F', bg: '#FFEBEE' },
 };
 
 // Audit action labels

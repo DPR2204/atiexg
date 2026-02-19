@@ -17,7 +17,7 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
     const config = STATUS_CONFIG[status];
     return (
         <span
-            className="px-2 py-0.5 rounded text-xs font-medium inline-block whitespace-nowrap"
+            className="bo-status-badge"
             style={{ backgroundColor: config.bg, color: config.color }}
         >
             {config.label}
@@ -27,8 +27,9 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
 
 function AuditLogView({ logs }: { logs: AuditLogEntry[] }) {
     if (!logs || logs.length === 0) return (
-        <div className="text-gray-500 text-sm italic p-4 text-center bg-gray-50 rounded-lg border border-gray-100">
-            No hay historial registrado para esta reserva.
+        <div className="bo-empty-state">
+            <span className="bo-empty-state-icon">📝</span>
+            <p>No hay historial registrado para esta reserva.</p>
         </div>
     );
 
@@ -675,17 +676,17 @@ export default function ReservasPage() {
     if (loading) return <div className="bo-loading"><div className="bo-loading-spinner" /></div>;
 
     return (
-        <div className="p-6 max-w-[1600px] mx-auto">
+        <div className="bo-reservas">
             {/* Header */}
-            <header className="flex justify-between items-center mb-8">
+            <header className="bo-header bo-flex bo-justify-between bo-align-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Reservas</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        {reservations.length} servicios registrados • Comisión estimada: <span className="font-mono text-gray-700">${reservations.reduce((acc, curr) => acc + (curr.total_amount * (agent?.commission_rate || 5) / 100), 0).toFixed(2)}</span>
+                    <h2 className="bo-title">Reservas</h2>
+                    <p className="bo-subtitle">
+                        {reservations.length} servicios registrados • Comisión estimada: <span style={{ fontFamily: 'var(--bo-font-mono)' }}>${reservations.reduce((acc, curr) => acc + (curr.total_amount * (agent?.commission_rate || 5) / 100), 0).toFixed(2)}</span>
                     </p>
                 </div>
                 <button
-                    className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-2"
+                    className="bo-btn bo-btn--primary"
                     onClick={() => { resetForm(); setShowForm(true); }}
                 >
                     + Nueva Reserva
@@ -693,9 +694,9 @@ export default function ReservasPage() {
             </header>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="bo-filter-tabs">
                 <button
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${filterStatus === 'all' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                    className={`bo-filter-tab ${filterStatus === 'all' ? 'bo-filter-tab--active' : ''}`}
                     onClick={() => setFilterStatus('all')}
                 >
                     Todas
@@ -705,7 +706,7 @@ export default function ReservasPage() {
                     return (
                         <button
                             key={key}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${isActive ? '' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                            className={`bo-filter-tab ${isActive ? 'bo-filter-tab--active' : ''}`}
                             style={isActive ? { backgroundColor: config.bg, color: config.color, borderColor: config.color } : {}}
                             onClick={() => setFilterStatus(key)}
                         >
@@ -739,7 +740,7 @@ export default function ReservasPage() {
                                 </div>
 
                                 {paymentError && (
-                                    <div className="bo-alert bo-alert--error mb-4" style={{ color: 'red', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                    <div className="bo-alert bo-alert--error" style={{ marginBottom: '1rem' }}>
                                         {paymentError}
                                     </div>
                                 )}
@@ -1025,22 +1026,22 @@ export default function ReservasPage() {
             }
 
             {/* List */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+            <div className="bo-section-card">
+                <div className="bo-table-responsive">
+                    <table className="bo-table bo-table--reservas">
                         <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                                <th className="p-3 w-10 text-center"></th>
-                                <th className="p-3">ID</th>
-                                <th className="p-3">Tour / Fecha</th>
-                                <th className="p-3">Cliente / Pax</th>
-                                <th className="p-3">Pagos</th>
-                                <th className="p-3">Staff</th>
-                                <th className="p-3">Estado</th>
-                                <th className="p-3 text-right">Acciones</th>
+                            <tr>
+                                <th style={{ width: '40px', textAlign: 'center' }}></th>
+                                <th>ID</th>
+                                <th>Tour / Fecha</th>
+                                <th>Cliente / Pax</th>
+                                <th>Pagos</th>
+                                <th>Staff</th>
+                                <th>Estado</th>
+                                <th className="bo-text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody>
                             {reservations.map(res => {
                                 const commission = (res.total_amount * (agent?.commission_rate || 5) / 100).toFixed(2);
                                 const isExpanded = expandedId === res.id;
@@ -1048,65 +1049,65 @@ export default function ReservasPage() {
 
                                 return (
                                     <React.Fragment key={res.id}>
-                                        <tr className={`hover:bg-gray-50 transition-colors ${isExpanded ? 'bg-blue-50/30' : ''}`}>
-                                            <td className="p-3 text-center">
+                                        <tr className={isExpanded ? 'bo-row-expanded' : ''}>
+                                            <td style={{ textAlign: 'center' }}>
                                                 <button
-                                                    className="text-gray-400 hover:text-blue-600 transition-colors"
+                                                    className="bo-expand-btn"
                                                     onClick={() => toggleExpanded(res.id)}
                                                 >
                                                     {isExpanded ? '▼' : '▶'}
                                                 </button>
                                             </td>
-                                            <td className="p-3">
-                                                <span className="font-mono text-xs text-gray-500">#{res.id}</span>
+                                            <td>
+                                                <span className="bo-cell-mono">#{res.id}</span>
                                             </td>
-                                            <td className="p-3">
-                                                <div className="font-medium text-gray-900">{res.tour_name}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5">
+                                            <td>
+                                                <div className="bo-cell-bold">{res.tour_name}</div>
+                                                <div className="bo-cell-sub">
                                                     {new Date(res.tour_date + 'T12:00:00').toLocaleDateString()} • {res.start_time.substring(0, 5)}
                                                 </div>
                                             </td>
-                                            <td className="p-3">
-                                                <div className="text-gray-900">{res.passengers?.[0]?.full_name || 'Sin nombre'}</div>
-                                                <div className="text-xs text-gray-500">{res.pax_count} pax</div>
+                                            <td>
+                                                <div className="bo-cell-bold">{res.passengers?.[0]?.full_name || 'Sin nombre'}</div>
+                                                <div className="bo-cell-sub">{res.pax_count} pax</div>
                                             </td>
-                                            <td className="p-3">
-                                                <div className="font-medium text-gray-900">${res.total_amount}</div>
-                                                <div className="flex flex-col gap-1 items-start mt-1">
+                                            <td>
+                                                <div className="bo-cell-bold">${res.total_amount}</div>
+                                                <div className="bo-cell-badges">
                                                     {pending > 0 ? (
-                                                        <span className="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Debe: ${pending}</span>
+                                                        <span className="bo-badge bo-badge--danger">Debe: ${pending}</span>
                                                     ) : (
-                                                        <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Pagado</span>
+                                                        <span className="bo-badge bo-badge--success">Pagado</span>
                                                     )}
-                                                    <div className="text-[10px] text-gray-400">Com: ${commission}</div>
+                                                    <span className="bo-cell-sub">Com: ${commission}</span>
                                                 </div>
                                             </td>
-                                            <td className="p-3">
-                                                <div className="text-xs text-gray-600">
+                                            <td>
+                                                <div className="bo-cell-sub">
                                                     <div title="Lancha">🚤 {res.boat?.name || 'S/A'}</div>
                                                     <div title="Capitán">⚓ {res.driver?.name?.split(' ')[0] || '?'}</div>
                                                 </div>
                                             </td>
-                                            <td className="p-3"><StatusBadge status={res.status} /></td>
-                                            <td className="p-3 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <button className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors" title="Editar" onClick={() => startEdit(res)}>✏️</button>
-                                                    <button className="p-1 text-gray-400 hover:text-purple-600 rounded hover:bg-purple-50 transition-colors" title="PDF" onClick={() => handlePrint(res)}>📄</button>
-                                                    <button className="p-1 text-gray-400 hover:text-green-600 rounded hover:bg-green-50 transition-colors" title="Cobrar" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
-                                                    <button className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors" title="Eliminar" onClick={() => deleteReservation(res.id)}>🗑️</button>
+                                            <td><StatusBadge status={res.status} /></td>
+                                            <td className="bo-text-right">
+                                                <div className="bo-action-btns">
+                                                    <button className="bo-action-btn bo-action-btn--edit" title="Editar" onClick={() => startEdit(res)}>✏️</button>
+                                                    <button className="bo-action-btn bo-action-btn--pdf" title="PDF" onClick={() => handlePrint(res)}>📄</button>
+                                                    <button className="bo-action-btn bo-action-btn--pay" title="Cobrar" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
+                                                    <button className="bo-action-btn bo-action-btn--delete" title="Eliminar" onClick={() => deleteReservation(res.id)}>🗑️</button>
                                                 </div>
                                                 {res.payment_url && (
-                                                    <div className="text-xs mt-1">
-                                                        <a href={res.payment_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Link Pago 🔗</a>
+                                                    <div className="bo-cell-link">
+                                                        <a href={res.payment_url} target="_blank" rel="noreferrer">Link Pago 🔗</a>
                                                     </div>
                                                 )}
                                                 {res.public_token && (
-                                                    <div className="text-xs mt-1 flex justify-end gap-2 items-center">
-                                                        <a href={`/reservas/checkin/${res.public_token}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                                                    <div className="bo-cell-link">
+                                                        <a href={`/reservas/checkin/${res.public_token}`} target="_blank" rel="noreferrer">
                                                             Guest 🔗
                                                         </a>
                                                         <button
-                                                            className="text-gray-400 hover:text-gray-600"
+                                                            className="bo-action-btn"
                                                             title="Copiar Link"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -1122,38 +1123,38 @@ export default function ReservasPage() {
                                             </td>
                                         </tr>
                                         {isExpanded && (
-                                            <tr className="bg-gray-50/50">
-                                                <td colSpan={8} className="p-0 border-b border-gray-100">
-                                                    <div className="bg-white m-4 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                            <tr className="bo-expanded-row">
+                                                <td colSpan={8} className="bo-expanded-cell">
+                                                    <div className="bo-expanded-content">
                                                         {/* Tabs */}
-                                                        <div className="flex border-b border-gray-200 bg-gray-50">
+                                                        <div className="bo-expanded-tabs">
                                                             <button
-                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'passengers' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                className={`bo-expanded-tab ${expandedTab === 'passengers' ? 'bo-expanded-tab--active' : ''}`}
                                                                 onClick={() => setExpandedTab('passengers')}
                                                             >
                                                                 Pasajeros
                                                             </button>
                                                             <button
-                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'menu' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                className={`bo-expanded-tab ${expandedTab === 'menu' ? 'bo-expanded-tab--active' : ''}`}
                                                                 onClick={() => setExpandedTab('menu')}
                                                             >
                                                                 Menú y Dieta
                                                             </button>
                                                             <button
-                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'tour' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                className={`bo-expanded-tab ${expandedTab === 'tour' ? 'bo-expanded-tab--active' : ''}`}
                                                                 onClick={() => setExpandedTab('tour')}
                                                             >
                                                                 Itinerario & Info
                                                             </button>
                                                             <button
-                                                                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${expandedTab === 'audit' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'}`}
+                                                                className={`bo-expanded-tab ${expandedTab === 'audit' ? 'bo-expanded-tab--active' : ''}`}
                                                                 onClick={() => setExpandedTab('audit')}
                                                             >
                                                                 Historial
                                                             </button>
                                                         </div>
 
-                                                        <div className="p-6">
+                                                        <div className="bo-expanded-body">
                                                             {expandedTab === 'passengers' && (
                                                                 <div className="space-y-6">
                                                                     {res.public_token && (

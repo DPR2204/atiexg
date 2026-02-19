@@ -102,7 +102,7 @@ export default function BackofficeLayout() {
         return (
             <div className="bo-loading-screen">
                 <div className="bo-loading-spinner" />
-                <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Cargando...</p>
+                <p style={{ color: '#9496A1', fontSize: '0.875rem' }}>Cargando...</p>
             </div>
         );
     }
@@ -182,10 +182,10 @@ export default function BackofficeLayout() {
                             title="Cerrar sesión"
                             className="bo-logout-btn"
                             style={{
-                                background: 'rgba(55, 53, 47, 0.05)',
-                                border: '1px solid rgba(55, 53, 47, 0.1)',
+                                background: 'rgba(33, 35, 42, 0.05)',
+                                border: '1px solid rgba(33, 35, 42, 0.08)',
                                 cursor: 'pointer',
-                                color: '#64748b',
+                                color: '#9496A1',
                                 fontSize: '1rem',
                                 padding: '0.4rem',
                                 borderRadius: '6px',
@@ -195,14 +195,14 @@ export default function BackofficeLayout() {
                                 transition: 'all 150ms ease',
                             }}
                             onMouseEnter={e => {
-                                e.currentTarget.style.color = '#d44020';
-                                e.currentTarget.style.background = '#fbe4e4';
-                                e.currentTarget.style.borderColor = '#f7caca';
+                                e.currentTarget.style.color = '#D32F2F';
+                                e.currentTarget.style.background = '#FFEBEE';
+                                e.currentTarget.style.borderColor = '#FFCDD2';
                             }}
                             onMouseLeave={e => {
-                                e.currentTarget.style.color = '#64748b';
-                                e.currentTarget.style.background = 'rgba(55, 53, 47, 0.05)';
-                                e.currentTarget.style.borderColor = 'rgba(55, 53, 47, 0.1)';
+                                e.currentTarget.style.color = '#9496A1';
+                                e.currentTarget.style.background = 'rgba(33, 35, 42, 0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(33, 35, 42, 0.08)';
                             }}
                         >
                             <span style={{ fontSize: '12px', fontWeight: 600, marginRight: '4px' }} className="bo-logout-text">Salir</span>
