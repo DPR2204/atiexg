@@ -312,17 +312,20 @@ export default function ReservasPage() {
         setPaymentLoading(true);
         setPaymentError(null);
 
+        // Abort controller for timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
         try {
+            console.log("Generating payment link for:", showPaymentModal.id);
+
             const res = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tourId: showPaymentModal.tour_id.toString(),
+                    tourId: showPaymentModal.tour_id?.toString() || '0',
                     tourName: showPaymentModal.tour_name,
-                    customerEmail: 'cliente@ejemplo.com', // In V3 add customer email field
+                    customerEmail: 'cliente@ejemplo.com', // TODO: Add email field to reservation
                     customerName: showPaymentModal.passengers?.[0]?.full_name || 'Cliente',
                     depositAmount: paymentAmount,
                     selectedItems: []
@@ -332,40 +335,55 @@ export default function ReservasPage() {
 
             clearTimeout(timeoutId);
 
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("API Error:", res.status, text);
+                throw new Error(`Error del servidor (${res.status}). Verifique la conexión o las credenciales.`);
+            }
+
             const contentType = res.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                 const text = await res.text();
-                // If text is HTML, it's likely a 404 or 500 from Vercel/Next
                 console.error("Non-JSON response:", text);
-                throw new Error(`Respuesta inválida del servidor(${res.status}).Posiblemente la API no está disponible.`);
+                throw new Error("La respuesta del servidor no es válida (no es JSON).");
             }
 
             const data = await res.json();
 
             if (data.success) {
                 // Update reservation with payment link
-                await supabase.from('reservations').update({
+                const { error: updateError } = await supabase.from('reservations').update({
                     payment_url: data.checkoutUrl,
                     payment_id: data.checkoutId
                 }).eq('id', showPaymentModal.id);
 
-                await logAudit(showPaymentModal.id, 'updated', {
-                    field_changed: 'payment_link_generated',
-                    new_value: `$${paymentAmount} `
-                });
+                if (updateError) {
+                    console.error("Supabase update error:", updateError);
+                    alert("El link se generó pero hubo un error al guardarlo en la reserva. \n" + data.checkoutUrl);
+                } else {
+                    await logAudit(showPaymentModal.id, 'updated', {
+                        field_changed: 'payment_link_generated',
+                        new_value: `$${paymentAmount} `
+                    });
 
-                alert(`Link generado: ${data.checkoutUrl} \n(Copiado al portapapeles)`);
-                navigator.clipboard.writeText(data.checkoutUrl);
+                    // Force copy to clipboard
+                    try {
+                        await navigator.clipboard.writeText(data.checkoutUrl);
+                        alert(`Link generado y copiado: ${data.checkoutUrl}`);
+                    } catch (clipErr) {
+                        alert(`Link generado: ${data.checkoutUrl}`);
+                    }
 
-                setShowPaymentModal(null);
-                fetchAll();
+                    setShowPaymentModal(null);
+                    fetchAll();
+                }
             } else {
                 setPaymentError(data.error || 'Error desconocido al generar el link.');
             }
         } catch (err: any) {
             console.error(err);
             if (err.name === 'AbortError') {
-                setPaymentError('Tiempo de espera agotado. El servicio de pagos no responde.');
+                setPaymentError('Tiempo de espera agotado. El servicio de pagos está tardando demasiado.');
             } else {
                 setPaymentError(err.message || 'Error al conectar con el servicio de pagos.');
             }
@@ -374,10 +392,26 @@ export default function ReservasPage() {
         }
     }
 
+    async function saveManualPaymentLink(url: string) {
+        if (!showPaymentModal) return;
+        const { error } = await supabase.from('reservations').update({
+            payment_url: url
+        }).eq('id', showPaymentModal.id);
+
+        if (error) {
+            alert("Error al guardar link: " + error.message);
+        } else {
+            await logAudit(showPaymentModal.id, 'updated', {
+                field_changed: 'payment_link_manual',
+                new_value: 'Link manual agregado'
+            });
+            setShowPaymentModal(null);
+            fetchAll();
+        }
+    }
+
     function handlePrint(res: Reservation) {
-        // Need to fetch full details including passengers/meals if not already loaded
-        // For now, we assume expanded view has loaded them or we fetch on demand?
-        // Let's just fetch fresh data to be safe
+        // ... (existing logic)
         supabase
             .from('reservations')
             .select(`
@@ -486,12 +520,6 @@ export default function ReservasPage() {
             });
         }
     }
-    // ... (skip other handlers) ...
-
-    // RENDER SECTION - Expanded Row Content
-    // This needs to be inside the render block, but I am replacing the chunk causing issues.
-    // Let's target the toggleExpanded function specifically first to fix the logic bug.
-
 
     async function addPassenger(resId: number) {
         if (!passengerForm.full_name.trim()) return;
@@ -529,8 +557,6 @@ export default function ReservasPage() {
             setPassengers((paxRes as any[]) || []);
         }
 
-        // We use unified log for main reservation, but here we can add a custom log if needed, though updateReservation logic is cleaner for main updates.
-        // For now, let's just log this specific action manually as it's a sub-resource
         supabase.from('reservation_audit_log').insert([{
             reservation_id: resId,
             agent_id: agent!.id,
@@ -597,21 +623,11 @@ export default function ReservasPage() {
     function handleTourChange(tourId: number) {
         const tour = toursList.find(t => t.id === tourId);
         if (tour) {
-            // Auto-populate meal configuration based on tour
             const defaultMenu = tour.meals?.map(m => ({ type: m, options: [] })) || [];
 
             setForm(prev => {
-                // Only update price if NOT manual override
-                // Auto-calc: Tour Price + Addons
                 const addonsTotal = prev.selected_addons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
                 const newPrice = prev.price_manual ? prev.total_amount : (tour.price * prev.pax_count) + addonsTotal;
-                // Wait, previous logic was just tour.price (which is per person? or total base?).
-                // Tours have base price, some per person.
-                // EXISTING ABSTRACTION: `tour.price` is just a number. `total_amount` is usually auto-set to `tour.price`.
-                // If tour is per-person, it should be `tour.price * pax`. Current logic in `handleTourChange` was `total_amount: tour.price`.
-                // Let's stick to existing logic for base, but ADD addons total.
-                // Actually, if I look at `handleTourChange` original: `total_amount: tour.price`.
-                // I will update it to: `total_amount: prev.price_manual ? prev.total_amount : tour.price + addonsTotal`.
 
                 return {
                     ...prev,
@@ -647,9 +663,8 @@ export default function ReservasPage() {
             price_manual: res.price_manual || false
         });
 
-        // Also set menu config state
         setMenuConfig(res.meal_options?.available_meals || toursList.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || []);
-        setQuickMenu(res.meal_options?.available_meals || []); // For valid existing logic
+        setQuickMenu(res.meal_options?.available_meals || []);
 
         setEditingId(res.id);
         setShowForm(true);
@@ -701,291 +716,312 @@ export default function ReservasPage() {
             </div>
 
             {/* Payment Modal */}
-            {showPaymentModal && (
-                <div className="bo-modal-overlay">
-                    <div className="bo-modal bo-modal--sm">
-                        <div className="bo-modal-header">
-                            <h3>Generar Link de Pago</h3>
-                            <button className="bo-modal-close" onClick={() => setShowPaymentModal(null)}>✕</button>
-                        </div>
-                        <div className="bo-modal-body">
-                            <p>Tour: <strong>{showPaymentModal.tour_name}</strong></p>
-                            <p>Total reserva: ${showPaymentModal.total_amount}</p>
-                            <div className="bo-form-group">
-                                <label className="bo-label">Monto a cobrar ahora ($USD)</label>
-                                <input
-                                    className="bo-input"
-                                    type="number"
-                                    value={paymentAmount}
-                                    onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                                />
-                                <p className="bo-hint">Sugerido: 50% anticipo (${(showPaymentModal.total_amount / 2).toFixed(2)})</p>
+            {
+                showPaymentModal && (
+                    <div className="bo-modal-overlay">
+                        <div className="bo-modal bo-modal--sm">
+                            <div className="bo-modal-header">
+                                <h3>Generar Link de Pago</h3>
+                                <button className="bo-modal-close" onClick={() => setShowPaymentModal(null)}>✕</button>
                             </div>
-
-                            {paymentError && (
-                                <div className="bo-alert bo-alert--error mb-4" style={{ color: 'red', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                                    {paymentError}
+                            <div className="bo-modal-body">
+                                <p className="mb-2">Tour: <strong>{showPaymentModal.tour_name}</strong></p>
+                                <p className="mb-4">Total reserva: ${showPaymentModal.total_amount}</p>
+                                <div className="bo-form-group">
+                                    <label className="bo-label">Monto a cobrar ahora ($USD)</label>
+                                    <input
+                                        className="bo-input"
+                                        type="number"
+                                        value={paymentAmount}
+                                        onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                                    />
+                                    <p className="bo-hint">Sugerido: 50% anticipo (${(showPaymentModal.total_amount / 2).toFixed(2)})</p>
                                 </div>
-                            )}
 
-                            <button
-                                className="bo-btn bo-btn--primary bo-btn--block"
-                                onClick={generatePaymentLink}
-                                disabled={paymentLoading}
-                            >
-                                {paymentLoading ? 'Generando...' : 'Crear Link (Recurrente)'}
-                            </button>
+                                {paymentError && (
+                                    <div className="bo-alert bo-alert--error mb-4" style={{ color: 'red', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                        {paymentError}
+                                    </div>
+                                )}
+
+                                <div className="flex flex-col gap-2 mt-4">
+                                    <button
+                                        className="bo-btn bo-btn--primary bo-btn--block"
+                                        onClick={generatePaymentLink}
+                                        disabled={paymentLoading}
+                                    >
+                                        {paymentLoading ? 'Generando...' : 'Crear Link (Recurrente)'}
+                                    </button>
+
+                                    <div className="text-center text-xs text-gray-400 my-2">- O -</div>
+
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Ingresar Link Manualmente</label>
+                                        <input
+                                            className="bo-input bo-input--sm"
+                                            placeholder="https://..."
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    saveManualPaymentLink((e.target as HTMLInputElement).value);
+                                                }
+                                            }}
+                                        />
+                                        <p className="bo-hint">Presiona Enter para guardar</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Reservation Form Modal */}
-            {showForm && (
-                <div className="bo-modal-overlay" onClick={resetForm}>
-                    <div className="bo-modal" onClick={e => e.stopPropagation()}>
-                        <div className="bo-modal-header">
-                            <h3>{editingId ? 'Editar Reserva' : 'Nueva Reserva'}</h3>
-                            <button className="bo-modal-close" onClick={resetForm}>✕</button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="bo-modal-body">
-                            <div className="bo-form-grid">
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Tour</label>
-                                    <select className="bo-input" value={form.tour_id} onChange={e => handleTourChange(Number(e.target.value))}>
-                                        <option value={0}>Seleccionar Tour...</option>
-                                        {toursList.map(t => <option key={t.id} value={t.id}>{t.name} — ${t.price}</option>)}
-                                    </select>
-                                </div>
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Estado</label>
-                                    <select className="bo-input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })}>
-                                        {Object.entries(STATUS_CONFIG).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
-                                    </select>
-                                </div>
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Fecha Inicio</label>
-                                    <input className="bo-input" type="date" value={form.tour_date} onChange={e => setForm({ ...form, tour_date: e.target.value })} required />
-                                </div>
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Fecha Fin (opcional)</label>
-                                    <input className="bo-input" type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
-                                </div>
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Hora</label>
-                                    <input className="bo-input" type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} />
-                                </div>
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Pax</label>
-                                    <input className="bo-input" type="number" min="1" value={form.pax_count} onChange={e => setForm({ ...form, pax_count: Number(e.target.value) })} />
-                                </div>
-                                <div className="bo-form-group">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="bo-label">Precio Total ($)</label>
-                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer select-none text-gray-500 hover:text-blue-600">
+            {
+                showForm && (
+                    <div className="bo-modal-overlay" onClick={resetForm}>
+                        <div className="bo-modal" onClick={e => e.stopPropagation()}>
+                            <div className="bo-modal-header">
+                                <h3>{editingId ? 'Editar Reserva' : 'Nueva Reserva'}</h3>
+                                <button className="bo-modal-close" onClick={resetForm}>✕</button>
+                            </div>
+                            <form onSubmit={handleSubmit} className="bo-modal-body">
+                                <div className="bo-form-grid">
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Tour</label>
+                                        <select className="bo-input" value={form.tour_id} onChange={e => handleTourChange(Number(e.target.value))}>
+                                            <option value={0}>Seleccionar Tour...</option>
+                                            {toursList.map(t => <option key={t.id} value={t.id}>{t.name} — ${t.price}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Estado</label>
+                                        <select className="bo-input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })}>
+                                            {Object.entries(STATUS_CONFIG).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Fecha Inicio</label>
+                                        <input className="bo-input" type="date" value={form.tour_date} onChange={e => setForm({ ...form, tour_date: e.target.value })} required />
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Fecha Fin (opcional)</label>
+                                        <input className="bo-input" type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Hora</label>
+                                        <input className="bo-input" type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} />
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Pax</label>
+                                        <input className="bo-input" type="number" min="1" value={form.pax_count} onChange={e => setForm({ ...form, pax_count: Number(e.target.value) })} />
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="bo-label">Precio Total ($)</label>
+                                            <label className="text-[10px] flex items-center gap-1 cursor-pointer select-none text-gray-500 hover:text-blue-600">
+                                                <input
+                                                    type="checkbox"
+                                                    className="accent-blue-600"
+                                                    checked={form.price_manual}
+                                                    onChange={e => setForm({ ...form, price_manual: e.target.checked })}
+                                                />
+                                                Manual
+                                            </label>
+                                        </div>
+                                        <input
+                                            className={`bo-input ${form.price_manual ? 'border-blue-500 bg-blue-50/10' : 'bg-gray-50 text-gray-500'}`}
+                                            type="number"
+                                            value={form.total_amount}
+                                            readOnly={!form.price_manual}
+                                            onChange={e => setForm({ ...form, total_amount: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div className="bo-form-group col-span-2">
+                                        <label className="bo-label mb-2 block">Opciones de Comida</label>
+                                        <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
                                             <input
                                                 type="checkbox"
-                                                className="accent-blue-600"
-                                                checked={form.price_manual}
-                                                onChange={e => setForm({ ...form, price_manual: e.target.checked })}
+                                                className="w-4 h-4 accent-blue-600"
+                                                checked={form.meal_per_group}
+                                                onChange={e => setForm({ ...form, meal_per_group: e.target.checked })}
                                             />
-                                            Manual
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-900">Comida por Grupo (ej. 1 Botella para todos)</span>
+                                                <span className="text-xs text-gray-500">Si se activa, no se pedirá selección individual de comida a los invitados.</span>
+                                            </div>
                                         </label>
                                     </div>
-                                    <input
-                                        className={`bo-input ${form.price_manual ? 'border-blue-500 bg-blue-50/10' : 'bg-gray-50 text-gray-500'}`}
-                                        type="number"
-                                        value={form.total_amount}
-                                        readOnly={!form.price_manual}
-                                        onChange={e => setForm({ ...form, total_amount: Number(e.target.value) })}
-                                    />
-                                </div>
-                                <div className="bo-form-group col-span-2">
-                                    <label className="bo-label mb-2 block">Opciones de Comida</label>
-                                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
-                                        <input
-                                            type="checkbox"
-                                            className="w-4 h-4 accent-blue-600"
-                                            checked={form.meal_per_group}
-                                            onChange={e => setForm({ ...form, meal_per_group: e.target.checked })}
-                                        />
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-900">Comida por Grupo (ej. 1 Botella para todos)</span>
-                                            <span className="text-xs text-gray-500">Si se activa, no se pedirá selección individual de comida a los invitados.</span>
-                                        </div>
-                                    </label>
-                                </div>
-                                <div className="bo-form-group col-span-2">
-                                    <label className="bo-label mb-2 block">Add-ons y Extras</label>
-                                    <div className="space-y-3">
-                                        {/* Selected Add-ons List */}
-                                        {form.selected_addons.map((addon, idx) => (
-                                            <div key={idx} className="flex gap-2 items-center p-2 bg-blue-50/50 rounded-lg border border-blue-100">
-                                                <input
-                                                    className="bo-input h-8 text-xs font-bold"
-                                                    value={addon.label}
-                                                    onChange={e => {
-                                                        const newAddons = [...form.selected_addons];
-                                                        newAddons[idx].label = e.target.value;
-                                                        setForm({ ...form, selected_addons: newAddons });
-                                                    }}
-                                                    placeholder="Nombre del servicio"
-                                                />
-                                                <div className="relative w-24">
-                                                    <span className="absolute left-2 top-1.5 text-xs text-gray-500">$</span>
+                                    <div className="bo-form-group col-span-2">
+                                        <label className="bo-label mb-2 block">Add-ons y Extras</label>
+                                        <div className="space-y-3">
+                                            {/* Selected Add-ons List */}
+                                            {form.selected_addons.map((addon, idx) => (
+                                                <div key={idx} className="flex gap-2 items-center p-2 bg-blue-50/50 rounded-lg border border-blue-100">
                                                     <input
-                                                        type="number"
-                                                        className="bo-input h-8 pl-5 text-xs font-bold text-right"
-                                                        value={addon.price}
+                                                        className="bo-input h-8 text-xs font-bold"
+                                                        value={addon.label}
                                                         onChange={e => {
-                                                            const val = Number(e.target.value);
                                                             const newAddons = [...form.selected_addons];
-                                                            newAddons[idx].price = val;
+                                                            newAddons[idx].label = e.target.value;
+                                                            setForm({ ...form, selected_addons: newAddons });
+                                                        }}
+                                                        placeholder="Nombre del servicio"
+                                                    />
+                                                    <div className="relative w-24">
+                                                        <span className="absolute left-2 top-1.5 text-xs text-gray-500">$</span>
+                                                        <input
+                                                            type="number"
+                                                            className="bo-input h-8 pl-5 text-xs font-bold text-right"
+                                                            value={addon.price}
+                                                            onChange={e => {
+                                                                const val = Number(e.target.value);
+                                                                const newAddons = [...form.selected_addons];
+                                                                newAddons[idx].price = val;
 
-                                                            // Auto-update total if not manual
-                                                            // We need to calculate diff or just recalc everything.
-                                                            // Recalc is safer.
-                                                            // Base Tour Price? We need to know it.
-                                                            // form.total_amount currently holds the total.
-                                                            // If we change addon price, we should update total IF !price_manual.
-                                                            // BUT retrieving base tour price is tricky here without `tour` object scope.
-                                                            // Strategy: Update state, and use `useEffect` or similar to update total?
-                                                            // Or just update total here incrementally.
-                                                            const oldPrice = Number(newAddons[idx].price) || 0;
-                                                            // Wait, I just assigned `val` to `newAddons[idx].price`.
-                                                            // The `addon` object in map is a reference? No, I copied array but valid obj refs?
-                                                            // `const newAddons = [...form.selected_addons]` copies array, but objects are same refs.
-                                                            // So `newAddons[idx].price = val` modifies original if not careful?
-                                                            // Actually yes, shallow copy of array.
-                                                            // Let's do deep copy for safety.
-                                                            const safeAddons = form.selected_addons.map((a, i) => i === idx ? { ...a, price: val } : a);
+                                                                // Auto-update total if not manual
+                                                                // We need to calculate diff or just recalc everything.
+                                                                // Recalc is safer.
+                                                                // Base Tour Price? We need to know it.
+                                                                // form.total_amount currently holds the total.
+                                                                // If we change addon price, we should update total IF !price_manual.
+                                                                // BUT retrieving base tour price is tricky here without `tour` object scope.
+                                                                // Strategy: Update state, and use `useEffect` or similar to update total?
+                                                                // Or just update total here incrementally.
+                                                                const oldPrice = Number(newAddons[idx].price) || 0;
+                                                                // Wait, I just assigned `val` to `newAddons[idx].price`.
+                                                                // The `addon` object in map is a reference? No, I copied array but valid obj refs?
+                                                                // `const newAddons = [...form.selected_addons]` copies array, but objects are same refs.
+                                                                // So `newAddons[idx].price = val` modifies original if not careful?
+                                                                // Actually yes, shallow copy of array.
+                                                                // Let's do deep copy for safety.
+                                                                const safeAddons = form.selected_addons.map((a, i) => i === idx ? { ...a, price: val } : a);
 
+                                                                setForm(prev => {
+                                                                    if (prev.price_manual) return { ...prev, selected_addons: safeAddons };
+
+                                                                    // Recalculate Total
+                                                                    // Base = Total - OldAddonsSum
+                                                                    const oldAddonsSum = prev.selected_addons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+                                                                    const basePrice = prev.total_amount - oldAddonsSum;
+                                                                    const newAddonsSum = safeAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+
+                                                                    return {
+                                                                        ...prev,
+                                                                        selected_addons: safeAddons,
+                                                                        total_amount: basePrice + newAddonsSum
+                                                                    };
+                                                                });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newAddons = form.selected_addons.filter((_, i) => i !== idx);
                                                             setForm(prev => {
-                                                                if (prev.price_manual) return { ...prev, selected_addons: safeAddons };
-
-                                                                // Recalculate Total
-                                                                // Base = Total - OldAddonsSum
-                                                                const oldAddonsSum = prev.selected_addons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
-                                                                const basePrice = prev.total_amount - oldAddonsSum;
-                                                                const newAddonsSum = safeAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
-
-                                                                return {
-                                                                    ...prev,
-                                                                    selected_addons: safeAddons,
-                                                                    total_amount: basePrice + newAddonsSum
-                                                                };
+                                                                if (prev.price_manual) return { ...prev, selected_addons: newAddons };
+                                                                const removedPrice = Number(addon.price) || 0;
+                                                                return { ...prev, selected_addons: newAddons, total_amount: prev.total_amount - removedPrice };
                                                             });
                                                         }}
-                                                    />
+                                                        className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                    >
+                                                        ✕
+                                                    </button>
                                                 </div>
+                                            ))}
+
+                                            {/* Master List & Custom Add */}
+                                            <div className="flex gap-2">
+                                                <select
+                                                    className="bo-input text-xs"
+                                                    onChange={e => {
+                                                        if (!e.target.value) return;
+                                                        const [label, priceStr] = e.target.value.split('|');
+                                                        // Parse price range simple average or min? "80-120" -> 100?
+                                                        // Or just 0 and let user edit.
+                                                        // Let's try to parse first number.
+                                                        const price = parseInt(priceStr) || 0;
+                                                        const newAddon = { label, price };
+
+                                                        setForm(prev => {
+                                                            const newAddons = [...prev.selected_addons, newAddon];
+                                                            if (prev.price_manual) return { ...prev, selected_addons: newAddons };
+                                                            return { ...prev, selected_addons: newAddons, total_amount: prev.total_amount + price };
+                                                        });
+                                                        e.target.value = ''; // reset
+                                                    }}
+                                                >
+                                                    <option value="">+ Agregar del Catálogo...</option>
+                                                    {/* Unique Addons from all tours */}
+                                                    {Array.from(new Set(toursList.flatMap(t => t.addons || []).map(a => JSON.stringify({ label: a.label, price: a.price }))))
+                                                        .map((s: string) => JSON.parse(s))
+                                                        .map((a, i) => (
+                                                            <option key={i} value={`${a.label}|${a.price}`}>
+                                                                {a.label} ({a.price})
+                                                            </option>
+                                                        ))}
+                                                </select>
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        const newAddons = form.selected_addons.filter((_, i) => i !== idx);
-                                                        setForm(prev => {
-                                                            if (prev.price_manual) return { ...prev, selected_addons: newAddons };
-                                                            const removedPrice = Number(addon.price) || 0;
-                                                            return { ...prev, selected_addons: newAddons, total_amount: prev.total_amount - removedPrice };
-                                                        });
+                                                        const newAddon = { label: 'Nuevo Extra', price: 0 };
+                                                        setForm(prev => ({ ...prev, selected_addons: [...prev.selected_addons, newAddon] }));
                                                     }}
-                                                    className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg whitespace-nowrap"
                                                 >
-                                                    ✕
+                                                    + Custom
                                                 </button>
                                             </div>
-                                        ))}
-
-                                        {/* Master List & Custom Add */}
-                                        <div className="flex gap-2">
-                                            <select
-                                                className="bo-input text-xs"
-                                                onChange={e => {
-                                                    if (!e.target.value) return;
-                                                    const [label, priceStr] = e.target.value.split('|');
-                                                    // Parse price range simple average or min? "80-120" -> 100?
-                                                    // Or just 0 and let user edit.
-                                                    // Let's try to parse first number.
-                                                    const price = parseInt(priceStr) || 0;
-                                                    const newAddon = { label, price };
-
-                                                    setForm(prev => {
-                                                        const newAddons = [...prev.selected_addons, newAddon];
-                                                        if (prev.price_manual) return { ...prev, selected_addons: newAddons };
-                                                        return { ...prev, selected_addons: newAddons, total_amount: prev.total_amount + price };
-                                                    });
-                                                    e.target.value = ''; // reset
-                                                }}
-                                            >
-                                                <option value="">+ Agregar del Catálogo...</option>
-                                                {/* Unique Addons from all tours */}
-                                                {Array.from(new Set(toursList.flatMap(t => t.addons || []).map(a => JSON.stringify({ label: a.label, price: a.price }))))
-                                                    .map((s: string) => JSON.parse(s))
-                                                    .map((a, i) => (
-                                                        <option key={i} value={`${a.label}|${a.price}`}>
-                                                            {a.label} ({a.price})
-                                                        </option>
-                                                    ))}
-                                            </select>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newAddon = { label: 'Nuevo Extra', price: 0 };
-                                                    setForm(prev => ({ ...prev, selected_addons: [...prev.selected_addons, newAddon] }));
-                                                }}
-                                                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg whitespace-nowrap"
-                                            >
-                                                + Custom
-                                            </button>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Contacto Emergencia</label>
-                                    <input
-                                        className="bo-input"
-                                        placeholder="Nombre"
-                                        value={form.emergency_contact_name}
-                                        onChange={e => setForm({ ...form, emergency_contact_name: e.target.value })}
-                                    />
-                                    <input
-                                        className="bo-input mt-1"
-                                        placeholder="Teléfono"
-                                        value={form.emergency_contact_phone}
-                                        onChange={e => setForm({ ...form, emergency_contact_phone: e.target.value })}
-                                    />
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Contacto Emergencia</label>
+                                        <input
+                                            className="bo-input"
+                                            placeholder="Nombre"
+                                            value={form.emergency_contact_name}
+                                            onChange={e => setForm({ ...form, emergency_contact_name: e.target.value })}
+                                        />
+                                        <input
+                                            className="bo-input mt-1"
+                                            placeholder="Teléfono"
+                                            value={form.emergency_contact_phone}
+                                            onChange={e => setForm({ ...form, emergency_contact_phone: e.target.value })}
+                                        />
+                                    </div>
+                                    {/* Staff assignment fields */}
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Lancha</label>
+                                        <select className="bo-input" value={form.boat_id} onChange={e => setForm({ ...form, boat_id: e.target.value })}>
+                                            <option value="">Sin asignar</option>
+                                            {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Capitán</label>
+                                        <select className="bo-input" value={form.driver_id} onChange={e => setForm({ ...form, driver_id: e.target.value })}>
+                                            <option value="">Sin asignar</option>
+                                            {staffList.filter(s => s.role === 'lanchero').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="bo-form-group">
+                                        <label className="bo-label">Guía</label>
+                                        <select className="bo-input" value={form.guide_id} onChange={e => setForm({ ...form, guide_id: e.target.value })}>
+                                            <option value="">Sin asignar</option>
+                                            {staffList.filter(s => s.role === 'guia').map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
-                                {/* Staff assignment fields */}
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Lancha</label>
-                                    <select className="bo-input" value={form.boat_id} onChange={e => setForm({ ...form, boat_id: e.target.value })}>
-                                        <option value="">Sin asignar</option>
-                                        {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                    </select>
+                                <div className="bo-modal-actions">
+                                    <button type="button" className="bo-btn bo-btn--ghost" onClick={resetForm}>Cancelar</button>
+                                    <button type="submit" className="bo-btn bo-btn--primary">Guardar</button>
                                 </div>
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Capitán</label>
-                                    <select className="bo-input" value={form.driver_id} onChange={e => setForm({ ...form, driver_id: e.target.value })}>
-                                        <option value="">Sin asignar</option>
-                                        {staffList.filter(s => s.role === 'lanchero').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="bo-form-group">
-                                    <label className="bo-label">Guía</label>
-                                    <select className="bo-input" value={form.guide_id} onChange={e => setForm({ ...form, guide_id: e.target.value })}>
-                                        <option value="">Sin asignar</option>
-                                        {staffList.filter(s => s.role === 'guia').map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="bo-modal-actions">
-                                <button type="button" className="bo-btn bo-btn--ghost" onClick={resetForm}>Cancelar</button>
-                                <button type="submit" className="bo-btn bo-btn--primary">Guardar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div >
-            )
+                            </form>
+                        </div>
+                    </div >
+                )
             }
 
             {/* List */}
