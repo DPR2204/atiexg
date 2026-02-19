@@ -152,6 +152,7 @@ export default function DashboardPage() {
             {/* Stats cards */}
             <div className="bo-stats-grid">
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon">⛵</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Tours Mes</span>
                         <span className="bo-stat-value">{stats.total}</span>
@@ -161,18 +162,21 @@ export default function DashboardPage() {
                     </div>
                 </div>
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon bo-stat-icon--warning">⏳</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Pendientes</span>
                         <span className="bo-stat-value">{stats.pending}</span>
                     </div>
                 </div>
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon bo-stat-icon--success">✓</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Confirmados</span>
                         <span className="bo-stat-value">{stats.confirmed}</span>
                     </div>
                 </div>
                 <div className="bo-stat-card">
+                    <div className="bo-stat-icon bo-stat-icon--info">$</div>
                     <div className="bo-stat-info">
                         <span className="bo-stat-label">Ingresos Mes</span>
                         <span className="bo-stat-value">${stats.revenue.toLocaleString()}</span>
@@ -186,12 +190,16 @@ export default function DashboardPage() {
             <div className="bo-dashboard-layout">
                 <div className="bo-dashboard-main">
                     {/* Today's tours */}
-                    <section className="bo-section">
+                    <div className="bo-section-card">
                         <div className="bo-section-header">
-                            <h3 className="bo-section-title">Tours de Hoy <span className="bo-count">{todayReservations.length}</span></h3>
+                            <h3 className="bo-section-title">☀️ Tours de Hoy <span className="bo-count">{todayReservations.length}</span></h3>
                         </div>
                         {todayReservations.length === 0 ? (
-                            <div className="bo-empty-state"><p>No hay tours programados para hoy</p></div>
+                            <div className="bo-empty-state">
+                                <span className="bo-empty-state-icon">📋</span>
+                                <p>No hay tours programados para hoy</p>
+                                <span className="bo-empty-state-hint">Los tours aparecerán aquí cuando se agenden</span>
+                            </div>
                         ) : (
                             <div className="bo-table-container">
                                 <table className="bo-table">
@@ -210,7 +218,7 @@ export default function DashboardPage() {
                                                 <td className="bo-cell-bold">{res.tour_name}</td>
                                                 <td>{res.start_time?.slice(0, 5) || '—'}</td>
                                                 <td>{res.pax_count}</td>
-                                                <td style={{ color: !res.boat_id ? '#d44020' : 'inherit' }}>
+                                                <td style={{ color: !res.boat_id ? 'var(--bo-danger)' : 'inherit' }}>
                                                     {(res.boat as any)?.name || '⚠ Sin Asignar'}
                                                 </td>
                                                 <td>
@@ -224,64 +232,87 @@ export default function DashboardPage() {
                                 </table>
                             </div>
                         )}
-                    </section>
+                    </div>
                 </div>
 
                 <div className="bo-dashboard-side">
                     {/* Top Tours */}
-                    <section className="bo-section">
+                    <div className="bo-section-card">
                         <div className="bo-section-header">
-                            <h3 className="bo-section-title">Ranking de Tours (Mes)</h3>
+                            <h3 className="bo-section-title">🏆 Ranking Tours</h3>
                         </div>
-                        <div className="bo-top-tours">
-                            {topTours.map((t, i) => (
-                                <div key={t.name} className="bo-top-tour-item">
-                                    <span className="bo-top-tour-rank">#{i + 1}</span>
-                                    <span className="bo-top-tour-name">{t.name}</span>
-                                    <span className="bo-top-tour-count">{t.count}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                        {topTours.length === 0 ? (
+                            <div className="bo-empty-state">
+                                <span className="bo-empty-state-icon">📊</span>
+                                <p>Sin datos este mes</p>
+                            </div>
+                        ) : (
+                            <div className="bo-top-tours">
+                                {topTours.map((t, i) => (
+                                    <div key={t.name} className="bo-top-tour-item">
+                                        <span className="bo-top-tour-rank">#{i + 1}</span>
+                                        <span className="bo-top-tour-name">{t.name}</span>
+                                        <span className="bo-top-tour-count">{t.count}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Agent Ranking */}
-                    <section className="bo-section">
+                    <div className="bo-section-card">
                         <div className="bo-section-header">
-                            <h3 className="bo-section-title">Ranking Agentes (Venta Total)</h3>
+                            <h3 className="bo-section-title">👤 Ranking Agentes</h3>
                         </div>
-                        <div className="bo-ranking-list">
-                            {agentRanking.length === 0 ? <p className="text-sm text-muted">Sin ventas registradas</p> : agentRanking.map((a, i) => (
-                                <div key={a.name} className="bo-ranking-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--bo-border)' }}>
-                                    <div>
-                                        <span className="font-bold mr-2">#{i + 1}</span>
-                                        <span>{a.name}</span>
+                        {agentRanking.length === 0 ? (
+                            <div className="bo-empty-state">
+                                <span className="bo-empty-state-icon">📈</span>
+                                <p>Sin ventas registradas</p>
+                            </div>
+                        ) : (
+                            <div className="bo-ranking-list">
+                                {agentRanking.map((a, i) => (
+                                    <div key={a.name} className="bo-ranking-item">
+                                        <div className="bo-ranking-item-left">
+                                            <span className="bo-ranking-item-rank">#{i + 1}</span>
+                                            <span className="bo-ranking-item-name">{a.name}</span>
+                                        </div>
+                                        <div className="bo-ranking-item-right">
+                                            <div className="bo-ranking-item-amount">${a.amount.toLocaleString()}</div>
+                                            <div className="bo-ranking-item-meta">{a.count} ventas</div>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="font-bold">${a.amount.toLocaleString()}</div>
-                                        <div className="text-xs text-muted">{a.count} ventas</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Upcoming tours (Compact) */}
-                    <section className="bo-section">
-                        <h3 className="bo-section-title">📆 Próximos</h3>
-                        <div className="bo-mini-list">
-                            {upcomingReservations.map((res) => (
-                                <div key={res.id} className="bo-mini-item">
-                                    <div className="bo-mini-date">
-                                        {new Date(res.tour_date + 'T12:00:00').getDate()}
-                                    </div>
-                                    <div className="bo-mini-content">
-                                        <div className="bo-mini-title">{res.tour_name}</div>
-                                        <div className="bo-mini-meta">{res.pax_count} pax • {(res.agent as any)?.name}</div>
-                                    </div>
-                                </div>
-                            ))}
+                    <div className="bo-section-card">
+                        <div className="bo-section-header">
+                            <h3 className="bo-section-title">📆 Próximos</h3>
                         </div>
-                    </section>
+                        {upcomingReservations.length === 0 ? (
+                            <div className="bo-empty-state">
+                                <span className="bo-empty-state-icon">🗓️</span>
+                                <p>Sin tours próximos</p>
+                            </div>
+                        ) : (
+                            <div className="bo-mini-list">
+                                {upcomingReservations.map((res) => (
+                                    <div key={res.id} className="bo-mini-item">
+                                        <div className="bo-mini-date">
+                                            {new Date(res.tour_date + 'T12:00:00').getDate()}
+                                        </div>
+                                        <div className="bo-mini-content">
+                                            <div className="bo-mini-title">{res.tour_name}</div>
+                                            <div className="bo-mini-meta">{res.pax_count} pax • {(res.agent as any)?.name}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
