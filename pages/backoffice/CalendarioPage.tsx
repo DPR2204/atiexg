@@ -191,13 +191,16 @@ export default function CalendarioPage() {
     return (
         <DndContext onDragStart={(e) => setActiveDragId(e.active.id as number)} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
             <div className="bo-calendario">
-                <div className="bo-page-header">
-                    <h2 className="bo-page-title">Calendario</h2>
+                <header className="bo-header bo-flex bo-justify-between bo-align-center">
+                    <div>
+                        <h2 className="bo-title">Calendario</h2>
+                        <p className="bo-subtitle">Visualización y planificación de tours</p>
+                    </div>
                     <div className="bo-view-toggle">
                         <button className={`bo-btn ${viewMode === 'month' ? 'bo-btn--primary' : 'bo-btn--ghost'}`} onClick={() => setViewMode('month')}>Mes</button>
-                        <button className={`bo-btn ${viewMode === 'week' ? 'bo-btn--primary' : 'bo-btn--ghost'}`} onClick={() => setViewMode('week')}>Semana (Horas)</button>
+                        <button className={`bo-btn ${viewMode === 'week' ? 'bo-btn--primary' : 'bo-btn--ghost'}`} onClick={() => setViewMode('week')}>Semana</button>
                     </div>
-                </div>
+                </header>
 
                 <div className="bo-cal-nav">
                     <button className="bo-btn bo-btn--ghost" onClick={() => {
@@ -281,25 +284,30 @@ export default function CalendarioPage() {
                                     {new Date(selectedDay + 'T12:00:00').toLocaleDateString('es-GT', { weekday: 'long', day: 'numeric', month: 'long' })}
                                 </h4>
                                 {reservations.filter(r => r.tour_date === selectedDay).length === 0 ? (
-                                    <div className="bo-empty-state" style={{ padding: '1rem 0' }}>
-                                        <p>Sin tours este día</p>
+                                    <div className="bo-cal-detail-list">
+                                        <div className="bo-empty-state">
+                                            <span className="bo-empty-state-icon">📅</span>
+                                            <p>Sin tours este día</p>
+                                        </div>
                                     </div>
                                 ) : (
-                                    reservations.filter(r => r.tour_date === selectedDay).map(res => (
-                                        <div key={res.id} className="bo-cal-detail-card">
-                                            <div className="bo-cal-detail-time">{res.start_time?.slice(0, 5) || '—'}</div>
-                                            <div className="bo-cal-detail-info">
-                                                <div className="bo-cal-detail-tour">{res.tour_name}</div>
-                                                <div className="bo-cal-detail-meta">{res.pax_count} pax • {(res.boat as any)?.name || 'Sin lancha'}</div>
+                                    <div className="bo-cal-detail-list">
+                                        {reservations.filter(r => r.tour_date === selectedDay).map(res => (
+                                            <div key={res.id} className="bo-cal-detail-card">
+                                                <div className="bo-cal-detail-time">{res.start_time?.slice(0, 5) || '—'}</div>
+                                                <div className="bo-cal-detail-info">
+                                                    <div className="bo-cal-detail-tour">{res.tour_name}</div>
+                                                    <div className="bo-cal-detail-meta">{res.pax_count} pax • {(res.boat as any)?.name || 'Sin lancha'}</div>
+                                                </div>
+                                                <span
+                                                    className="bo-status-badge"
+                                                    style={{ backgroundColor: STATUS_CONFIG[res.status]?.bg, color: STATUS_CONFIG[res.status]?.color }}
+                                                >
+                                                    {STATUS_CONFIG[res.status]?.label}
+                                                </span>
                                             </div>
-                                            <span
-                                                className="bo-status-badge"
-                                                style={{ backgroundColor: STATUS_CONFIG[res.status]?.bg, color: STATUS_CONFIG[res.status]?.color }}
-                                            >
-                                                {STATUS_CONFIG[res.status]?.label}
-                                            </span>
-                                        </div>
-                                    ))
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         )}

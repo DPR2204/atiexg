@@ -86,9 +86,9 @@ export default function RecursosPage() {
             </header>
 
             {/* Boats */}
-            <section className="bo-section">
+            <div className="bo-section-card">
                 <div className="bo-section-header">
-                    <h3 className="bo-section-title">Flota de Lanchas <span className="bo-count">{boats.length}</span></h3>
+                    <h3 className="bo-section-title">🚤 Flota de Lanchas <span className="bo-count">{boats.length}</span></h3>
                     {isAdmin && (
                         <button className="bo-btn bo-btn--primary" onClick={() => { setBoatForm({ name: '', capacity: 10, status: 'active', notes: '' }); setEditingBoat(null); setShowBoatForm(true); }}>
                             + Nueva Lancha
@@ -96,131 +96,161 @@ export default function RecursosPage() {
                     )}
                 </div>
 
-                <div className="bo-table-container">
-                    <table className="bo-table">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Capacidad</th>
-                                <th>Estado</th>
-                                <th className="bo-text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {boats.map(boat => (
-                                <tr key={boat.id}>
-                                    <td className="bo-cell-bold">{boat.name}</td>
-                                    <td>{boat.capacity} pax</td>
-                                    <td>
-                                        <span className={`bo-status-badge`} style={{ backgroundColor: boat.status === 'active' ? '#edf3f0' : boat.status === 'maintenance' ? '#fbf3db' : '#fbe4e4', color: boat.status === 'active' ? '#0b6e4f' : boat.status === 'maintenance' ? '#b76e00' : '#d44020' }}>
-                                            {boat.status === 'active' ? 'Activa' : boat.status === 'maintenance' ? 'Mantenimiento' : 'Inactiva'}
-                                        </span>
-                                    </td>
-                                    <td className="bo-text-right">
-                                        {isAdmin && (
-                                            <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditBoat(boat)}>Editar</button>
-                                        )}
-                                    </td>
+                {boats.length === 0 ? (
+                    <div className="bo-empty-state">
+                        <span className="bo-empty-state-icon">🚤</span>
+                        <p>No hay lanchas registradas</p>
+                    </div>
+                ) : (
+                    <div className="bo-table-container">
+                        <table className="bo-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Capacidad</th>
+                                    <th>Estado</th>
+                                    <th className="bo-text-right">Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                            </thead>
+                            <tbody>
+                                {boats.map(boat => (
+                                    <tr key={boat.id}>
+                                        <td className="bo-cell-bold">{boat.name}</td>
+                                        <td>{boat.capacity} pax</td>
+                                        <td>
+                                            <span className="bo-status-badge" style={{
+                                                backgroundColor: boat.status === 'active' ? 'var(--bo-success-bg)' : boat.status === 'maintenance' ? 'var(--bo-warning-bg)' : 'var(--bo-danger-bg)',
+                                                color: boat.status === 'active' ? 'var(--bo-success)' : boat.status === 'maintenance' ? 'var(--bo-warning)' : 'var(--bo-danger)'
+                                            }}>
+                                                {boat.status === 'active' ? 'Activa' : boat.status === 'maintenance' ? 'Mantenimiento' : 'Inactiva'}
+                                            </span>
+                                        </td>
+                                        <td className="bo-text-right">
+                                            {isAdmin && (
+                                                <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditBoat(boat)}>Editar</button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
 
-            {/* Staff - Simplified Tables */}
+            {/* Staff */}
             <div className="bo-grid bo-grid--2">
                 {/* Lancheros */}
-                <section className="bo-section">
+                <div className="bo-section-card">
                     <div className="bo-section-header">
-                        <h3 className="bo-section-title">Lancheros <span className="bo-count">{lancheros.length}</span></h3>
+                        <h3 className="bo-section-title">⚓ Lancheros <span className="bo-count">{lancheros.length}</span></h3>
                         {isAdmin && (
                             <button className="bo-btn bo-btn--secondary bo-btn--sm" onClick={() => { setStaffForm({ name: '', role: 'lanchero', phone: '', notes: '' }); setEditingStaff(null); setShowStaffForm(true); }}>
                                 + Agregar
                             </button>
                         )}
                     </div>
-                    <div className="bo-table-container">
-                        <table className="bo-table">
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Estado</th>
-                                    <th className="bo-text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {lancheros.map(member => (
-                                    <tr key={member.id}>
-                                        <td className="bo-cell-bold">{member.name}</td>
-                                        <td>
-                                            <span className={`bo-status-badge`} style={{ backgroundColor: member.active ? '#edf3f0' : '#fbe4e4', color: member.active ? '#0b6e4f' : '#d44020' }}>
-                                                {member.active ? 'Activo' : 'Inactivo'}
-                                            </span>
-                                        </td>
-                                        <td className="bo-text-right">
-                                            {isAdmin && (
-                                                <div className="bo-flex bo-gap-1 bo-justify-end">
-                                                    <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)}>Editar</button>
-                                                    <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)}>
-                                                        {member.active ? 'Baja' : 'Alta'}
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
+
+                    {lancheros.length === 0 ? (
+                        <div className="bo-empty-state">
+                            <span className="bo-empty-state-icon">⚓</span>
+                            <p>No hay lancheros registrados</p>
+                        </div>
+                    ) : (
+                        <div className="bo-table-container">
+                            <table className="bo-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Estado</th>
+                                        <th className="bo-text-right">Acciones</th>
                                     </tr>
-                                ))}
-                                {lancheros.length === 0 && <tr><td colSpan={3} className="bo-text-muted bo-text-center">No hay lancheros</td></tr>}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                                </thead>
+                                <tbody>
+                                    {lancheros.map(member => (
+                                        <tr key={member.id}>
+                                            <td className="bo-cell-bold">{member.name}</td>
+                                            <td>
+                                                <span className="bo-status-badge" style={{
+                                                    backgroundColor: member.active ? 'var(--bo-success-bg)' : 'var(--bo-danger-bg)',
+                                                    color: member.active ? 'var(--bo-success)' : 'var(--bo-danger)'
+                                                }}>
+                                                    {member.active ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                            </td>
+                                            <td className="bo-text-right">
+                                                {isAdmin && (
+                                                    <div className="bo-flex bo-gap-1 bo-justify-end">
+                                                        <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)}>Editar</button>
+                                                        <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)}>
+                                                            {member.active ? 'Baja' : 'Alta'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
 
                 {/* Guides */}
-                <section className="bo-section">
+                <div className="bo-section-card">
                     <div className="bo-section-header">
-                        <h3 className="bo-section-title">Guías <span className="bo-count">{guias.length}</span></h3>
+                        <h3 className="bo-section-title">🧭 Guías <span className="bo-count">{guias.length}</span></h3>
                         {isAdmin && (
                             <button className="bo-btn bo-btn--secondary bo-btn--sm" onClick={() => { setStaffForm({ name: '', role: 'guia', phone: '', notes: '' }); setEditingStaff(null); setShowStaffForm(true); }}>
                                 + Agregar
                             </button>
                         )}
                     </div>
-                    <div className="bo-table-container">
-                        <table className="bo-table">
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Estado</th>
-                                    <th className="bo-text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {guias.map(member => (
-                                    <tr key={member.id}>
-                                        <td className="bo-cell-bold">{member.name}</td>
-                                        <td>
-                                            <span className={`bo-status-badge`} style={{ backgroundColor: member.active ? '#edf3f0' : '#fbe4e4', color: member.active ? '#0b6e4f' : '#d44020' }}>
-                                                {member.active ? 'Activo' : 'Inactivo'}
-                                            </span>
-                                        </td>
-                                        <td className="bo-text-right">
-                                            {isAdmin && (
-                                                <div className="bo-flex bo-gap-1 bo-justify-end">
-                                                    <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)}>Editar</button>
-                                                    <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)}>
-                                                        {member.active ? 'Baja' : 'Alta'}
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
+
+                    {guias.length === 0 ? (
+                        <div className="bo-empty-state">
+                            <span className="bo-empty-state-icon">🧭</span>
+                            <p>No hay guías registrados</p>
+                        </div>
+                    ) : (
+                        <div className="bo-table-container">
+                            <table className="bo-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Estado</th>
+                                        <th className="bo-text-right">Acciones</th>
                                     </tr>
-                                ))}
-                                {guias.length === 0 && <tr><td colSpan={3} className="bo-text-muted bo-text-center">No hay guías</td></tr>}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                                </thead>
+                                <tbody>
+                                    {guias.map(member => (
+                                        <tr key={member.id}>
+                                            <td className="bo-cell-bold">{member.name}</td>
+                                            <td>
+                                                <span className="bo-status-badge" style={{
+                                                    backgroundColor: member.active ? 'var(--bo-success-bg)' : 'var(--bo-danger-bg)',
+                                                    color: member.active ? 'var(--bo-success)' : 'var(--bo-danger)'
+                                                }}>
+                                                    {member.active ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                            </td>
+                                            <td className="bo-text-right">
+                                                {isAdmin && (
+                                                    <div className="bo-flex bo-gap-1 bo-justify-end">
+                                                        <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)}>Editar</button>
+                                                        <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)}>
+                                                            {member.active ? 'Baja' : 'Alta'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Boat Form Modal */}
