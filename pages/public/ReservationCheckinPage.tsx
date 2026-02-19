@@ -5,8 +5,24 @@ import { supabase } from '../../lib/supabase';
 import {
     Loader2, User, Mail, Phone, ChevronRight, Check, Calendar, Users,
     MapPin, Clock, Info, ArrowLeft, Edit2, MessageSquare, PhoneCall,
-    Anchor, Waves, Compass, CreditCard, Sparkles, Utensils
+    Anchor, Waves, Compass, CreditCard, Sparkles, Utensils, X
 } from 'lucide-react';
+
+function formatSpanishDate(dateStr: string): string {
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return `${days[date.getDay()]} ${d} de ${months[date.getMonth()]}, ${y}`;
+}
+
+function formatTime(timeStr: string | undefined): string {
+    if (!timeStr) return '08:00 AM';
+    const [h, m] = timeStr.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
+}
 
 
 export default function ReservationCheckinPage() {
@@ -16,6 +32,7 @@ export default function ReservationCheckinPage() {
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [formError, setFormError] = useState<string | null>(null);
 
     // Form State
     const [form, setForm] = useState({
@@ -47,6 +64,7 @@ export default function ReservationCheckinPage() {
         e.preventDefault();
         if (!form.full_name) return;
         setLoading(true);
+        setFormError(null);
 
         const { data: result, error: rpcError } = await supabase.rpc('register_public_passenger', {
             p_token: token,
@@ -60,7 +78,7 @@ export default function ReservationCheckinPage() {
         });
 
         if (rpcError) {
-            alert('Error al guardar: ' + (rpcError?.message || 'Unknown'));
+            setFormError('Error al guardar: ' + (rpcError?.message || 'Intenta de nuevo'));
             setLoading(false);
             return;
         }
@@ -81,6 +99,7 @@ export default function ReservationCheckinPage() {
         });
         setSubmitted(false);
         setEditingId(null);
+        setFormError(null);
         fetchReservation();
     }
 
@@ -169,12 +188,12 @@ export default function ReservationCheckinPage() {
                     <div className="flex flex-wrap gap-4 items-center">
                         <div className="flex items-center gap-2 text-sm font-bold text-gray-500">
                             <Calendar className="w-4 h-4 text-red-500" />
-                            <span>{reservation.tour_date}</span>
+                            <span>{formatSpanishDate(reservation.tour_date)}</span>
                         </div>
                         <div className="h-4 w-[1px] bg-gray-200 hidden sm:block" />
                         <div className="flex items-center gap-2 text-sm font-bold text-gray-500">
                             <Clock className="w-4 h-4 text-red-500" />
-                            <span>{reservation.start_time?.substring(0, 5) || '08:00'} AM</span>
+                            <span>{formatTime(reservation.start_time)}</span>
                         </div>
                         {reservation.payment_url && reservation.status !== 'paid' && (
                             <>
@@ -199,12 +218,6 @@ export default function ReservationCheckinPage() {
                         <div className="space-y-1">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Agente Guía</p>
                             <p className="text-sm font-bold text-gray-900">{reservation.agent_name}</p>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Registro</p>
-                            <p className="text-sm font-bold text-gray-900">
-                                {reservation.passengers?.length || 0} <span className="text-gray-400">/</span> {reservation.pax_count} pax
-                            </p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Registro</p>
@@ -419,18 +432,32 @@ export default function ReservationCheckinPage() {
                                     <button
                                         type="button"
                                         onClick={resetForm}
+                                        aria-label="Cancelar edición"
                                         className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-colors"
                                     >
-                                        <Info className="w-5 h-5" />
+                                        <X className="w-5 h-5" />
                                     </button>
                                 )}
                             </div>
 
                             <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                                {formError && (
+                                    <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl animate-fade-in-up">
+                                        <div className="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+                                            <Info className="w-4 h-4 text-red-600" />
+                                        </div>
+                                        <p className="text-sm font-bold text-red-700 flex-1">{formError}</p>
+                                        <button type="button" onClick={() => setFormError(null)} className="text-red-400 hover:text-red-600 transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Nombre Completo *</label>
+                                        <label htmlFor="pax-name" className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Nombre Completo *</label>
                                         <input
+                                            id="pax-name"
                                             required
                                             className="w-full h-14 px-5 rounded-2xl border border-gray-200 focus:border-red-500 outline-none transition-all text-sm font-bold bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-red-500/5 placeholder:font-medium placeholder:text-gray-300"
                                             placeholder="Ej. Juan Pérez"
@@ -441,8 +468,9 @@ export default function ReservationCheckinPage() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Edad</label>
+                                            <label htmlFor="pax-age" className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Edad</label>
                                             <input
+                                                id="pax-age"
                                                 type="number"
                                                 inputMode="numeric"
                                                 className="w-full h-14 px-5 rounded-2xl border border-gray-200 focus:border-red-500 outline-none transition-all text-sm font-bold bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-red-500/5 placeholder:font-medium"
@@ -452,10 +480,11 @@ export default function ReservationCheckinPage() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">DPI / Pasaporte</label>
+                                            <label htmlFor="pax-doc" className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">DPI / Pasaporte</label>
                                             <input
+                                                id="pax-doc"
                                                 className="w-full h-14 px-5 rounded-2xl border border-gray-200 focus:border-red-500 outline-none transition-all text-sm font-bold bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-red-500/5 placeholder:font-medium"
-                                                placeholder="№ Documento"
+                                                placeholder="No. Documento"
                                                 value={form.id_document}
                                                 onChange={e => setForm({ ...form, id_document: e.target.value })}
                                             />
@@ -464,8 +493,9 @@ export default function ReservationCheckinPage() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Email</label>
+                                            <label htmlFor="pax-email" className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Email</label>
                                             <input
+                                                id="pax-email"
                                                 type="email"
                                                 className="w-full h-14 px-5 rounded-2xl border border-gray-200 focus:border-red-500 outline-none transition-all text-sm font-bold bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-red-500/5 placeholder:font-medium"
                                                 placeholder="correo@ejemplo.com"
@@ -474,8 +504,9 @@ export default function ReservationCheckinPage() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Teléfono</label>
+                                            <label htmlFor="pax-phone" className="text-[11px] font-black text-gray-800 uppercase tracking-widest ml-1">Teléfono</label>
                                             <input
+                                                id="pax-phone"
                                                 type="tel"
                                                 className="w-full h-14 px-5 rounded-2xl border border-gray-200 focus:border-red-500 outline-none transition-all text-sm font-bold bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-red-500/5 placeholder:font-medium"
                                                 placeholder="+502"
@@ -585,12 +616,43 @@ export default function ReservationCheckinPage() {
                 </section>
 
                 {/* Guest List Section */}
-                {reservation.passengers && reservation.passengers.length > 0 && (
-                    <section className="animate-fade-in-up delay-[200ms]">
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-6 flex items-center justify-between px-2">
-                            <span>Pasajeros en lista</span>
+                <section className="animate-fade-in-up delay-[200ms]">
+                    {/* Progress bar */}
+                    {reservation.pax_count > 0 && (
+                        <div className="mb-6 px-2">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Progreso de registro</span>
+                                <span className="text-xs font-black text-gray-900">
+                                    {reservation.passengers?.length || 0} <span className="text-gray-400">de</span> {reservation.pax_count}
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full rounded-full transition-all duration-700 ease-out"
+                                    style={{
+                                        width: `${Math.min(((reservation.passengers?.length || 0) / reservation.pax_count) * 100, 100)}%`,
+                                        background: (reservation.passengers?.length || 0) >= reservation.pax_count
+                                            ? 'linear-gradient(90deg, #10b981, #059669)'
+                                            : 'linear-gradient(90deg, #ef4444, #f97316)',
+                                    }}
+                                />
+                            </div>
+                            {(reservation.passengers?.length || 0) >= reservation.pax_count && (
+                                <p className="text-[10px] font-bold text-emerald-600 mt-1.5 flex items-center gap-1">
+                                    <Check className="w-3 h-3" /> Todos los pasajeros registrados
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-6 flex items-center justify-between px-2">
+                        <span>Pasajeros en lista</span>
+                        {reservation.passengers && reservation.passengers.length > 0 && (
                             <span className="text-red-500 font-black">{reservation.passengers.length} Confirmados</span>
-                        </h3>
+                        )}
+                    </h3>
+
+                    {reservation.passengers && reservation.passengers.length > 0 ? (
                         <div className="grid gap-3">
                             {reservation.passengers.map((pax: any) => (
                                 <div key={pax.id} className="glass-card hover:border-red-200 transition-all p-5 rounded-3xl flex justify-between items-center group active:scale-[0.98]">
@@ -607,6 +669,7 @@ export default function ReservationCheckinPage() {
                                     </div>
                                     <button
                                         onClick={() => handleEdit(pax)}
+                                        aria-label={`Editar ${pax.full_name}`}
                                         className="h-10 w-10 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
                                     >
                                         <Edit2 className="w-4 h-4" />
@@ -614,8 +677,16 @@ export default function ReservationCheckinPage() {
                                 </div>
                             ))}
                         </div>
-                    </section>
-                )}
+                    ) : (
+                        <div className="glass-card rounded-3xl p-8 text-center">
+                            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <Users className="w-7 h-7 text-gray-300" />
+                            </div>
+                            <p className="text-sm font-bold text-gray-400 mb-1">Aún no hay pasajeros registrados</p>
+                            <p className="text-xs text-gray-300 font-medium">Completa el formulario arriba para ser el primero</p>
+                        </div>
+                    )}
+                </section>
 
                 {/* Custom Help / Reach Us Section */}
                 <section className="glass-card rounded-[2.5rem] p-8 sm:p-10 text-center bg-gradient-to-br from-red-50/50 to-orange-50/50 animate-fade-in-up delay-[300ms]">
