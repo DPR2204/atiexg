@@ -151,7 +151,7 @@ const KanbanColumn = ({ status, reservations, id }: KanbanColumnProps) => {
 
 // --- Main Kanban Page ---
 
-const COLUMNS: ReservationStatus[] = ['offered', 'reserved', 'paid', 'in_progress', 'completed'];
+const COLUMNS: ReservationStatus[] = ['offered', 'reserved', 'paid', 'in_progress', 'completed', 'cancelled'];
 
 export default function KanbanPage() {
     const { agent } = useAuth();
@@ -183,7 +183,6 @@ export default function KanbanPage() {
           agent:agents(name),
           boat:boats(name)
         `)
-                .neq('status', 'cancelled')
                 .order('tour_date', { ascending: true });
 
             if (error) throw error;

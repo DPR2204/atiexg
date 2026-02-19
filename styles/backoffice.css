@@ -443,6 +443,8 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  /* Fix for flex children overflow */
 }
 
 /* === Top Header === */
@@ -523,7 +525,8 @@
 }
 
 .bo-sidebar--collapsed {
-    width: 60px; /* Mini width for icon only */
+  width: 60px;
+  /* Mini width for icon only */
 }
 
 /* Hide labels in collapsed mode */
@@ -533,56 +536,56 @@
 .bo-sidebar--collapsed .bo-nav-badge,
 .bo-sidebar--collapsed .bo-user-info,
 .bo-sidebar--collapsed .bo-logout-text {
-    display: none;
+  display: none;
 }
 
 .bo-sidebar--collapsed .bo-logo {
-    justify-content: center;
-    padding: 1.25rem 0;
+  justify-content: center;
+  padding: 1.25rem 0;
 }
 
 .bo-sidebar--collapsed .bo-logo-icon {
-    margin: 0;
+  margin: 0;
 }
 
 .bo-sidebar--collapsed .bo-nav-item {
-    justify-content: center;
-    padding: 0.5rem 0;
+  justify-content: center;
+  padding: 0.5rem 0;
 }
 
 .bo-sidebar--collapsed .bo-nav-icon {
-    margin: 0;
-    width: auto;
+  margin: 0;
+  width: auto;
 }
 
 .bo-sidebar--collapsed .bo-user-card {
-    justify-content: center;
-    padding: 0.5rem;
+  justify-content: center;
+  padding: 0.5rem;
 }
 
 .bo-sidebar--collapsed .bo-logout-btn {
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: none !important;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none !important;
 }
 
 .bo-main--expanded {
-    margin-left: 60px;
+  margin-left: 60px;
 }
 
 @media (max-width: 1024px) {
   .bo-menu-toggle {
     display: block;
   }
-  
+
   .bo-desktop-toggle {
-      display: none;
+    display: none;
   }
-  
+
   .bo-main--expanded {
-      margin-left: 0 !important;
+    margin-left: 0 !important;
   }
 }
 
@@ -590,6 +593,8 @@
 .bo-content {
   flex: 1;
   padding: 1.5rem;
+  min-width: 0;
+  /* Fix for flex children overflow */
 }
 
 /* ============================================
@@ -2734,6 +2739,9 @@
   padding-bottom: 1rem;
   height: calc(100vh - 180px);
   align-items: flex-start;
+  max-width: 100%;
+  min-width: 0;
+  /* Important for flex children */
 }
 
 .bo-status-dot {
