@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
 import { Tour, SelectedTourConfig } from '../../types';
-import { TOURS } from '../../data';
 
 interface SelectionBarProps {
     selectedConfigs: SelectedTourConfig[];
@@ -10,6 +9,7 @@ interface SelectionBarProps {
     onCompare: () => void;
     formatWhatsAppMessage: (selections: SelectedTourConfig[], generalAddons: string[]) => string;
     selectedGeneralAddons: string[];
+    tours: Tour[];
 }
 
 const SelectionBar: React.FC<SelectionBarProps> = ({
@@ -18,10 +18,11 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     onCompare,
     formatWhatsAppMessage,
     selectedGeneralAddons,
+    tours,
 }) => {
     // Build checkout URL with tour info
     const firstTour = selectedConfigs.length > 0
-        ? TOURS.find((t) => t.id === selectedConfigs[0].tourId)
+        ? tours.find((t) => t.id === selectedConfigs[0].tourId)
         : null;
     const checkoutUrl = firstTour
         ? `/checkout?tour=${firstTour.id}&items=${encodeURIComponent(JSON.stringify(selectedConfigs.map(c => c.tourId)))}`
@@ -33,7 +34,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
                 <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                     <div className="flex -space-x-2.5 sm:-space-x-4 overflow-hidden p-0.5 shrink-0">
                         {selectedConfigs.slice(0, 2).map((config) => {
-                            const tour = TOURS.find((t) => t.id === config.tourId);
+                            const tour = tours.find((t) => t.id === config.tourId);
                             return (
                                 <div key={config.tourId} className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl border-2 border-black overflow-hidden ring-1 ring-white/10">
                                     {tour?.image && tour?.name && (

@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { TOURS } from '../data';
 import Seo from '../components/Seo';
 import TourImage from '../components/TourImage';
-import { GlassNav, GlassFooter } from '../components/shared';
+import { GlassNav, GlassFooter, LoadingSpinner } from '../components/shared';
+import { useTours } from '../hooks/useTours';
 import {
   buildOrganizationSchema,
   buildTourSchema,
   buildWebSiteSchema,
-  getTourBySlug,
+  getTourSlug,
   getTourMeta,
   getTourPath,
 } from '../seo';
@@ -28,10 +28,15 @@ const formatWhatsApp = (tourName: string, priceLabel?: string, priceAmount?: str
 
 const TourPage = () => {
   const { slug } = useParams();
-  const tour = getTourBySlug(slug);
+  const { tours, loading, error } = useTours();
+
+  const tour = useMemo(() => {
+    if (!tours || !slug) return null;
+    return tours.find((t) => getTourSlug(t) === slug) ?? null;
+  }, [tours, slug]);
 
   const seoMeta = useMemo(() => (tour ? getTourMeta(tour) : null), [tour]);
-  const [selectedPriceId, setSelectedPriceId] = useState(tour?.prices[0]?.id ?? '');
+  const [selectedPriceId, setSelectedPriceId] = useState('');
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -44,11 +49,19 @@ const TourPage = () => {
 
   // Get related tours (same category, excluding current)
   const relatedTours = useMemo(() => {
-    if (!tour) return [];
-    return TOURS.filter((t) => t.category === tour.category && t.id !== tour.id).slice(0, 3);
-  }, [tour]);
+    if (!tour || !tours) return [];
+    return tours.filter((t) => t.category === tour.category && t.id !== tour.id).slice(0, 3);
+  }, [tour, tours]);
 
-  if (!tour || !seoMeta) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error || (!loading && !tour)) {
     return (
       <div className="min-h-screen bg-white">
         <GlassNav />
@@ -78,6 +91,8 @@ const TourPage = () => {
       </div>
     );
   }
+
+  if (!tour || !seoMeta) return null; // Logic handled above, keeps TS happy
 
   const selectedPrice = tour.prices.find((price) => price.id === selectedPriceId);
   const selectedAddons = tour.addons.filter((addon) => selectedAddonIds.includes(addon.id));
@@ -152,8 +167,8 @@ const TourPage = () => {
                     type="button"
                     onClick={() => setSelectedImageIndex(idx)}
                     className={`shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${idx === selectedImageIndex
-                        ? 'border-red-500 shadow-lg shadow-red-500/20 scale-[1.02]'
-                        : 'border-transparent opacity-60 hover:opacity-100'
+                      ? 'border-red-500 shadow-lg shadow-red-500/20 scale-[1.02]'
+                      : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                   >
                     <TourImage

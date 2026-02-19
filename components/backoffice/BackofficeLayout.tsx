@@ -22,6 +22,8 @@ export default function BackofficeLayout() {
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [badges, setBadges] = useState({ offered: 0, missingBoats: 0 });
 
+    const [collapsed, setCollapsed] = useState(false);
+
     // Real-time badges
     useEffect(() => {
         fetchBadges();
@@ -123,7 +125,7 @@ export default function BackofficeLayout() {
             )}
 
             {/* Sidebar */}
-            <aside className={`bo-sidebar ${sidebarOpen ? 'bo-sidebar--open' : ''}`}>
+            <aside className={`bo-sidebar ${sidebarOpen ? 'bo-sidebar--open' : ''} ${collapsed ? 'bo-sidebar--collapsed' : ''}`}>
                 {/* Logo */}
                 <div className="bo-logo">
                     <span className="bo-logo-icon">⛵</span>
@@ -145,9 +147,10 @@ export default function BackofficeLayout() {
                                 `bo-nav-item ${isActive ? 'bo-nav-item--active' : ''}`
                             }
                             onClick={() => setSidebarOpen(false)}
+                            title={collapsed ? item.label : ''}
                         >
                             <span className="bo-nav-icon">{item.icon}</span>
-                            <span>{item.label}</span>
+                            <span className="bo-nav-label">{item.label}</span>
                             {item.path === '/backoffice/reservas' && badges.offered > 0 && (
                                 <span className="bo-nav-badge">{badges.offered}</span>
                             )}
@@ -164,7 +167,7 @@ export default function BackofficeLayout() {
                         <div className="bo-user-avatar">
                             {agent?.name?.charAt(0)?.toUpperCase() || '?'}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ flex: 1, minWidth: 0 }} className="bo-user-info">
                             <div className="bo-user-name">{agent?.name || 'Agente'}</div>
                             <div className="bo-user-role">
                                 {agent?.role === 'admin' ? 'Admin' : 'Agente'}
@@ -202,7 +205,7 @@ export default function BackofficeLayout() {
                                 e.currentTarget.style.borderColor = 'rgba(55, 53, 47, 0.1)';
                             }}
                         >
-                            <span style={{ fontSize: '12px', fontWeight: 600, marginRight: '4px' }}>Salir</span>
+                            <span style={{ fontSize: '12px', fontWeight: 600, marginRight: '4px' }} className="bo-logout-text">Salir</span>
                             ⎋
                         </button>
                     </div>
@@ -210,7 +213,7 @@ export default function BackofficeLayout() {
             </aside>
 
             {/* Main content */}
-            <main className="bo-main">
+            <main className={`bo-main ${collapsed ? 'bo-main--expanded' : ''}`}>
                 <header className="bo-header">
                     <div className="bo-header-left">
                         <button
@@ -218,6 +221,13 @@ export default function BackofficeLayout() {
                             onClick={() => setSidebarOpen(true)}
                         >
                             ☰
+                        </button>
+                        <button
+                            className="bo-desktop-toggle"
+                            onClick={() => setCollapsed(!collapsed)}
+                            title={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+                        >
+                            {collapsed ? '▶' : '◀'}
                         </button>
                         <div className="bo-breadcrumb">
                             <span className="bo-breadcrumb-sep">Atitlán EXG</span>

@@ -504,9 +504,85 @@
   padding: 0.25rem;
 }
 
+.bo-desktop-toggle {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--bo-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--bo-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bo-desktop-toggle:hover {
+  background: rgba(55, 53, 47, 0.08);
+  color: var(--bo-text);
+}
+
+.bo-sidebar--collapsed {
+    width: 60px; /* Mini width for icon only */
+}
+
+/* Hide labels in collapsed mode */
+.bo-sidebar--collapsed .bo-logo-title,
+.bo-sidebar--collapsed .bo-logo-subtitle,
+.bo-sidebar--collapsed .bo-nav-label,
+.bo-sidebar--collapsed .bo-nav-badge,
+.bo-sidebar--collapsed .bo-user-info,
+.bo-sidebar--collapsed .bo-logout-text {
+    display: none;
+}
+
+.bo-sidebar--collapsed .bo-logo {
+    justify-content: center;
+    padding: 1.25rem 0;
+}
+
+.bo-sidebar--collapsed .bo-logo-icon {
+    margin: 0;
+}
+
+.bo-sidebar--collapsed .bo-nav-item {
+    justify-content: center;
+    padding: 0.5rem 0;
+}
+
+.bo-sidebar--collapsed .bo-nav-icon {
+    margin: 0;
+    width: auto;
+}
+
+.bo-sidebar--collapsed .bo-user-card {
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.bo-sidebar--collapsed .bo-logout-btn {
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none !important;
+}
+
+.bo-main--expanded {
+    margin-left: 60px;
+}
+
 @media (max-width: 1024px) {
   .bo-menu-toggle {
     display: block;
+  }
+  
+  .bo-desktop-toggle {
+      display: none;
+  }
+  
+  .bo-main--expanded {
+      margin-left: 0 !important;
   }
 }
 

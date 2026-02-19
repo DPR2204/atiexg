@@ -7,7 +7,7 @@ import {
     MapPin, Clock, Info, ArrowLeft, Edit2, MessageSquare, PhoneCall,
     Anchor, Waves, Compass, CreditCard, Sparkles, Utensils
 } from 'lucide-react';
-import { TOURS } from '../../data';
+
 
 export default function ReservationCheckinPage() {
     const { token } = useParams();

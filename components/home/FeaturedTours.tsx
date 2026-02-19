@@ -1,12 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
-import { TOURS } from '../../data';
+import { useTours } from '../../hooks/useTours';
 import { getTourPath } from '../../seo';
 
-const FEATURED_TOURS = TOURS.filter((t) => t.isBestSeller || t.rating >= 4.9).slice(0, 3);
-
 const FeaturedTours: React.FC = () => {
+    const { tours, loading } = useTours();
+
+    // Filter and slice tours
+    const featuredTours = tours
+        .filter((t) => t.isBestSeller || t.rating >= 4.9)
+        .slice(0, 3);
+
+    if (loading) return <div className="py-20 text-center">Cargando experiencias destacadas...</div>;
+
     return (
         <section className="py-20 lg:py-32">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -27,7 +34,7 @@ const FeaturedTours: React.FC = () => {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {FEATURED_TOURS.map((tour, index) => (
+                    {featuredTours.map((tour, index) => (
                         <Link
                             key={tour.id}
                             to={getTourPath(tour)}

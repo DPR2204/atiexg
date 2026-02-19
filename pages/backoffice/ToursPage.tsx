@@ -1,17 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Tour, ItineraryStep } from '../../types/shared';
-import { Plus, Pencil, Trash2, X, Check, ArrowLeft } from 'lucide-react';
+import { Tour, ItineraryStep, TourPrice, Addon } from '../../types/shared';
+import { Plus, Pencil, Trash2, X, Check, ArrowLeft, Image as ImageIcon, DollarSign, Clock, MapPin, List, Settings, Save } from 'lucide-react';
+
+type Tab = 'general' | 'media' | 'prices' | 'logistics' | 'features';
+
+const CATEGORIES = ['Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'] as const;
+const MEAL_TYPES = ['desayuno', 'almuerzo', 'cena', 'snacks', 'coffee_break', 'picnic'] as const;
 
 export default function ToursPage() {
     const [tours, setTours] = useState<Tour[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingTour, setEditingTour] = useState<Partial<Tour> | null>(null);
+    const [activeTab, setActiveTab] = useState<Tab>('general');
 
     // Form states
     const [formData, setFormData] = useState<Partial<Tour>>({});
     const [itinerarySteps, setItinerarySteps] = useState<ItineraryStep[]>([]);
+    const [prices, setPrices] = useState<TourPrice[]>([]);
+    const [addons, setAddons] = useState<Addon[]>([]);
+    const [gallery, setGallery] = useState<string[]>([]);
+    const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
+    const [features, setFeatures] = useState<string[]>([]);
 
     useEffect(() => {
         fetchTours();
@@ -32,6 +43,12 @@ export default function ToursPage() {
         setEditingTour(tour);
         setFormData(tour);
         setItinerarySteps(tour.itinerary || []);
+        setPrices(tour.prices || []);
+        setAddons(tour.addons || []);
+        setGallery(tour.gallery || []);
+        setSelectedMeals(tour.meals || []);
+        setFeatures(tour.features || []);
+        setActiveTab('general');
         setShowModal(true);
     }
 
@@ -43,13 +60,16 @@ export default function ToursPage() {
             reviews: 0,
             isNew: false,
             isBestSeller: false,
-            gallery: [],
-            features: [],
-            meals: [],
-            prices: [],
-            addons: []
+            format: 'Grupo pequeño',
+            duration: '4-6 h'
         });
         setItinerarySteps([]);
+        setPrices([]);
+        setAddons([]);
+        setGallery([]);
+        setSelectedMeals([]);
+        setFeatures([]);
+        setActiveTab('general');
         setShowModal(true);
     }
 
@@ -67,8 +87,12 @@ export default function ToursPage() {
         const payload = {
             ...formData,
             itinerary: itinerarySteps,
-            // Ensure numeric price
-            price: Number(formData.price)
+            prices: prices,
+            addons: addons,
+            gallery: gallery,
+            meals: selectedMeals as any,
+            features: features,
+            price: Number(formData.price) // Ensure numeric base price
         };
 
         let error;
@@ -88,19 +112,59 @@ export default function ToursPage() {
         }
     }
 
-    // Helper for itinerary
+    // Helper Functions
+    // Itinerary
     function updateStep(index: number, field: keyof ItineraryStep, value: string) {
         const newSteps = [...itinerarySteps];
         newSteps[index] = { ...newSteps[index], [field]: value };
         setItinerarySteps(newSteps);
     }
+    function addStep() { setItinerarySteps([...itinerarySteps, { time: '', activity: '' }]); }
+    function removeStep(index: number) { setItinerarySteps(itinerarySteps.filter((_, i) => i !== index)); }
 
-    function addStep() {
-        setItinerarySteps([...itinerarySteps, { time: '', activity: '' }]);
+    // Prices
+    function updatePrice(index: number, field: keyof TourPrice, value: string) {
+        const newPrices = [...prices];
+        newPrices[index] = { ...newPrices[index], [field]: value };
+        setPrices(newPrices);
     }
+    function addPrice() {
+        const id = (prices.length + 1).toString();
+        setPrices([...prices, { id, label: 'Por persona', amount: '$0 USD', description: '' }]);
+    }
+    function removePrice(index: number) { setPrices(prices.filter((_, i) => i !== index)); }
 
-    function removeStep(index: number) {
-        setItinerarySteps(itinerarySteps.filter((_, i) => i !== index));
+    // Addons
+    function updateAddon(index: number, field: keyof Addon, value: string) {
+        const newAddons = [...addons];
+        newAddons[index] = { ...newAddons[index], [field]: value };
+        setAddons(newAddons);
+    }
+    function addAddon() {
+        const id = `a${addons.length + 1}`;
+        setAddons([...addons, { id, label: '', price: '$0' }]);
+    }
+    function removeAddon(index: number) { setAddons(addons.filter((_, i) => i !== index)); }
+
+    // Gallery
+    function addGalleryImage() { setGallery([...gallery, '']); }
+    function updateGalleryImage(index: number, value: string) {
+        const newGallery = [...gallery];
+        newGallery[index] = value;
+        setGallery(newGallery);
+    }
+    function removeGalleryImage(index: number) { setGallery(gallery.filter((_, i) => i !== index)); }
+
+    // Array Inputs (Features)
+    function handleKeyDown(e: React.KeyboardEvent, list: string[], setList: (l: string[]) => void) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = (e.currentTarget as HTMLInputElement).value.trim();
+            if (val) {
+                setList([...list, val]);
+                (e.currentTarget as HTMLInputElement).value = '';
+            }
+        }
     }
 
     if (loading) return <div className="p-8 text-center text-gray-500">Cargando tours...</div>;
@@ -110,12 +174,9 @@ export default function ToursPage() {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Gestión de Tours</h1>
-                    <p className="text-gray-500">Administra el catálogo de experiencias</p>
+                    <p className="text-gray-500">Administra el catálogo completo</p>
                 </div>
-                <button
-                    onClick={handleCreate}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
+                <button onClick={handleCreate} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                     <Plus size={18} /> Nuevo Tour
                 </button>
             </div>
@@ -124,11 +185,11 @@ export default function ToursPage() {
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tour</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoría</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Precio</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Duración</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Tour</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Categoría</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Precio Base</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Duración</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -138,29 +199,13 @@ export default function ToursPage() {
                                     <div className="font-medium text-gray-900">{tour.name}</div>
                                     <div className="text-xs text-gray-500 truncate max-w-xs">{tour.concept}</div>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                        {tour.category}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-gray-900 font-medium">${tour.price}</td>
+                                <td className="px-6 py-4"><span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{tour.category}</span></td>
+                                <td className="px-6 py-4 font-medium">${tour.price}</td>
                                 <td className="px-6 py-4 text-gray-500">{tour.duration}</td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        <button
-                                            onClick={() => handleEdit(tour)}
-                                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                            title="Editar"
-                                        >
-                                            <Pencil size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(tour.id)}
-                                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                            title="Eliminar"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <button onClick={() => handleEdit(tour)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"><Pencil size={16} /></button>
+                                        <button onClick={() => handleDelete(tour.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -169,182 +214,245 @@ export default function ToursPage() {
                 </table>
             </div>
 
-            {/* Edit/Create Modal */}
+            {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-900">{editingTour ? 'Editar Tour' : 'Nuevo Tour'}</h2>
-                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                                <X size={24} />
-                            </button>
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">{editingTour ? 'Editar Tour' : 'Nuevo Tour'}</h2>
+                                <p className="text-xs text-gray-500">Completa todos los campos requeridos</p>
+                            </div>
+                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {/* Basic Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Nombre</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.name || ''}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Categoría</label>
-                                    <select
-                                        value={formData.category || 'Signature'}
-                                        onChange={e => setFormData({ ...formData, category: e.target.value as any })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    >
-                                        <option value="Signature">Signature</option>
-                                        <option value="Lago & Momentos">Lago & Momentos</option>
-                                        <option value="Cultura & Pueblos">Cultura & Pueblos</option>
-                                        <option value="Sabores del Lago">Sabores del Lago</option>
-                                        <option value="Días de Campo">Días de Campo</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Precio Base ($USD)</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        min="0"
-                                        value={formData.price || ''}
-                                        onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Duración</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ej. 6-7 h"
-                                        value={formData.duration || ''}
-                                        onChange={e => setFormData({ ...formData, duration: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Concepto (Subtítulo)</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.concept || ''}
-                                    onChange={e => setFormData({ ...formData, concept: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Descripción</label>
-                                <textarea
-                                    rows={3}
-                                    value={formData.description || ''}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500 resize-none"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Incluye</label>
-                                <textarea
-                                    rows={3}
-                                    value={formData.includes || ''}
-                                    onChange={e => setFormData({ ...formData, includes: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500 resize-none"
-                                />
-                            </div>
-
-                            {/* Itinerary Builder */}
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-sm font-medium text-gray-700">Itinerario</label>
+                        <div className="flex flex-1 overflow-hidden">
+                            {/* Sidebar Tabs */}
+                            <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 space-y-2 overflow-y-auto">
+                                {[
+                                    { id: 'general', label: 'General', icon: Settings },
+                                    { id: 'media', label: 'Multimedia', icon: ImageIcon },
+                                    { id: 'prices', label: 'Precios y Add-ons', icon: DollarSign },
+                                    { id: 'logistics', label: 'Logística', icon: MapPin },
+                                    { id: 'features', label: 'Características', icon: List },
+                                ].map((tab) => (
                                     <button
-                                        type="button"
-                                        onClick={addStep}
-                                        className="text-xs text-blue-600 font-medium hover:text-blue-800"
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as Tab)}
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200' : 'text-gray-600 hover:bg-gray-100'
+                                            }`}
                                     >
-                                        + Agregar Paso
+                                        <tab.icon size={18} /> {tab.label}
                                     </button>
-                                </div>
-                                <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    {itinerarySteps.length === 0 && <p className="text-sm text-gray-400 text-center italic">Sin itinerario definido</p>}
-                                    {itinerarySteps.map((step, idx) => (
-                                        <div key={idx} className="flex gap-3 items-start group">
-                                            <input
-                                                type="text"
-                                                placeholder="Hora"
-                                                className="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm"
-                                                value={step.time}
-                                                onChange={e => updateStep(idx, 'time', e.target.value)}
-                                            />
-                                            <textarea
-                                                rows={1}
-                                                placeholder="Actividad"
-                                                className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm resize-none overflow-hidden"
-                                                value={step.activity}
-                                                onChange={e => updateStep(idx, 'activity', e.target.value)}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => removeStep(idx)}
-                                                className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X size={14} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
+                                ))}
                             </div>
 
-                            {/* Advanced Fields (collapsed or simplified) */}
-                            <div className="pt-4 border-t border-gray-100">
-                                <details>
-                                    <summary className="text-sm font-medium text-gray-600 cursor-pointer mb-2">Avanzado (Features, Images)</summary>
-                                    <div className="space-y-4 pl-4 border-l-2 border-gray-100 mt-2">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase">Features (separado por comas)</label>
-                                            <input
-                                                type="text"
-                                                value={formData.features ? formData.features.join(', ') : ''}
-                                                onChange={e => setFormData({ ...formData, features: e.target.value.split(',').map(s => s.trim()) })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                                            />
+                            {/* Content */}
+                            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8">
+
+                                {activeTab === 'general' && (
+                                    <div className="space-y-6 max-w-2xl">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-gray-700">Nombre del Tour</label>
+                                                <input type="text" required value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-gray-700">Categoría</label>
+                                                <select value={formData.category || 'Signature'} onChange={e => setFormData({ ...formData, category: e.target.value as any })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-gray-500 uppercase">Cloudinary Image ID</label>
-                                            <input
-                                                type="text"
-                                                value={formData.image || ''}
-                                                onChange={e => setFormData({ ...formData, image: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                                            />
+                                            <label className="text-sm font-medium text-gray-700">Concepto (Subtítulo corto)</label>
+                                            <input type="text" required value={formData.concept || ''} onChange={e => setFormData({ ...formData, concept: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-gray-700">Descripción detallada</label>
+                                            <textarea rows={4} value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-gray-700">Duración</label>
+                                                <input type="text" placeholder="Ej. 6-8 h" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-gray-700">Formato</label>
+                                                <input type="text" placeholder="Ej. Privado · Todo incluido" value={formData.format || ''} onChange={e => setFormData({ ...formData, format: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-6 pt-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" checked={formData.isBestSeller || false} onChange={e => setFormData({ ...formData, isBestSeller: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                                                <span className="text-sm text-gray-700">Best Seller</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" checked={formData.isNew || false} onChange={e => setFormData({ ...formData, isNew: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                                                <span className="text-sm text-gray-700">Nuevo Tour</span>
+                                            </label>
                                         </div>
                                     </div>
-                                </details>
-                            </div>
-                        </form>
+                                )}
 
-                        <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 rounded-b-xl">
-                            <button
-                                type="button"
-                                onClick={() => setShowModal(false)}
-                                className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                            >
-                                Guardar Cambios
-                            </button>
+                                {activeTab === 'media' && (
+                                    <div className="space-y-8 max-w-2xl">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-gray-700">Imagen Principal (ID Cloudinary)</label>
+                                            <div className="flex gap-3">
+                                                <input type="text" value={formData.image || ''} onChange={e => setFormData({ ...formData, image: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. DSC04496_noiz4x" />
+                                                {formData.image && <img src={`https://res.cloudinary.com/dklskdjf/image/upload/w_100,h_100,c_fill/${formData.image}.jpg`} alt="Preview" className="w-10 h-10 rounded object-cover border border-gray-200" />}
+                                            </div>
+                                            <p className="text-xs text-gray-500">Usa el Public ID de Cloudinary (sin extensión).</p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-medium text-gray-700">Galería de Imágenes</label>
+                                                <button type="button" onClick={addGalleryImage} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Imagen</button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {gallery.map((img, idx) => (
+                                                    <div key={idx} className="flex gap-2">
+                                                        <input type="text" value={img} onChange={e => updateGalleryImage(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID" />
+                                                        <button type="button" onClick={() => removeGalleryImage(idx)} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                                                    </div>
+                                                ))}
+                                                {gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imágenes en la galería.</p>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'prices' && (
+                                    <div className="space-y-8">
+                                        <div className="space-y-2 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                            <label className="text-sm font-medium text-blue-900">Precio Base (Referencia)</label>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-gray-500">$</span>
+                                                <input type="number" value={formData.price || ''} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" min="0" />
+                                                <span className="text-sm text-gray-500">USD</span>
+                                            </div>
+                                            <p className="text-xs text-blue-700">Este es el precio que se muestra en las tarjetas de la lista.</p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-medium text-gray-900">Opciones de Precio</label>
+                                                <button type="button" onClick={addPrice} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Opción</button>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {prices.map((p, idx) => (
+                                                    <div key={idx} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                        <div className="flex-1 space-y-2">
+                                                            <input type="text" placeholder="Etiqueta (Ej. Por persona)" value={p.label} onChange={e => updatePrice(idx, 'label', e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm font-medium" />
+                                                            <input type="text" placeholder="Descripción (Ej. Grupo 5-10 pax)" value={p.description} onChange={e => updatePrice(idx, 'description', e.target.value)} className="w-full px-2 py-1.5 border rounded text-xs text-gray-500" />
+                                                        </div>
+                                                        <div className="w-32">
+                                                            <input type="text" placeholder="Monto" value={p.amount} onChange={e => updatePrice(idx, 'amount', e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm text-right font-mono" />
+                                                        </div>
+                                                        <button type="button" onClick={() => removePrice(idx)} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 pt-6 border-t border-gray-200">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-medium text-gray-900">Add-ons Disponibles</label>
+                                                <button type="button" onClick={addAddon} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Add-on</button>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {addons.map((addon, idx) => (
+                                                    <div key={idx} className="flex gap-2 items-center p-2 border rounded-lg hover:bg-gray-50">
+                                                        <div className="flex-1 space-y-1">
+                                                            <input type="text" placeholder="Nombre Add-on" value={addon.label} onChange={e => updateAddon(idx, 'label', e.target.value)} className="w-full px-2 py-1 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm" />
+                                                            <input type="text" placeholder="Precio" value={addon.price} onChange={e => updateAddon(idx, 'price', e.target.value)} className="w-full px-2 py-0.5 text-xs text-gray-500 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none" />
+                                                        </div>
+                                                        <button type="button" onClick={() => removeAddon(idx)} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={14} /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'logistics' && (
+                                    <div className="space-y-8">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-medium text-gray-700">Itinerario</label>
+                                                <button type="button" onClick={addStep} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Paso</button>
+                                            </div>
+                                            <div className="relative border-l-2 border-gray-100 pl-4 space-y-4">
+                                                {itinerarySteps.map((step, idx) => (
+                                                    <div key={idx} className="relative group">
+                                                        <div className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-gray-200 group-hover:bg-blue-400 transition-colors"></div>
+                                                        <div className="flex gap-3 items-start">
+                                                            <input type="text" placeholder="00:00" value={step.time} onChange={e => updateStep(idx, 'time', e.target.value)} className="w-20 px-2 py-1.5 border rounded text-sm font-mono text-center" />
+                                                            <textarea rows={2} placeholder="Descripción de la actividad" value={step.activity} onChange={e => updateStep(idx, 'activity', e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none" />
+                                                            <button type="button" onClick={() => removeStep(idx)} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16} /></button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-gray-700">Incluye</label>
+                                            <textarea rows={3} value={formData.includes || ''} onChange={e => setFormData({ ...formData, includes: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Lista lo que incluye..." />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-gray-700">Comidas Incluidas</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {MEAL_TYPES.map(meal => (
+                                                    <button
+                                                        key={meal}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedMeals(prev => prev.includes(meal) ? prev.filter(m => m !== meal) : [...prev, meal]);
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${selectedMeals.includes(meal) ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                                    >
+                                                        {meal.replace('_', ' ')}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'features' && (
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-gray-700">Características Destacadas</label>
+                                            <p className="text-xs text-gray-500 mb-2">Escribe y presiona Enter para agregar.</p>
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                {features.map((feat, idx) => (
+                                                    <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                                        {feat}
+                                                        <button type="button" onClick={() => setFeatures(features.filter((_, i) => i !== idx))} className="hover:text-green-900"><X size={12} /></button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <input type="text" onKeyDown={e => handleKeyDown(e, features, setFeatures)} placeholder="Agregar característica..." className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        </div>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+
+                        <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-xl">
+                            <span className="text-xs text-gray-400 italic">
+                                {editingTour ? `Editando ID: ${editingTour.id}` : 'Creando nuevo tour'}
+                            </span>
+                            <div className="flex gap-3">
+                                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
+                                <button onClick={handleSubmit} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2">
+                                    <Save size={18} /> Guardar Tour
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

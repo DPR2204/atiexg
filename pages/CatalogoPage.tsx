@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import Seo from '../components/Seo';
-import { GlassNav, GlassFooter } from '../components/shared';
+import { GlassNav, GlassFooter, LoadingSpinner } from '../components/shared';
 import {
   SearchOverlay,
   ComparisonModal,
@@ -9,7 +9,7 @@ import {
   PricingSection,
   SelectionBar,
 } from '../components/catalog';
-import { TOURS } from '../data';
+import { useTours } from '../hooks/useTours';
 import { SelectedTourConfig, Tour } from '../types';
 import {
   PAGE_META,
@@ -99,12 +99,12 @@ const GENERAL_ADDONS = [
   },
 ];
 
-const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: string[]) => {
+const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: string[], allTours: Tour[]) => {
   const base = 'https://wa.me/50222681264?text=';
   let message = '¡Hola Atitlán Experiences! 🌊\n\nSolicitud de Reserva Premium:\n\n';
 
   selections.forEach((selection) => {
-    const tour = TOURS.find((t) => t.id === selection.tourId);
+    const tour = allTours.find((t) => t.id === selection.tourId);
     if (!tour) return;
     const priceOption = tour.prices.find((p) => p.id === selection.selectedPriceId);
     const addons = tour.addons.filter((a) => selection.selectedAddonIds.includes(a.id));
@@ -137,6 +137,7 @@ const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: 
 };
 
 const CatalogoPage = () => {
+  const { tours, loading, error } = useTours();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todos');
@@ -149,8 +150,9 @@ const CatalogoPage = () => {
   const meta = PAGE_META.catalogo;
 
   const filteredTours = useMemo(() => {
+    if (!tours) return [];
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    return TOURS.filter((tour) => {
+    return tours.filter((tour) => {
       const matchesFilter = activeFilter === 'Todos' || tour.category === activeFilter;
       if (!matchesFilter) return false;
       if (!normalizedQuery) return true;
@@ -159,7 +161,7 @@ const CatalogoPage = () => {
         .toLowerCase();
       return haystack.includes(normalizedQuery);
     });
-  }, [activeFilter, searchQuery]);
+  }, [activeFilter, searchQuery, tours]);
 
   const toggleSelection = (tour: Tour) => {
     const exists = selectedConfigs.some((config) => config.tourId === tour.id);
@@ -214,6 +216,26 @@ const CatalogoPage = () => {
     'momentos': <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error al cargar catálogo</h2>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-500 text-white rounded-lg">Reintentar</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Seo
@@ -231,7 +253,7 @@ const CatalogoPage = () => {
       />
       {isCompareOpen && (
         <ComparisonModal
-          tours={TOURS.filter((tour) => selectedConfigs.some((config) => config.tourId === tour.id))}
+          tours={tours.filter((tour) => selectedConfigs.some((config) => config.tourId === tour.id))}
           configs={selectedConfigs}
           onClose={() => setIsCompareOpen(false)}
           onRemoveTour={(tourId) => {
@@ -257,7 +279,7 @@ const CatalogoPage = () => {
             </span>
           </h1>
           <p className="text-lg text-gray-500 max-w-2xl">
-            {TOURS.length} experiencias diseñadas por expertos locales para el viajero exigente.
+            {tours.length} experiencias diseñadas por expertos locales para el viajero exigente.
             Personaliza tu propia ruta.
           </p>
         </div>
@@ -475,8 +497,9 @@ const CatalogoPage = () => {
         selectedConfigs={selectedConfigs}
         onClear={() => setSelectedConfigs([])}
         onCompare={() => setIsCompareOpen(true)}
-        formatWhatsAppMessage={formatWhatsAppMessage}
+        formatWhatsAppMessage={(selections) => formatWhatsAppMessage(selections, selectedGeneralAddons, tours)}
         selectedGeneralAddons={selectedGeneralAddons}
+        tours={tours}
       />
 
       <GlassFooter />

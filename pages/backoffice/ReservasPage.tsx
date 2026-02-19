@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { TOURS } from '../../data';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation } from '../../lib/reservation-logic';
 import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
-import type { CustomTourData } from '../../types/shared';
+import type { CustomTourData, Tour } from '../../types/shared';
 import { STATUS_CONFIG, MEAL_TYPE_LABELS, AUDIT_ACTION_LABELS } from '../../types/backoffice';
 import type { ReservationStatus, MealType } from '../../types/backoffice';
 
@@ -94,6 +93,7 @@ export default function ReservasPage() {
     // Data lists
     const [boats, setBoats] = useState<any[]>([]);
     const [staffList, setStaffList] = useState<any[]>([]);
+    const [toursList, setToursList] = useState<Tour[]>([]);
 
     // Expanded View State
     const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -110,8 +110,8 @@ export default function ReservasPage() {
 
     // Main Form State
     const [form, setForm] = useState({
-        tour_id: 1,
-        tour_name: TOURS[0]?.name || '',
+        tour_id: 0,
+        tour_name: '',
         tour_date: new Date().toISOString().split('T')[0],
         end_date: '',
         start_time: '08:00',
@@ -119,7 +119,7 @@ export default function ReservasPage() {
         driver_id: '',
         guide_id: '',
         pax_count: 1,
-        total_amount: TOURS[0]?.price || 0,
+        total_amount: 0,
         deposit_amount: 50,
         notes: '',
         status: 'offered' as ReservationStatus,
@@ -191,13 +191,25 @@ export default function ReservasPage() {
         }
 
         // Load resources
-        const [boatsRes, staffRes] = await Promise.all([
+        const [boatsRes, staffRes, toursRes] = await Promise.all([
             supabase.from('boats').select('*').eq('status', 'active'),
-            supabase.from('staff').select('*').eq('active', true)
+            supabase.from('staff').select('*').eq('active', true),
+            supabase.from('tours').select('*').eq('active', true).order('id')
         ]);
 
         setBoats(boatsRes.data || []);
         setStaffList(staffRes.data || []);
+
+        const mappedTours = (toursRes.data || []).map((t: any) => ({
+            ...t,
+            gallery: t.gallery || [],
+            features: t.features || [],
+            meals: t.meals || [],
+            prices: t.prices || [],
+            addons: t.addons || [],
+            itinerary: t.itinerary || []
+        }));
+        setToursList(mappedTours);
         setLoading(false);
     }
 
@@ -465,7 +477,7 @@ export default function ReservasPage() {
     }
 
     function importFromOriginal(tourId: number) {
-        const original = TOURS.find(t => t.id === tourId);
+        const original = toursList.find(t => t.id === tourId);
         if (original) {
             setCustomTourForm({
                 tour_name: original.name,
@@ -557,9 +569,10 @@ export default function ReservasPage() {
     function resetForm() {
         setShowForm(false);
         setEditingId(null);
+        const defaultTour = toursList[0];
         setForm({
-            tour_id: 1,
-            tour_name: TOURS[0]?.name || '',
+            tour_id: defaultTour?.id || 0,
+            tour_name: defaultTour?.name || '',
             tour_date: new Date().toISOString().split('T')[0],
             end_date: '',
             start_time: '08:00',
@@ -567,7 +580,7 @@ export default function ReservasPage() {
             driver_id: '',
             guide_id: '',
             pax_count: 1,
-            total_amount: TOURS[0]?.price || 0,
+            total_amount: defaultTour?.price || 0,
             deposit_amount: 50,
             notes: '',
             status: 'offered',
@@ -582,7 +595,7 @@ export default function ReservasPage() {
     }
 
     function handleTourChange(tourId: number) {
-        const tour = TOURS.find(t => t.id === tourId);
+        const tour = toursList.find(t => t.id === tourId);
         if (tour) {
             // Auto-populate meal configuration based on tour
             const defaultMenu = tour.meals?.map(m => ({ type: m, options: [] })) || [];
@@ -628,21 +641,21 @@ export default function ReservasPage() {
             notes: res.notes || '',
             status: res.status,
             emergency_contact_phone: res.emergency_contact_phone || '',
-            meal_options: res.meal_options?.available_meals ? res.meal_options : { available_meals: TOURS.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || [] },
+            meal_options: res.meal_options?.available_meals ? res.meal_options : { available_meals: toursList.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || [] },
             selected_addons: res.selected_addons || [],
             meal_per_group: res.meal_per_group || false,
             price_manual: res.price_manual || false
         });
 
         // Also set menu config state
-        setMenuConfig(res.meal_options?.available_meals || TOURS.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || []);
+        setMenuConfig(res.meal_options?.available_meals || toursList.find(t => t.id === res.tour_id)?.meals?.map(m => ({ type: m, options: [] })) || []);
         setQuickMenu(res.meal_options?.available_meals || []); // For valid existing logic
 
         setEditingId(res.id);
         setShowForm(true);
     }
 
-    const currentTourMeals = TOURS.find(t => t.id === (editingId ? form.tour_id : (expandedId ? reservations.find(r => r.id === expandedId)?.tour_id : 1)))?.meals || [];
+    const currentTourMeals = toursList.find(t => t.id === (editingId ? form.tour_id : (expandedId ? reservations.find(r => r.id === expandedId)?.tour_id : toursList[0]?.id)))?.meals || [];
 
     if (loading) return <div className="bo-loading"><div className="bo-loading-spinner" /></div>;
 
@@ -740,7 +753,8 @@ export default function ReservasPage() {
                                 <div className="bo-form-group">
                                     <label className="bo-label">Tour</label>
                                     <select className="bo-input" value={form.tour_id} onChange={e => handleTourChange(Number(e.target.value))}>
-                                        {TOURS.map(t => <option key={t.id} value={t.id}>{t.name} — ${t.price}</option>)}
+                                        <option value={0}>Seleccionar Tour...</option>
+                                        {toursList.map(t => <option key={t.id} value={t.id}>{t.name} — ${t.price}</option>)}
                                     </select>
                                 </div>
                                 <div className="bo-form-group">
@@ -904,8 +918,8 @@ export default function ReservasPage() {
                                             >
                                                 <option value="">+ Agregar del Catálogo...</option>
                                                 {/* Unique Addons from all tours */}
-                                                {Array.from(new Set(TOURS.flatMap(t => t.addons || []).map(a => JSON.stringify({ label: a.label, price: a.price }))))
-                                                    .map(s => JSON.parse(s))
+                                                {Array.from(new Set(toursList.flatMap(t => t.addons || []).map(a => JSON.stringify({ label: a.label, price: a.price }))))
+                                                    .map((s: string) => JSON.parse(s))
                                                     .map((a, i) => (
                                                         <option key={i} value={`${a.label}|${a.price}`}>
                                                             {a.label} ({a.price})

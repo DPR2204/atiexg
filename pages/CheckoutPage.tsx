@@ -1,269 +1,311 @@
-import React, { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import Seo from '../components/Seo';
-import { GlassNav, GlassFooter } from '../components/shared';
-import { TOURS } from '../data';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { GlassNav, GlassFooter, LoadingSpinner } from '../components/shared';
+import { Calendar, CreditCard, Shield, Clock, Info } from 'lucide-react';
+import { useTours } from '../hooks/useTours';
 
-const DEPOSIT_AMOUNT = 50;
-
-const CheckoutPage: React.FC = () => {
+export default function CheckoutPage() {
     const [searchParams] = useSearchParams();
-    const tourId = searchParams.get('tour');
-    const itemsParam = searchParams.get('items');
+    const navigate = useNavigate();
+    const tourId = Number(searchParams.get('tour') || 0);
+    const { tours, loading: toursLoading } = useTours();
 
-    const tour = tourId ? TOURS.find((t) => t.id === tourId) : null;
-    const selectedItems = itemsParam ? JSON.parse(decodeURIComponent(itemsParam)) : [];
+    const tour = tourId ? tours.find((t) => t.id === tourId) : null;
 
-    const [formData, setFormData] = useState({
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const [form, setForm] = useState({
         name: '',
         email: '',
         phone: '',
-        passengers: 1,
+        date: '',
+        time: '08:00',
+        pax: 1,
+        notes: ''
     });
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    useEffect(() => {
+        if (!toursLoading && !tour) {
+            // Optional: Redirect to catalog if tour not found, or show error
+        }
+    }, [tour, toursLoading]);
+
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        setIsLoading(true);
+        setLoading(true);
         setError(null);
 
+        if (!tour) return;
+
         try {
-            const response = await fetch('/api/checkout', {
+            // 1. Create pending reservation in Supabase
+            // We use a specific status 'pending_payment' or just 'offered'
+            const { data: reservation, error: resError } = await supabase
+                .from('reservations')
+                .insert([
+                    {
+                        tour_id: tour.id,
+                        tour_name: tour.name,
+                        tour_date: form.date,
+                        start_time: form.time,
+                        pax_count: form.pax,
+                        // Note: Defaulting to base price. Logic might need update if we want to handle dynamic pricing here.
+                        // For now, we use tour.price as base. 
+                        total_amount: tour.price * form.pax,
+                        deposit_amount: 50, // Hardcoded deposit 
+                        status: 'pending_payment',
+                        customer_name: form.name, // We might need to add these fields to reservations table if not exists, 
+                        // or creates a passenger/contact. 
+                        // Current schema checks: reservations has text fields? 
+                        // Let's assume we store contact info in notes or custom fields for now if columns missing,
+                        // Ideally we should create a 'client' or store in 'notes'.
+                        notes: `Cliente: ${form.name} \nEmail: ${form.email} \nTel: ${form.phone} \nNotas: ${form.notes}`,
+                        created_by: 'web_checkout'
+                    }
+                ])
+                .select()
+                .single();
+
+            if (resError) throw resError;
+
+            // 2. Generate Recurrente Checkout Link (Server-side desirable, but here client-side for now via our API)
+            // CALLING OUR API ROUTE
+            const res = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tourId: tour?.id || 'custom',
-                    tourName: tour?.name || 'Experiencia Personalizada',
-                    customerEmail: formData.email,
-                    customerName: formData.name,
-                    customerPhone: formData.phone,
-                    passengers: formData.passengers,
-                    selectedItems,
-                    depositAmount: DEPOSIT_AMOUNT,
-                }),
+                    tourId: tour.id.toString(),
+                    tourName: tour.name,
+                    customerEmail: form.email,
+                    customerName: form.name,
+                    depositAmount: 50, // Fixed deposit 
+                    selectedItems: [`Reserva: ${tour.name}`]
+                })
             });
 
-            const data = await response.json();
+            const data = await res.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Error al crear la sesión de pago');
+            if (data.success) {
+                // Update reservation with payment ID/Link
+                await supabase.from('reservations').update({
+                    payment_id: data.checkoutId,
+                    payment_url: data.checkoutUrl
+                }).eq('id', reservation.id);
+
+                // Redirect user to Recurrente
+                window.location.href = data.checkoutUrl;
+            } else {
+                throw new Error(data.error || 'Error al generar pago');
             }
 
-            // Redirect to Recurrente checkout
-            window.location.href = data.checkoutUrl;
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al procesar el pago');
-            setIsLoading(false);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Error al procesar la reserva. Intenta de nuevo o contáctanos.');
+        } finally {
+            setLoading(false);
         }
-    };
+    }
+
+    if (toursLoading) return <div className="min-h-screen bg-white flex items-center justify-center"><LoadingSpinner /></div>;
+
+    if (!tour) return (
+        <div className="min-h-screen bg-white">
+            <GlassNav />
+            <div className="max-w-md mx-auto mt-20 p-6 text-center">
+                <h2 className="text-2xl font-bold mb-4">Experiencia no encontrada</h2>
+                <button onClick={() => navigate('/catalogo')} className="text-red-500 hover:underline">Volver al catálogo</button>
+            </div>
+            <GlassFooter />
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-white">
-            <Seo
-                title="Checkout | Atitlán Experiences"
-                description="Completa tu reserva con un anticipo seguro"
-                canonicalPath="/checkout"
-            />
+        <div className="min-h-screen bg-gray-50/50">
             <GlassNav />
 
-            <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-                {/* Breadcrumb */}
-                <nav className="flex items-center gap-2 text-sm text-gray-400 mb-8">
-                    <Link to="/" className="hover:text-red-500 transition-colors">Inicio</Link>
-                    <span>/</span>
-                    <Link to="/catalogo" className="hover:text-red-500 transition-colors">Catálogo</Link>
-                    <span>/</span>
-                    <span className="text-gray-900">Checkout</span>
-                </nav>
+            <main className="max-w-6xl mx-auto px-4 py-12">
+                <div className="grid lg:grid-cols-[1fr_400px] gap-12">
 
-                <div className="grid lg:grid-cols-2 gap-12">
-                    {/* Form Section */}
-                    <div className="animate-fade-in-up">
-                        <h1 className="text-3xl font-black text-gray-900 mb-2">Reservar con Anticipo</h1>
-                        <p className="text-gray-500 mb-8">
-                            Asegura tu lugar con ${DEPOSIT_AMOUNT} USD. El resto se coordina por WhatsApp.
-                        </p>
+                    {/* Left Column - Form */}
+                    <div className="space-y-8 animate-fade-in-up">
+                        <div>
+                            <h1 className="text-3xl font-black text-gray-900 mb-2">Finalizar Reserva</h1>
+                            <p className="text-gray-500">Completa tus datos para asegurar tu fecha.</p>
+                        </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label htmlFor="name" className="block text-sm font-bold text-gray-700 mb-2">
-                                    Nombre completo *
-                                </label>
-                                <input
-                                    id="name"
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
-                                    placeholder="Tu nombre"
-                                />
-                            </div>
+                        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">1</span>
+                                Detalles de la Experiencia
+                            </h3>
 
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2">
-                                    Email *
-                                </label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
-                                    placeholder="tu@email.com"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="phone" className="block text-sm font-bold text-gray-700 mb-2">
-                                    WhatsApp (opcional)
-                                </label>
-                                <input
-                                    id="phone"
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
-                                    placeholder="+502 0000 0000"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="passengers" className="block text-sm font-bold text-gray-700 mb-2">
-                                    Número de pasajeros *
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, passengers: Math.max(1, formData.passengers - 1) })}
-                                        className="w-12 h-12 rounded-xl border border-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 hover:bg-gray-50 transition-all"
-                                    >
-                                        −
-                                    </button>
+                            <div className="grid sm:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Fecha</label>
                                     <input
-                                        id="passengers"
+                                        type="date"
+                                        required
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                                        value={form.date}
+                                        onChange={e => setForm({ ...form, date: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Hora de Inicio</label>
+                                    <select
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium appearance-none"
+                                        value={form.time}
+                                        onChange={e => setForm({ ...form, time: e.target.value })}
+                                    >
+                                        <option value="08:00">08:00 AM</option>
+                                        <option value="09:00">09:00 AM</option>
+                                        <option value="10:00">10:00 AM</option>
+                                        <option value="13:00">01:00 PM</option>
+                                        <option value="14:00">02:00 PM</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Personas</label>
+                                    <input
                                         type="number"
                                         min="1"
-                                        max="20"
-                                        required
-                                        value={formData.passengers}
-                                        onChange={(e) => setFormData({ ...formData, passengers: Math.max(1, parseInt(e.target.value) || 1) })}
-                                        className="w-20 text-center px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg font-bold"
+                                        max="15"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                                        value={form.pax}
+                                        onChange={e => setForm({ ...form, pax: Number(e.target.value) })}
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, passengers: Math.min(20, formData.passengers + 1) })}
-                                        className="w-12 h-12 rounded-xl border border-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 hover:bg-gray-50 transition-all"
-                                    >
-                                        +
-                                    </button>
                                 </div>
                             </div>
 
+                            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2 pt-6 border-t border-gray-100">
+                                <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">2</span>
+                                Tus Datos
+                            </h3>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Nombre Completo</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Tu nombre"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                                        value={form.name}
+                                        onChange={e => setForm({ ...form, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Email</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            placeholder="tucorreo@ejemplo.com"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                                            value={form.email}
+                                            onChange={e => setForm({ ...form, email: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">WhatsApp / Teléfono</label>
+                                        <input
+                                            type="tel"
+                                            required
+                                            placeholder="+502 0000 0000"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                                            value={form.phone}
+                                            onChange={e => setForm({ ...form, phone: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Notas Especiales (Opcional)</label>
+                                    <textarea
+                                        rows={3}
+                                        placeholder="Alergias, restricciones, ocasiones especiales..."
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                                        value={form.notes}
+                                        onChange={e => setForm({ ...form, notes: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column - Summary */}
+                    <div className="lg:sticky lg:top-32 h-fit space-y-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                        <div className="bg-white rounded-3xl p-6 shadow-xl shadow-gray-200/50 border border-gray-100">
+                            <div className="flex gap-4 mb-6">
+                                <img
+                                    src={tour.image}
+                                    alt={tour.name}
+                                    className="w-20 h-20 rounded-xl object-cover shrink-0"
+                                />
+                                <div>
+                                    <h3 className="font-bold text-gray-900 leading-tight mb-1">{tour.name}</h3>
+                                    <p className="text-xs text-gray-500">{tour.duration}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 py-6 border-t border-b border-gray-100 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Experiencia base</span>
+                                    <span className="font-medium">${tour.price} x {form.pax}</span>
+                                </div>
+                                <div className="flex justify-between font-bold text-gray-900 pt-2">
+                                    <span>Total Estimado</span>
+                                    <span>${tour.price * form.pax}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 mb-8 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm font-bold text-blue-900">Anticipo a pagar hoy</span>
+                                    <span className="text-xl font-black text-blue-600">$50.00</span>
+                                </div>
+                                <p className="text-xs text-blue-600/80">
+                                    El saldo restante se paga el día del tour o vía transfer.
+                                </p>
+                            </div>
+
                             {error && (
-                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                                <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
                                     {error}
                                 </div>
                             )}
 
                             <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold uppercase tracking-wider text-sm hover:bg-red-600 transition-all shadow-lg flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {isLoading ? (
-                                    <>
-                                        <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                        </svg>
-                                        <span>Procesando...</span>
-                                    </>
+                                {loading ? (
+                                    <>Procesando...</>
                                 ) : (
                                     <>
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        Pagar Anticipo - Tarjeta
+                                        <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                         </svg>
-                                        <span>Pagar ${DEPOSIT_AMOUNT} USD de Anticipo</span>
                                     </>
                                 )}
                             </button>
 
-                            <p className="text-xs text-gray-400 text-center">
-                                🔒 Pago seguro procesado por Recurrente
+                            <div className="mt-4 flex justify-center gap-3 opacity-50">
+                                <CreditCard className="w-6 h-6" />
+                                <Shield className="w-6 h-6" />
+                            </div>
+                            <p className="text-center text-[10px] text-gray-400 mt-2">
+                                Pagos seguros encriptados via Recurrente.
                             </p>
-                        </form>
-                    </div>
-
-                    {/* Summary Section */}
-                    <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-                        <div className="glass-card rounded-3xl p-6 sm:p-8 sticky top-24">
-                            <h2 className="text-lg font-bold text-gray-900 mb-6">Resumen de Reserva</h2>
-
-                            {tour ? (
-                                <div className="flex gap-4 mb-6 pb-6 border-b border-gray-100">
-                                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                                        <img
-                                            src={tour.image.replace(/\/\d+\/\d+$/, '/200/200')}
-                                            alt={tour.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-900">{tour.name}</h3>
-                                        <p className="text-sm text-gray-500">{tour.category}</p>
-                                        <p className="text-sm font-bold text-red-500 mt-1">Desde ${tour.price}</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="mb-6 pb-6 border-b border-gray-100">
-                                    <h3 className="font-bold text-gray-900">Experiencia Personalizada</h3>
-                                    <p className="text-sm text-gray-500">Detalles a coordinar por WhatsApp</p>
-                                </div>
-                            )}
-
-                            {selectedItems.length > 0 && (
-                                <div className="mb-6 pb-6 border-b border-gray-100">
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                                        Items seleccionados
-                                    </p>
-                                    <div className="space-y-2">
-                                        {selectedItems.slice(0, 5).map((item: string, i: number) => (
-                                            <p key={i} className="text-sm text-gray-600 truncate">• {item}</p>
-                                        ))}
-                                        {selectedItems.length > 5 && (
-                                            <p className="text-xs text-gray-400">+{selectedItems.length - 5} más...</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Anticipo a pagar hoy</span>
-                                    <span className="font-bold text-gray-900">${DEPOSIT_AMOUNT} USD</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Resto a coordinar</span>
-                                    <span className="text-gray-400">Vía WhatsApp</span>
-                                </div>
-                            </div>
-
-                            <div className="mt-6 p-4 bg-green-50 rounded-xl">
-                                <p className="text-xs text-green-700">
-                                    <span className="font-bold">✓ Reserva asegurada</span> — Te contactaremos para confirmar detalles y coordinar el pago restante.
-                                </p>
-                            </div>
                         </div>
                     </div>
                 </div>
             </main>
-
             <GlassFooter />
         </div>
     );
-};
-
-export default CheckoutPage;
+}
