@@ -45,12 +45,13 @@ export default function ToursPage() {
     const [imagePickerTarget, setImagePickerTarget] = useState<'main' | number>('main');
     const [imageSearch, setImageSearch] = useState('');
 
-    // Derive unique categories from existing tours + defaults
+    // Derive unique categories from existing tours + defaults + custom
+    const [customCategories, setCustomCategories] = useState<string[]>([]);
     const categories = useMemo(() => {
         const fromTours = tours.map(t => t.category).filter(Boolean);
-        const all = new Set([...DEFAULT_CATEGORIES, ...fromTours]);
+        const all = new Set([...DEFAULT_CATEGORIES, ...fromTours, ...customCategories]);
         return Array.from(all).sort();
-    }, [tours]);
+    }, [tours, customCategories]);
 
     // Filter cloudinary assets by search
     const filteredAssets = useMemo(() => {
@@ -202,6 +203,7 @@ export default function ToursPage() {
     function confirmNewCategory() {
         const trimmed = newCategoryInput.trim();
         if (trimmed) {
+            setCustomCategories(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
             setFormData({ ...formData, category: trimmed as any });
             setShowNewCategory(false);
             setNewCategoryInput('');
