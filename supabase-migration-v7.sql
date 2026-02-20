@@ -416,7 +416,10 @@ ON CONFLICT (id) DO UPDATE SET
   meals = EXCLUDED.meals,
   format = EXCLUDED.format;
 
--- 6. Grant Permissions for Public RPCs (Fix for Guest Portal)
+-- 6. Reset serial sequence after seeding explicit IDs
+SELECT setval('tours_id_seq', COALESCE((SELECT MAX(id) FROM tours), 0));
+
+-- 7. Grant Permissions for Public RPCs (Fix for Guest Portal)
 GRANT EXECUTE ON FUNCTION get_public_reservation(uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION register_public_passenger(uuid, text, int, text, text, text, jsonb, int) TO anon, authenticated, service_role;
 
