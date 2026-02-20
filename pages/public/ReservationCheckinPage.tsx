@@ -165,7 +165,39 @@ export default function ReservationCheckinPage() {
         </div>
     );
 
-    const whatsappLink = `https://wa.me/50222681264?text=${encodeURIComponent(`¡Hola! Tengo una duda sobre mi reserva para "${reservation.custom_tour_data?.tour_name || reservation.tour_name}" el día ${reservation.tour_date}.`)}`;
+    const statusLabels: Record<string, string> = {
+        paid: 'Pagado', reserved: 'Reservado', offered: 'Ofrecido',
+        completed: 'Completado', in_progress: 'En Curso', pending: 'Pendiente'
+    };
+
+    const whatsappLines = [
+        `¡Hola! Escribo sobre mi reserva:`,
+        ``,
+        `*Reserva #${reservation.id}*`,
+        `*Tour:* ${reservation.custom_tour_data?.tour_name || reservation.tour_name}`,
+        `*Fecha:* ${formatSpanishDate(reservation.tour_date)}`,
+        `*Hora:* ${formatTime(reservation.start_time)}`,
+        `*Pasajeros:* ${reservation.pax_count}`,
+        `*Estado:* ${statusLabels[reservation.status] || reservation.status}`,
+        `*Agente:* ${reservation.agent_name || 'No asignado'}`,
+        ...(reservation.boat_name ? [`*Lancha:* ${reservation.boat_name}`] : []),
+        ...(reservation.driver_name ? [`*Capitán:* ${reservation.driver_name}`] : []),
+        ...(reservation.guide_name ? [`*Guía:* ${reservation.guide_name}`] : []),
+        ...(reservation.total_amount ? [
+            ``,
+            `*Total:* $${reservation.total_amount}`,
+            ...(Number(reservation.paid_amount) > 0 ? [`*Pagado:* $${reservation.paid_amount}`] : []),
+            ...(Number(reservation.total_amount) - Number(reservation.paid_amount || 0) > 0 && reservation.status !== 'paid'
+                ? [`*Pendiente:* $${(Number(reservation.total_amount) - Number(reservation.paid_amount || 0)).toFixed(2)}`]
+                : []),
+        ] : []),
+        ``,
+        `*Check-in:* ${registered}/${total} registrados`,
+        ``,
+        `¿Podrían ayudarme?`
+    ];
+
+    const whatsappLink = `https://wa.me/50222681264?text=${encodeURIComponent(whatsappLines.join('\n'))}`;
 
     return (
         <div className="min-h-screen bg-gray-50 font-['Poppins',sans-serif] text-gray-900 selection:bg-red-500/10">
@@ -215,15 +247,15 @@ export default function ReservationCheckinPage() {
                     <div className="flex flex-wrap gap-3">
                         <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/5">
                             <Calendar className="w-4 h-4 text-red-400" />
-                            <span className="text-sm font-semibold text-white/90">{formatSpanishDate(reservation.tour_date)}</span>
+                            <span className="text-xs sm:text-sm font-semibold text-white/90">{formatSpanishDate(reservation.tour_date)}</span>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/5">
                             <Clock className="w-4 h-4 text-red-400" />
-                            <span className="text-sm font-semibold text-white/90">{formatTime(reservation.start_time)}</span>
+                            <span className="text-xs sm:text-sm font-semibold text-white/90">{formatTime(reservation.start_time)}</span>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/5">
                             <Users className="w-4 h-4 text-red-400" />
-                            <span className="text-sm font-semibold text-white/90">{reservation.pax_count} Pasajeros</span>
+                            <span className="text-xs sm:text-sm font-semibold text-white/90">{reservation.pax_count} Pasajeros</span>
                         </div>
                     </div>
 
@@ -256,7 +288,7 @@ export default function ReservationCheckinPage() {
             </div>
 
             {/* ── Main Content ── */}
-            <main className="max-w-2xl mx-auto px-5 -mt-4 pb-20 space-y-5">
+            <main className="relative z-10 max-w-2xl mx-auto px-5 -mt-4 pb-20 space-y-5">
 
                 {/* ── Quick Info Cards Row ── */}
                 <div className="grid grid-cols-2 gap-3 animate-fade-in-up">
