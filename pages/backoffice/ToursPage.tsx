@@ -41,12 +41,18 @@ export default function ToursPage() {
 
     function handleEdit(tour: Tour) {
         setEditingTour(tour);
-        setFormData(tour);
+        // Map snake_case DB columns to camelCase form fields
+        const dbTour = tour as any;
+        setFormData({
+            ...tour,
+            isBestSeller: dbTour.is_best_seller ?? tour.isBestSeller ?? false,
+            isNew: dbTour.is_new ?? tour.isNew ?? false,
+        });
         setItinerarySteps(tour.itinerary || []);
         setPrices(tour.prices || []);
         setAddons(tour.addons || []);
         setGallery(tour.gallery || []);
-        setSelectedMeals(tour.meals || []);
+        setSelectedMeals((dbTour.meals as string[]) || []);
         setFeatures(tour.features || []);
         setActiveTab('general');
         setShowModal(true);
@@ -85,14 +91,23 @@ export default function ToursPage() {
         e.preventDefault();
 
         const payload = {
-            ...formData,
+            name: formData.name,
+            category: formData.category,
+            concept: formData.concept,
+            description: formData.description,
+            price: Number(formData.price) || 0,
+            duration: formData.duration,
+            image: formData.image,
+            format: formData.format,
+            includes: formData.includes,
+            is_best_seller: formData.isBestSeller ?? false,
+            is_new: formData.isNew ?? false,
             itinerary: itinerarySteps,
             prices: prices,
             addons: addons,
             gallery: gallery,
             meals: selectedMeals as any,
             features: features,
-            price: Number(formData.price) // Ensure numeric base price
         };
 
         let error;
@@ -248,7 +263,7 @@ export default function ToursPage() {
                             </div>
 
                             {/* Content */}
-                            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8">
+                            <form id="tour-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8">
 
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 max-w-2xl">
@@ -449,7 +464,7 @@ export default function ToursPage() {
                             </span>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
-                                <button onClick={handleSubmit} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2">
+                                <button type="submit" form="tour-form" className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2">
                                     <Save size={18} /> Guardar Tour
                                 </button>
                             </div>
