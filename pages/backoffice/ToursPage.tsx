@@ -1,11 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Tour, ItineraryStep, TourPrice, Addon } from '../../types/shared';
-import { Plus, Pencil, Trash2, X, Check, ArrowLeft, Image as ImageIcon, DollarSign, Clock, MapPin, List, Settings, Save } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, ArrowLeft, Image as ImageIcon, DollarSign, Clock, MapPin, List, Settings, Save, Search } from 'lucide-react';
+import { getCloudinaryUrl } from '../../src/utils/cloudinary';
+import cloudinaryAssets from '../../src/data/cloudinary-assets.json';
 
 type Tab = 'general' | 'media' | 'prices' | 'logistics' | 'features';
 
-const CATEGORIES = ['Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'] as const;
+interface CloudinaryAsset {
+    public_id: string;
+    display_name: string;
+    width: number;
+    height: number;
+    format: string;
+    created_at: string;
+    url: string;
+}
+
+const DEFAULT_CATEGORIES = ['Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'];
 const MEAL_TYPES = ['desayuno', 'almuerzo', 'cena', 'snacks', 'coffee_break', 'picnic'] as const;
 
 export default function ToursPage() {
@@ -23,6 +35,33 @@ export default function ToursPage() {
     const [gallery, setGallery] = useState<string[]>([]);
     const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
     const [features, setFeatures] = useState<string[]>([]);
+
+    // Category management
+    const [showNewCategory, setShowNewCategory] = useState(false);
+    const [newCategoryInput, setNewCategoryInput] = useState('');
+
+    // Image picker
+    const [showImagePicker, setShowImagePicker] = useState(false);
+    const [imagePickerTarget, setImagePickerTarget] = useState<'main' | number>('main');
+    const [imageSearch, setImageSearch] = useState('');
+
+    // Derive unique categories from existing tours + defaults
+    const categories = useMemo(() => {
+        const fromTours = tours.map(t => t.category).filter(Boolean);
+        const all = new Set([...DEFAULT_CATEGORIES, ...fromTours]);
+        return Array.from(all).sort();
+    }, [tours]);
+
+    // Filter cloudinary assets by search
+    const filteredAssets = useMemo(() => {
+        const assets = cloudinaryAssets as CloudinaryAsset[];
+        if (!imageSearch.trim()) return assets;
+        const q = imageSearch.toLowerCase();
+        return assets.filter(a =>
+            a.display_name.toLowerCase().includes(q) ||
+            a.public_id.toLowerCase().includes(q)
+        );
+    }, [imageSearch]);
 
     useEffect(() => {
         fetchTours();
@@ -54,6 +93,8 @@ export default function ToursPage() {
         setGallery(tour.gallery || []);
         setSelectedMeals((dbTour.meals as string[]) || []);
         setFeatures(tour.features || []);
+        setShowNewCategory(false);
+        setNewCategoryInput('');
         setActiveTab('general');
         setShowModal(true);
     }
@@ -75,6 +116,8 @@ export default function ToursPage() {
         setGallery([]);
         setSelectedMeals([]);
         setFeatures([]);
+        setShowNewCategory(false);
+        setNewCategoryInput('');
         setActiveTab('general');
         setShowModal(true);
     }
@@ -124,6 +167,44 @@ export default function ToursPage() {
         } else {
             setShowModal(false);
             fetchTours();
+        }
+    }
+
+    // Image picker handlers
+    function openImagePicker(target: 'main' | number) {
+        setImagePickerTarget(target);
+        setImageSearch('');
+        setShowImagePicker(true);
+    }
+
+    function selectImage(publicId: string) {
+        if (imagePickerTarget === 'main') {
+            setFormData({ ...formData, image: publicId });
+        } else {
+            const newGallery = [...gallery];
+            newGallery[imagePickerTarget] = publicId;
+            setGallery(newGallery);
+        }
+        setShowImagePicker(false);
+    }
+
+    // Category handlers
+    function handleCategoryChange(value: string) {
+        if (value === '__new__') {
+            setShowNewCategory(true);
+            setNewCategoryInput('');
+        } else {
+            setFormData({ ...formData, category: value as any });
+            setShowNewCategory(false);
+        }
+    }
+
+    function confirmNewCategory() {
+        const trimmed = newCategoryInput.trim();
+        if (trimmed) {
+            setFormData({ ...formData, category: trimmed as any });
+            setShowNewCategory(false);
+            setNewCategoryInput('');
         }
     }
 
@@ -274,9 +355,26 @@ export default function ToursPage() {
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Categoría</label>
-                                                <select value={formData.category || 'Signature'} onChange={e => setFormData({ ...formData, category: e.target.value as any })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
+                                                {showNewCategory ? (
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            autoFocus
+                                                            value={newCategoryInput}
+                                                            onChange={e => setNewCategoryInput(e.target.value)}
+                                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(); } }}
+                                                            placeholder="Nombre de la nueva categoría"
+                                                            className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                                        />
+                                                        <button type="button" onClick={confirmNewCategory} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={18} /></button>
+                                                        <button type="button" onClick={() => setShowNewCategory(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
+                                                    </div>
+                                                ) : (
+                                                    <select value={formData.category || 'Signature'} onChange={e => handleCategoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                                        <option value="__new__">+ Nueva categoría...</option>
+                                                    </select>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
@@ -313,24 +411,31 @@ export default function ToursPage() {
                                 {activeTab === 'media' && (
                                     <div className="space-y-8 max-w-2xl">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-gray-700">Imagen Principal (ID Cloudinary)</label>
-                                            <div className="flex gap-3">
+                                            <label className="text-sm font-medium text-gray-700">Imagen Principal</label>
+                                            <div className="flex gap-3 items-center">
                                                 <input type="text" value={formData.image || ''} onChange={e => setFormData({ ...formData, image: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. DSC04496_noiz4x" />
-                                                {formData.image && <img src={`https://res.cloudinary.com/dklskdjf/image/upload/w_100,h_100,c_fill/${formData.image}.jpg`} alt="Preview" className="w-10 h-10 rounded object-cover border border-gray-200" />}
+                                                <button type="button" onClick={() => openImagePicker('main')} className="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
+                                                    <ImageIcon size={16} /> Seleccionar
+                                                </button>
+                                                {formData.image && <img src={getCloudinaryUrl(formData.image, { width: 80, height: 80, crop: 'fill' })} alt="Preview" className="w-10 h-10 rounded object-cover border border-gray-200" />}
                                             </div>
-                                            <p className="text-xs text-gray-500">Usa el Public ID de Cloudinary (sin extensión).</p>
                                         </div>
 
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-gray-700">Galería de Imágenes</label>
-                                                <button type="button" onClick={addGalleryImage} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Imagen</button>
+                                                <div className="flex gap-2">
+                                                    <button type="button" onClick={() => { addGalleryImage(); setTimeout(() => openImagePicker(gallery.length), 50); }} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Seleccionar Imagen</button>
+                                                    <button type="button" onClick={addGalleryImage} className="text-xs text-gray-500 font-medium hover:text-gray-700">+ ID Manual</button>
+                                                </div>
                                             </div>
                                             <div className="space-y-2">
                                                 {gallery.map((img, idx) => (
-                                                    <div key={idx} className="flex gap-2">
+                                                    <div key={idx} className="flex gap-2 items-center">
+                                                        {img && <img src={getCloudinaryUrl(img, { width: 64, height: 64, crop: 'fill' })} alt="" className="w-8 h-8 rounded object-cover border border-gray-200 flex-shrink-0" />}
                                                         <input type="text" value={img} onChange={e => updateGalleryImage(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID" />
-                                                        <button type="button" onClick={() => removeGalleryImage(idx)} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                                                        <button type="button" onClick={() => openImagePicker(idx)} className="text-blue-500 hover:text-blue-700 p-1.5" title="Seleccionar imagen"><ImageIcon size={16} /></button>
+                                                        <button type="button" onClick={() => removeGalleryImage(idx)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
                                                 {gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imágenes en la galería.</p>}
@@ -468,6 +573,60 @@ export default function ToursPage() {
                                     <Save size={18} /> Guardar Tour
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Picker Modal */}
+            {showImagePicker && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                            <h3 className="text-lg font-bold text-gray-900">Seleccionar Imagen</h3>
+                            <button onClick={() => setShowImagePicker(false)} className="text-gray-400 hover:text-gray-600"><X size={22} /></button>
+                        </div>
+                        <div className="px-4 py-3 border-b border-gray-100">
+                            <div className="relative">
+                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    value={imageSearch}
+                                    onChange={e => setImageSearch(e.target.value)}
+                                    placeholder="Buscar por nombre o ID..."
+                                    className="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1.5">{filteredAssets.length} imagen{filteredAssets.length !== 1 ? 'es' : ''} disponible{filteredAssets.length !== 1 ? 's' : ''}</p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                                {filteredAssets.map(asset => (
+                                    <button
+                                        key={asset.public_id}
+                                        type="button"
+                                        onClick={() => selectImage(asset.public_id)}
+                                        className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+                                    >
+                                        <img
+                                            src={getCloudinaryUrl(asset.public_id, { width: 200, height: 200, crop: 'fill', quality: 'auto:low' })}
+                                            alt={asset.display_name}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                                            <span className="text-white text-[10px] leading-tight font-medium truncate w-full">{asset.display_name}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            {filteredAssets.length === 0 && (
+                                <div className="text-center py-12 text-gray-400">
+                                    <ImageIcon size={40} className="mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">No se encontraron imágenes para "{imageSearch}"</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

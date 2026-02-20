@@ -19,7 +19,7 @@ export interface Addon {
 export interface Tour {
     id: number;
     name: string;
-    category: 'Signature' | 'Lago & Momentos' | 'Cultura & Pueblos' | 'Sabores del Lago' | 'Días de Campo';
+    category: string;
     concept: string;
     description: string;
     price: number; // Display base price USD
