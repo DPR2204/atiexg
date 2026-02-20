@@ -1,30 +1,126 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import type { Reservation } from '../../types/backoffice';
 import { STATUS_CONFIG } from '../../types/backoffice';
+import { generateReportCSV } from '../../lib/generateReportCSV';
+import { generateReportPDF } from '../../lib/generateReportPDF';
+
+type DatePreset = 'today' | 'week' | 'month' | 'year' | 'custom';
+
+function getPresetRange(preset: DatePreset): { from: string; to: string } {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    switch (preset) {
+        case 'today':
+            return { from: today, to: today };
+        case 'week': {
+            const day = now.getDay();
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            return { from: monday.toISOString().split('T')[0], to: sunday.toISOString().split('T')[0] };
+        }
+        case 'month': {
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            return { from: monthStart.toISOString().split('T')[0], to: today };
+        }
+        case 'year': {
+            const yearStart = new Date(now.getFullYear(), 0, 1);
+            return { from: yearStart.toISOString().split('T')[0], to: today };
+        }
+        default:
+            return { from: today, to: today };
+    }
+}
+
+function getPreviousPeriod(from: string, to: string): { from: string; to: string } {
+    const d1 = new Date(from + 'T12:00:00');
+    const d2 = new Date(to + 'T12:00:00');
+    const days = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
+    const prevEnd = new Date(d1);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevEnd.getDate() - days + 1);
+    return { from: prevStart.toISOString().split('T')[0], to: prevEnd.toISOString().split('T')[0] };
+}
+
+const PRESET_LABELS: Record<DatePreset, string> = {
+    today: 'Hoy',
+    week: 'Semana',
+    month: 'Mes',
+    year: 'Año',
+    custom: 'Personalizado',
+};
 
 export default function DashboardPage() {
     const { agent } = useAuth();
+
+    // Date filter state
+    const defaultRange = getPresetRange('month');
+    const [activePreset, setActivePreset] = useState<DatePreset>('month');
+    const [dateFrom, setDateFrom] = useState(defaultRange.from);
+    const [dateTo, setDateTo] = useState(defaultRange.to);
+    const [appliedFrom, setAppliedFrom] = useState(defaultRange.from);
+    const [appliedTo, setAppliedTo] = useState(defaultRange.to);
+
+    // Report dropdown
+    const [showReportMenu, setShowReportMenu] = useState(false);
+    const reportMenuRef = useRef<HTMLDivElement>(null);
+
+    // Dashboard data
     const [todayReservations, setTodayReservations] = useState<Reservation[]>([]);
     const [upcomingReservations, setUpcomingReservations] = useState<Reservation[]>([]);
+    const [periodReservations, setPeriodReservations] = useState<any[]>([]);
     const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, revenue: 0 });
     const [prevStats, setPrevStats] = useState({ total: 0, revenue: 0 });
-    const [topTours, setTopTours] = useState<{ name: string, count: number }[]>([]);
-    const [agentRanking, setAgentRanking] = useState<{ name: string, amount: number, count: number }[]>([]);
+    const [topTours, setTopTours] = useState<{ name: string; count: number }[]>([]);
+    const [agentRanking, setAgentRanking] = useState<{ name: string; amount: number; count: number }[]>([]);
     const [missingBoats, setMissingBoats] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
+    // Close report dropdown on outside click
     useEffect(() => {
-        fetchDashboard();
+        function handleClick(e: MouseEvent) {
+            if (reportMenuRef.current && !reportMenuRef.current.contains(e.target as Node)) {
+                setShowReportMenu(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
-    async function fetchDashboard() {
+    useEffect(() => {
+        fetchDashboard(appliedFrom, appliedTo);
+    }, [appliedFrom, appliedTo]);
+
+    function handlePresetClick(preset: DatePreset) {
+        setActivePreset(preset);
+        if (preset !== 'custom') {
+            const range = getPresetRange(preset);
+            setDateFrom(range.from);
+            setDateTo(range.to);
+            setAppliedFrom(range.from);
+            setAppliedTo(range.to);
+        }
+    }
+
+    function handleApplyCustom() {
+        if (dateFrom && dateTo && dateFrom <= dateTo) {
+            setAppliedFrom(dateFrom);
+            setAppliedTo(dateTo);
+        }
+    }
+
+    async function fetchDashboard(rangeFrom: string, rangeTo: string) {
+        setLoading(true);
         const now = new Date();
         const today = now.toISOString().split('T')[0];
         const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
-        // 1. Today's reservations
+        // 1. Today's reservations (always today, independent of filter)
         const { data: todayData } = await supabase
             .from('reservations')
             .select('*, agent:agents(name), boat:boats(name), driver:staff!reservations_driver_id_fkey(name), guide:staff!reservations_guide_id_fkey(name)')
@@ -32,11 +128,10 @@ export default function DashboardPage() {
             .neq('status', 'cancelled')
             .order('start_time', { ascending: true });
 
-        // Check for operational issues
         const missing = (todayData || []).filter((r: any) => !r.boat_id && r.status !== 'cancelled').length;
         setMissingBoats(missing);
 
-        // 2. Upcoming
+        // 2. Upcoming (always next 7 days, independent of filter)
         const { data: upcomingData } = await supabase
             .from('reservations')
             .select('*, agent:agents(name)')
@@ -46,65 +141,53 @@ export default function DashboardPage() {
             .order('tour_date', { ascending: true })
             .limit(10);
 
-        // 3. Current Month Stats
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        const { data: monthData } = await supabase
+        // 3. Period Stats (filtered by date range)
+        const { data: periodData } = await supabase
             .from('reservations')
-            .select('status, total_amount, paid_amount, tour_name')
-            .gte('tour_date', monthStart)
-            .neq('status', 'cancelled');
+            .select('id, status, total_amount, paid_amount, tour_name, tour_date, start_time, pax_count, agent:agents(name)')
+            .gte('tour_date', rangeFrom)
+            .lte('tour_date', rangeTo)
+            .neq('status', 'cancelled')
+            .order('tour_date', { ascending: true });
 
-        const total = monthData?.length || 0;
-        const pending = monthData?.filter(r => r.status === 'offered' || r.status === 'reserved').length || 0;
-        const confirmed = monthData?.filter(r => r.status === 'paid' || r.status === 'in_progress' || r.status === 'completed').length || 0;
+        const rows = periodData || [];
+        setPeriodReservations(rows);
 
+        const total = rows.length;
+        const pending = rows.filter(r => r.status === 'offered' || r.status === 'reserved').length;
+        const confirmed = rows.filter(r => r.status === 'paid' || r.status === 'in_progress' || r.status === 'completed').length;
+        const revenue = rows.reduce((sum, r) => sum + (r.paid_amount || 0), 0);
 
-        const revenue = monthData?.reduce((sum, r) => sum + (r.paid_amount || 0), 0) || 0;
-
-        // Calculate Agent Ranking (Total Sales)
-        // We use total_amount for ranking sales volume
-        const agentSales: Record<string, { amount: number, count: number }> = {};
-        // We need to fetch agent names for this, let's grab them from a separate query or join if possible
-        // Actually, let's fetch montData with agent names
-        const { data: monthDataWithAgents } = await supabase
-            .from('reservations')
-            .select('total_amount, agent:agents(name)')
-            .gte('tour_date', monthStart)
-            .neq('status', 'cancelled');
-
-        if (monthDataWithAgents) {
-            monthDataWithAgents.forEach((r: any) => {
-                const name = r.agent?.name || 'Desconocido';
-                if (!agentSales[name]) agentSales[name] = { amount: 0, count: 0 };
-                agentSales[name].amount += (r.total_amount || 0);
-                agentSales[name].count += 1;
-            });
-        }
-
+        // Agent Ranking
+        const agentSales: Record<string, { amount: number; count: number }> = {};
+        rows.forEach((r: any) => {
+            const name = r.agent?.name || 'Desconocido';
+            if (!agentSales[name]) agentSales[name] = { amount: 0, count: 0 };
+            agentSales[name].amount += r.total_amount || 0;
+            agentSales[name].count += 1;
+        });
         const ranking = Object.entries(agentSales)
             .map(([name, data]) => ({ name, ...data }))
             .sort((a, b) => b.amount - a.amount)
             .slice(0, 5);
 
-        // Calculate Top Tours
+        // Top Tours
         const tourCounts: Record<string, number> = {};
-        monthData?.forEach(r => {
+        rows.forEach(r => {
             tourCounts[r.tour_name] = (tourCounts[r.tour_name] || 0) + 1;
         });
         const top = Object.entries(tourCounts)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
+            .slice(0, 5)
             .map(([name, count]) => ({ name, count }));
 
-        // 4. Previous Month Stats (for comparison)
-        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-        const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-
+        // 4. Previous Period Stats (for comparison)
+        const prev = getPreviousPeriod(rangeFrom, rangeTo);
         const { data: prevData } = await supabase
             .from('reservations')
             .select('total_amount, paid_amount')
-            .gte('tour_date', prevMonthStart)
-            .lte('tour_date', prevMonthEnd)
+            .gte('tour_date', prev.from)
+            .lte('tour_date', prev.to)
             .neq('status', 'cancelled');
 
         const prevTotal = prevData?.length || 0;
@@ -119,22 +202,66 @@ export default function DashboardPage() {
         setLoading(false);
     }
 
-    if (loading) {
-        return <div className="bo-loading"><div className="bo-loading-spinner" /></div>;
+    // Report handlers
+    function handleDownloadCSV() {
+        setShowReportMenu(false);
+        const rows = periodReservations.map((r: any) => ({
+            id: r.id,
+            tour_name: r.tour_name,
+            tour_date: r.tour_date,
+            start_time: r.start_time,
+            pax_count: r.pax_count,
+            status: r.status,
+            agent_name: r.agent?.name || 'Desconocido',
+            total_amount: r.total_amount || 0,
+            paid_amount: r.paid_amount || 0,
+        }));
+        generateReportCSV(rows, appliedFrom, appliedTo);
     }
 
-    // Helper for trend calculation
+    function handleDownloadPDF() {
+        setShowReportMenu(false);
+        const rows = periodReservations.map((r: any) => ({
+            id: r.id,
+            tour_name: r.tour_name,
+            tour_date: r.tour_date,
+            start_time: r.start_time,
+            pax_count: r.pax_count,
+            status: r.status,
+            agent_name: r.agent?.name || 'Desconocido',
+            total_amount: r.total_amount || 0,
+            paid_amount: r.paid_amount || 0,
+        }));
+        const tourRanking = topTours.map(t => ({ name: t.name, count: t.count }));
+        const agentRank = agentRanking.map(a => ({ name: a.name, count: a.count, amount: a.amount }));
+        generateReportPDF(rows, stats, tourRanking, agentRank, appliedFrom, appliedTo);
+    }
+
+    // Trend helper
     const getTrend = (current: number, previous: number) => {
-        if (previous === 0) return { val: '+100%', up: true };
+        if (previous === 0) return { val: current > 0 ? '+100%' : '0%', up: current > 0 };
         const change = ((current - previous) / previous) * 100;
         return {
             val: `${change > 0 ? '+' : ''}${change.toFixed(1)}%`,
-            up: change >= 0
+            up: change >= 0,
         };
     };
 
     const tourTrend = getTrend(stats.total, prevStats.total);
     const revTrend = getTrend(stats.revenue, prevStats.revenue);
+
+    // Period label
+    const fmtShortDate = (d: string) => {
+        const dt = new Date(d + 'T12:00:00');
+        return dt.toLocaleDateString('es-GT', { day: 'numeric', month: 'short' });
+    };
+    const periodLabel = appliedFrom === appliedTo
+        ? fmtShortDate(appliedFrom)
+        : `${fmtShortDate(appliedFrom)} – ${fmtShortDate(appliedTo)}`;
+
+    if (loading) {
+        return <div className="bo-loading"><div className="bo-loading-spinner" /></div>;
+    }
 
     return (
         <div className="bo-dashboard">
@@ -149,15 +276,91 @@ export default function DashboardPage() {
                 )}
             </header>
 
+            {/* Date Filter Bar */}
+            <div className="bo-date-filter-bar">
+                <div className="bo-date-filter-presets">
+                    {(Object.keys(PRESET_LABELS) as DatePreset[]).map(preset => (
+                        <button
+                            key={preset}
+                            className={`bo-date-preset-btn ${activePreset === preset ? 'bo-date-preset-btn--active' : ''}`}
+                            onClick={() => handlePresetClick(preset)}
+                        >
+                            {PRESET_LABELS[preset]}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="bo-date-filter-inputs">
+                    <label className="bo-date-input-group">
+                        <span className="bo-date-input-label">Desde</span>
+                        <input
+                            type="date"
+                            className="bo-input bo-date-input"
+                            value={dateFrom}
+                            onChange={e => {
+                                setDateFrom(e.target.value);
+                                setActivePreset('custom');
+                            }}
+                        />
+                    </label>
+                    <label className="bo-date-input-group">
+                        <span className="bo-date-input-label">Hasta</span>
+                        <input
+                            type="date"
+                            className="bo-input bo-date-input"
+                            value={dateTo}
+                            onChange={e => {
+                                setDateTo(e.target.value);
+                                setActivePreset('custom');
+                            }}
+                        />
+                    </label>
+                    {activePreset === 'custom' && (
+                        <button className="bo-btn bo-btn--primary bo-date-apply-btn" onClick={handleApplyCustom}>
+                            Aplicar
+                        </button>
+                    )}
+                </div>
+
+                {/* Report Download */}
+                <div className="bo-report-dropdown" ref={reportMenuRef}>
+                    <button
+                        className="bo-btn bo-btn--outline bo-report-btn"
+                        onClick={() => setShowReportMenu(!showReportMenu)}
+                    >
+                        <span className="bo-report-btn-icon">↓</span>
+                        Descargar Reporte
+                    </button>
+                    {showReportMenu && (
+                        <div className="bo-report-menu">
+                            <button className="bo-report-menu-item" onClick={handleDownloadCSV}>
+                                <span className="bo-report-menu-icon">📊</span>
+                                <div>
+                                    <div className="bo-report-menu-title">CSV / Excel</div>
+                                    <div className="bo-report-menu-desc">Datos tabulares para hojas de cálculo</div>
+                                </div>
+                            </button>
+                            <button className="bo-report-menu-item" onClick={handleDownloadPDF}>
+                                <span className="bo-report-menu-icon">📄</span>
+                                <div>
+                                    <div className="bo-report-menu-title">PDF</div>
+                                    <div className="bo-report-menu-desc">Reporte visual para imprimir</div>
+                                </div>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Stats cards */}
             <div className="bo-stats-grid">
                 <div className="bo-stat-card">
                     <div className="bo-stat-icon">⛵</div>
                     <div className="bo-stat-info">
-                        <span className="bo-stat-label">Tours Mes</span>
+                        <span className="bo-stat-label">Tours ({periodLabel})</span>
                         <span className="bo-stat-value">{stats.total}</span>
                         <span className={`bo-stat-trend ${tourTrend.up ? 'bo-trend-up' : 'bo-trend-down'}`}>
-                            {tourTrend.val} vs mes anterior
+                            {tourTrend.val} vs periodo anterior
                         </span>
                     </div>
                 </div>
@@ -178,10 +381,10 @@ export default function DashboardPage() {
                 <div className="bo-stat-card">
                     <div className="bo-stat-icon bo-stat-icon--info">$</div>
                     <div className="bo-stat-info">
-                        <span className="bo-stat-label">Ingresos Mes</span>
+                        <span className="bo-stat-label">Ingresos ({periodLabel})</span>
                         <span className="bo-stat-value">${stats.revenue.toLocaleString()}</span>
                         <span className={`bo-stat-trend ${revTrend.up ? 'bo-trend-up' : 'bo-trend-down'}`}>
-                            {revTrend.val} vs mes anterior
+                            {revTrend.val} vs periodo anterior
                         </span>
                     </div>
                 </div>
@@ -244,7 +447,7 @@ export default function DashboardPage() {
                         {topTours.length === 0 ? (
                             <div className="bo-empty-state">
                                 <span className="bo-empty-state-icon">📊</span>
-                                <p>Sin datos este mes</p>
+                                <p>Sin datos en este periodo</p>
                             </div>
                         ) : (
                             <div className="bo-top-tours">

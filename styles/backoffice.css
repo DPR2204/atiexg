@@ -3309,3 +3309,211 @@
 .bo-expanded-body {
   padding: 1.5rem;
 }
+
+/* ============================================
+   Date Filter Bar & Report Download
+   ============================================ */
+
+.bo-date-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius-lg);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  box-shadow: var(--bo-shadow-sm);
+}
+
+.bo-date-filter-presets {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.bo-date-preset-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--bo-border);
+  background: var(--bo-surface);
+  color: var(--bo-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--bo-font);
+  border-radius: var(--bo-radius-full);
+  cursor: pointer;
+  transition: all var(--bo-transition);
+  white-space: nowrap;
+}
+
+.bo-date-preset-btn:hover {
+  background: var(--bo-accent-light);
+  color: var(--bo-accent);
+  border-color: var(--bo-accent);
+}
+
+.bo-date-preset-btn--active {
+  background: var(--bo-accent);
+  color: #fff;
+  border-color: var(--bo-accent);
+}
+
+.bo-date-preset-btn--active:hover {
+  background: var(--bo-accent-hover);
+  color: #fff;
+}
+
+.bo-date-filter-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.bo-date-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bo-date-input-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bo-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bo-date-input {
+  width: 150px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.bo-date-apply-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+}
+
+/* Report Dropdown */
+.bo-report-dropdown {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.bo-report-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  white-space: nowrap;
+}
+
+.bo-report-btn-icon {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bo-report-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 260px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius);
+  box-shadow: var(--bo-shadow-md);
+  z-index: 100;
+  overflow: hidden;
+  animation: bo-dropdown-in 0.12s ease-out;
+}
+
+@keyframes bo-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bo-report-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--bo-font);
+  transition: background var(--bo-transition);
+}
+
+.bo-report-menu-item:hover {
+  background: var(--bo-accent-light);
+}
+
+.bo-report-menu-item + .bo-report-menu-item {
+  border-top: 1px solid var(--bo-border);
+}
+
+.bo-report-menu-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.bo-report-menu-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bo-text);
+}
+
+.bo-report-menu-desc {
+  font-size: 11px;
+  color: var(--bo-text-muted);
+  margin-top: 1px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bo-date-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .bo-date-filter-presets {
+    flex-wrap: wrap;
+  }
+
+  .bo-date-filter-inputs {
+    flex-wrap: wrap;
+  }
+
+  .bo-date-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .bo-date-input-group {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .bo-report-dropdown {
+    margin-left: 0;
+  }
+
+  .bo-report-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bo-report-menu {
+    right: auto;
+    left: 0;
+    width: 100%;
+  }
+}
