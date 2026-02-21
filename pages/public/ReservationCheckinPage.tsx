@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { downloadICS, googleCalendarUrl, outlookCalendarUrl } from '../../lib/calendar';
 import {
     Loader2, User, Mail, Phone, ChevronRight, Check, Calendar, Users,
     MapPin, Clock, Info, ArrowLeft, Edit2, MessageSquare, PhoneCall,
     Anchor, Waves, Compass, CreditCard, Sparkles, Utensils, X,
-    Shield, ChevronDown, AlertTriangle
+    Shield, ChevronDown, AlertTriangle, CalendarPlus, Download
 } from 'lucide-react';
 
 function formatSpanishDate(dateStr: string): string {
@@ -25,6 +26,121 @@ function formatTime(timeStr: string | undefined): string {
     return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
+
+function AddToCalendarSection({ reservation }: { reservation: any }) {
+    const [open, setOpen] = useState(false);
+
+    const tourName = reservation.custom_tour_data?.tour_name || reservation.tour_name;
+    const calendarParams = {
+        title: `${tourName} — Atitlán Experiences`,
+        date: reservation.tour_date,
+        startTime: reservation.start_time,
+        durationHours: 4,
+        description: [
+            `Tour: ${tourName}`,
+            `Pasajeros: ${reservation.pax_count}`,
+            `Reserva #${reservation.id}`,
+            reservation.agent_name ? `Agente: ${reservation.agent_name}` : '',
+            '',
+            'Atitlán Experiences — Lake Atitlán, Guatemala',
+        ].filter(Boolean).join('\n'),
+        location: 'Lake Atitlán, Guatemala',
+    };
+
+    return (
+        <div className="animate-fade-in-up">
+            <button
+                onClick={() => setOpen(!open)}
+                className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center justify-between hover:border-gray-200 transition-all active:scale-[0.99] group"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center group-hover:bg-red-100 transition-colors">
+                        <CalendarPlus className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                        <p className="text-sm font-bold text-gray-900">Agregar al Calendario</p>
+                        <p className="text-[11px] text-gray-400">Google, Apple, Outlook y más</p>
+                    </div>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-300 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div className="mt-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-3 space-y-2 animate-fade-in-up">
+                    {/* Google Calendar */}
+                    <a
+                        href={googleCalendarUrl(calendarParams)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group/item"
+                    >
+                        <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                <path d="M18.316 5.684H5.684v12.632h12.632V5.684z" fill="#fff"/>
+                                <path d="M18.316 23.368l4.632-4.632h-4.632v4.632z" fill="#EA4335"/>
+                                <path d="M23 18.684V5.684l-4.684 4.632v8.368H23z" fill="#FBBC04"/>
+                                <path d="M18.316 18.684H5.684l-4.632 4.684h22.264l-4.632-4.684h-.368z" fill="#34A853"/>
+                                <path d="M1.052 23.368l4.632-4.684V5.684L1.052 1.052v22.316z" fill="#188038"/>
+                                <path d="M5.684 5.684h12.632L23 1.052H1.052l4.632 4.632z" fill="#1967D2"/>
+                                <path d="M8.5 16.5v-1.1l2.8-2.5c.3-.25.5-.5.5-.85 0-.5-.35-.85-.95-.85-.55 0-.9.3-1.05.75l-1.1-.45c.25-.8 1-1.4 2.15-1.4 1.2 0 2.05.7 2.05 1.75 0 .6-.25 1.1-.75 1.55l-2 1.75h2.85v1.1H8.5z" fill="#1967D2"/>
+                                <path d="M15.2 16.5v-1.1l1.4-1.4c.25-.25.4-.5.4-.8 0-.45-.3-.75-.8-.75-.45 0-.75.25-.9.6l-1-.45c.3-.7.95-1.2 1.9-1.2 1.1 0 1.8.65 1.8 1.55 0 .55-.2.95-.6 1.35l-1.05 1.05h1.75v1.1H15.2z" fill="#1967D2"/>
+                            </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">Google Calendar</p>
+                            <p className="text-[11px] text-gray-400">Abrir en Google Calendar</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover/item:text-gray-500 transition-colors" />
+                    </a>
+
+                    {/* Outlook */}
+                    <a
+                        href={outlookCalendarUrl(calendarParams)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group/item"
+                    >
+                        <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                <path d="M24 7.387v10.478c0 .23-.08.424-.238.58a.795.795 0 01-.582.233h-8.304v-12.1h8.304c.224 0 .416.078.578.234A.79.79 0 0124 7.387z" fill="#0364B8"/>
+                                <path d="M14.876 6.578v12.1l-1.24.62-5.528 2.76c-.16.08-.308.12-.444.12a.73.73 0 01-.356-.088.705.705 0 01-.356-.632V5.79c0-.16.04-.308.12-.444a.82.82 0 01.356-.312l5.828-2.912c.192-.096.372-.128.54-.096.168.032.312.112.432.24.12.128.2.272.24.432.04.16.04.316 0 .468v3.412z" fill="#0A2767"/>
+                                <path d="M14.876 6.578H7.692v10.616h7.184V6.578z" fill="#28A8EA"/>
+                                <path d="M11.74 9.43a3.486 3.486 0 00-1.776-.452c-2.0 0-3.296 1.548-3.296 3.3 0 1.848 1.34 3.344 3.34 3.344.68 0 1.268-.164 1.76-.472v-1.42a2.049 2.049 0 01-1.588.716c-1.2 0-2.008-.9-2.008-2.14 0-1.272.856-2.18 2.04-2.18.596 0 1.08.212 1.528.648V9.43z" fill="#0078D4"/>
+                                <path d="M14.876 6.578v12.1H7.692l7.184-12.1z" fill="url(#outlook_grad)" fillOpacity="0.2"/>
+                                <defs>
+                                    <linearGradient id="outlook_grad" x1="7.692" y1="12.628" x2="14.876" y2="12.628">
+                                        <stop stopColor="#000" stopOpacity="0"/>
+                                        <stop offset="1" stopColor="#000" stopOpacity=".5"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">Outlook</p>
+                            <p className="text-[11px] text-gray-400">Abrir en Outlook Calendar</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover/item:text-gray-500 transition-colors" />
+                    </a>
+
+                    {/* Download .ics (Apple Calendar / any app) */}
+                    <button
+                        onClick={() => downloadICS(calendarParams)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group/item text-left"
+                    >
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                            <Download className="w-4.5 h-4.5 text-gray-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">Descargar .ics</p>
+                            <p className="text-[11px] text-gray-400">Apple Calendar, Outlook Desktop y otros</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover/item:text-gray-500 transition-colors" />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function ReservationCheckinPage() {
     const { token } = useParams();
@@ -310,6 +426,9 @@ export default function ReservationCheckinPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* ── Add to Calendar ── */}
+                <AddToCalendarSection reservation={reservation} />
 
                 {/* ── Logistics Cards ── */}
                 {(reservation.boat_name || reservation.driver_name || reservation.guide_name) && (
