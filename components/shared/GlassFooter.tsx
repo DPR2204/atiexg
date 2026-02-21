@@ -8,7 +8,6 @@ const FOOTER_LINKS = [
       { label: 'Inicio', path: '/' },
       { label: 'Catálogo', path: '/catalogo' },
       { label: 'Galería', path: '/galeria' },
-      { label: 'Back Office', path: '/backoffice'}, 
     ],
   },
   {
@@ -16,6 +15,7 @@ const FOOTER_LINKS = [
     links: [
       { label: 'Conócenos', path: '/conocenos' },
       { label: 'Contacto', path: '/contacto' },
+      { label: 'Back Office', path: '/backoffice'}, 
     ],
   },
 ];
