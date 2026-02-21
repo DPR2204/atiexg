@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateReservationPDF } from '../../lib/generatePDF';
-import { updateReservation } from '../../lib/reservation-logic';
+import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
 import type { CustomTourData, Tour } from '../../types/shared';
 import { STATUS_CONFIG, MEAL_TYPE_LABELS, AUDIT_ACTION_LABELS } from '../../types/backoffice';
@@ -486,9 +486,14 @@ export default function ReservasPage() {
     }
 
     async function saveQuickMenu(id: number) {
+        // Trim option names on save (not during typing, to allow spaces)
+        const cleanedMenu = quickMenu.map(meal => ({
+            ...meal,
+            options: meal.options.map(s => s.trim()).filter(Boolean)
+        }));
         const { error } = await supabase
             .from('reservations')
-            .update({ meal_options: { available_meals: quickMenu } })
+            .update({ meal_options: { available_meals: cleanedMenu } })
             .eq('id', id);
 
         if (error) alert('Error al guardar menú');
@@ -1059,7 +1064,7 @@ export default function ReservasPage() {
                                                 </button>
                                             </td>
                                             <td>
-                                                <span className="bo-cell-mono">#{res.id}</span>
+                                                <span className="bo-cell-mono" title={`ID: ${res.id}`}>{formatReservationCode(res.id, res.tour_date)}</span>
                                             </td>
                                             <td>
                                                 <div className="bo-cell-bold">{res.tour_name}</div>
@@ -1326,7 +1331,7 @@ export default function ReservasPage() {
                                                                                         value={meal.options?.join(', ')}
                                                                                         onChange={e => {
                                                                                             const newMenu = [...quickMenu];
-                                                                                            newMenu[idx].options = e.target.value.split(',').map(s => s.trim());
+                                                                                            newMenu[idx].options = e.target.value.split(',');
                                                                                             setQuickMenu(newMenu);
                                                                                         }}
                                                                                     />

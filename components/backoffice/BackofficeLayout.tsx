@@ -161,6 +161,17 @@ export default function BackofficeLayout() {
                     ))}
                 </nav>
 
+                {/* Collapse toggle (inside sidebar) */}
+                <div className="bo-sidebar-collapse">
+                    <button
+                        className="bo-sidebar-collapse-btn"
+                        onClick={() => setCollapsed(!collapsed)}
+                        title={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+                    >
+                        {collapsed ? '▶' : '◀'}
+                    </button>
+                </div>
+
                 {/* User footer */}
                 <div className="bo-sidebar-footer">
                     <div className="bo-user-card">
@@ -221,13 +232,6 @@ export default function BackofficeLayout() {
                             onClick={() => setSidebarOpen(true)}
                         >
                             ☰
-                        </button>
-                        <button
-                            className="bo-desktop-toggle"
-                            onClick={() => setCollapsed(!collapsed)}
-                            title={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
-                        >
-                            {collapsed ? '▶' : '◀'}
                         </button>
                         <div className="bo-breadcrumb">
                             <span className="bo-breadcrumb-sep">Atitlán EXG</span>

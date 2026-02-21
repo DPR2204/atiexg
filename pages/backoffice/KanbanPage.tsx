@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
     DndContext,
@@ -22,7 +23,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
-import { updateReservation } from '../../lib/reservation-logic';
+import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import { Reservation, ReservationStatus, STATUS_CONFIG } from '../../types/backoffice';
 import { LayoutGrid, Loader2, Calendar, User, Ship } from 'lucide-react';
 
@@ -32,9 +33,10 @@ interface KanbanCardProps {
     key?: React.Key;
     reservation: Reservation;
     isDragging?: boolean;
+    onEdit?: (id: number) => void;
 }
 
-const KanbanCard = ({ reservation, isDragging }: KanbanCardProps) => {
+const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
     const {
         attributes,
         listeners,
@@ -64,10 +66,11 @@ const KanbanCard = ({ reservation, isDragging }: KanbanCardProps) => {
             {...attributes}
             {...listeners}
             className={`bo-kanban-card ${isDragging ? 'is-dragging' : ''}`}
+            onDoubleClick={() => onEdit?.(reservation.id)}
         >
             <div className="bo-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span className="bo-text-mono bo-text-xs bo-text-muted">
-                    #{reservation.id.toString().slice(-4)}
+                    {formatReservationCode(reservation.id, reservation.tour_date)}
                 </span>
                 <span className="bo-badge" style={{ backgroundColor: config.color + '10', color: config.color }}>
                     {config.label}
@@ -108,9 +111,10 @@ interface KanbanColumnProps {
     status: ReservationStatus;
     reservations: Reservation[];
     id: string;
+    onEdit?: (id: number) => void;
 }
 
-const KanbanColumn = ({ status, reservations, id }: KanbanColumnProps) => {
+const KanbanColumn = ({ status, reservations, id, onEdit }: KanbanColumnProps) => {
     const { setNodeRef } = useSortable({
         id,
         data: {
@@ -136,7 +140,7 @@ const KanbanColumn = ({ status, reservations, id }: KanbanColumnProps) => {
             <div ref={setNodeRef} className="bo-kanban-body">
                 <SortableContext items={reservations.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     {reservations.map((res) => (
-                        <KanbanCard key={res.id} reservation={res} />
+                        <KanbanCard key={res.id} reservation={res} onEdit={onEdit} />
                     ))}
                 </SortableContext>
                 {reservations.length === 0 && (
@@ -155,9 +159,14 @@ const COLUMNS: ReservationStatus[] = ['offered', 'reserved', 'paid', 'in_progres
 
 export default function KanbanPage() {
     const { agent } = useAuth();
+    const navigate = useNavigate();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeId, setActiveId] = useState<number | null>(null);
+
+    function handleEditReservation(id: number) {
+        navigate(`/backoffice/reservas?editId=${id}`);
+    }
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -295,6 +304,7 @@ export default function KanbanPage() {
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
             >
+                <p style={{ fontSize: '0.75rem', color: 'var(--bo-text-muted)', marginBottom: '0.5rem' }}>Doble clic en una tarjeta para editarla</p>
                 <div className="bo-kanban-board">
                     {COLUMNS.map((col) => (
                         <KanbanColumn
@@ -302,6 +312,7 @@ export default function KanbanPage() {
                             id={col}
                             status={col}
                             reservations={reservations.filter((r) => r.status === col)}
+                            onEdit={handleEditReservation}
                         />
                     ))}
                 </div>
