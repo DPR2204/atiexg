@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { formatReservationCode } from '../../lib/reservation-logic';
 import { downloadICS, googleCalendarUrl, outlookCalendarUrl } from '../../lib/calendar';
 import {
     Loader2, User, Mail, Phone, ChevronRight, Check, Calendar, Users,
@@ -26,20 +27,53 @@ function formatTime(timeStr: string | undefined): string {
     return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
+/**
+ * Extract the end time from itinerary (last step's time).
+ * Itinerary steps have a `time` field like "12:00 PM" or "4:00 PM".
+ */
+function getEndTimeFromItinerary(reservation: any): string | null {
+    const itinerary = reservation.custom_tour_data?.itinerary || reservation.tour_itinerary;
+    if (!itinerary || !Array.isArray(itinerary) || itinerary.length === 0) return null;
+    const lastStep = itinerary[itinerary.length - 1];
+    return lastStep?.time || null;
+}
+
 
 function AddToCalendarSection({ reservation }: { reservation: any }) {
     const [open, setOpen] = useState(false);
 
     const tourName = reservation.custom_tour_data?.tour_name || reservation.tour_name;
+    // Estimate duration from itinerary if possible
+    const endTimeStr = getEndTimeFromItinerary(reservation);
+    let durationHours = 4; // default
+    if (endTimeStr && reservation.start_time) {
+        // Try to parse end time (could be "12:00 PM" or "16:00")
+        const parseHour = (t: string): number => {
+            const match12 = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+            if (match12) {
+                let h = parseInt(match12[1]);
+                const m = parseInt(match12[2]);
+                if (match12[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+                if (match12[3].toUpperCase() === 'AM' && h === 12) h = 0;
+                return h + m / 60;
+            }
+            const match24 = t.match(/(\d{1,2}):(\d{2})/);
+            if (match24) return parseInt(match24[1]) + parseInt(match24[2]) / 60;
+            return 0;
+        };
+        const startH = parseHour(reservation.start_time);
+        const endH = parseHour(endTimeStr);
+        if (endH > startH) durationHours = Math.ceil(endH - startH);
+    }
     const calendarParams = {
         title: `${tourName} — Atitlán Experiences`,
         date: reservation.tour_date,
         startTime: reservation.start_time,
-        durationHours: 4,
+        durationHours,
         description: [
             `Tour: ${tourName}`,
             `Pasajeros: ${reservation.pax_count}`,
-            `Reserva #${reservation.id}`,
+            `Reserva ${formatReservationCode(reservation.id, reservation.tour_date)}`,
             reservation.agent_name ? `Agente: ${reservation.agent_name}` : '',
             '',
             'Atitlán Experiences — Lake Atitlán, Guatemala',
@@ -289,7 +323,7 @@ export default function ReservationCheckinPage() {
     const whatsappLines = [
         `¡Hola! Escribo sobre mi reserva:`,
         ``,
-        `*Reserva #${reservation.id}*`,
+        `*Reserva ${formatReservationCode(reservation.id, reservation.tour_date)}*`,
         `*Tour:* ${reservation.custom_tour_data?.tour_name || reservation.tour_name}`,
         `*Fecha:* ${formatSpanishDate(reservation.tour_date)}`,
         `*Hora:* ${formatTime(reservation.start_time)}`,
@@ -367,7 +401,12 @@ export default function ReservationCheckinPage() {
                         </div>
                         <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/5">
                             <Clock className="w-4 h-4 text-red-400" />
-                            <span className="text-xs sm:text-sm font-semibold text-white/90">{formatTime(reservation.start_time)}</span>
+                            <span className="text-xs sm:text-sm font-semibold text-white/90">
+                                {formatTime(reservation.start_time)}
+                                {getEndTimeFromItinerary(reservation) && (
+                                    <> — {getEndTimeFromItinerary(reservation)}</>
+                                )}
+                            </span>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/5">
                             <Users className="w-4 h-4 text-red-400" />

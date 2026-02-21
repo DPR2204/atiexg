@@ -393,6 +393,42 @@
   opacity: 1;
 }
 
+/* Sidebar collapse button */
+.bo-sidebar-collapse {
+  padding: 0.25rem 0.5rem;
+  margin-top: auto;
+}
+
+.bo-sidebar-collapse-btn {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--bo-sidebar-border);
+  border-radius: var(--bo-radius-sm);
+  padding: 0.375rem;
+  cursor: pointer;
+  color: var(--bo-text-muted);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--bo-transition);
+}
+
+.bo-sidebar-collapse-btn:hover {
+  background: rgba(33, 35, 42, 0.06);
+  color: var(--bo-text);
+}
+
+.bo-sidebar--collapsed .bo-sidebar-collapse-btn {
+  padding: 0.375rem 0;
+}
+
+@media (max-width: 1024px) {
+  .bo-sidebar-collapse {
+    display: none;
+  }
+}
+
 /* Sidebar footer */
 .bo-sidebar-footer {
   padding: 0.75rem 0.5rem;
@@ -516,12 +552,14 @@
   padding: 0.25rem;
 }
 
+/* Legacy - kept for backwards compat, now using .bo-sidebar-collapse-btn */
 .bo-desktop-toggle {
   background: none;
   border: none;
   font-size: 0.875rem;
   color: var(--bo-text-muted);
   cursor: pointer;
+  display: none;
   padding: 0.25rem;
   border-radius: var(--bo-radius-sm);
   display: flex;
@@ -1705,6 +1743,42 @@
 
 .bo-week-grid .bo-cal-cell:last-child {
   border-right: none;
+}
+
+/* Week view tour cards */
+.bo-week-card {
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--bo-radius-xs);
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+  transition: transform var(--bo-transition), box-shadow var(--bo-transition);
+}
+
+.bo-week-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--bo-shadow-sm);
+}
+
+.bo-week-card-time {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: var(--bo-font-mono);
+  opacity: 0.9;
+  margin-bottom: 1px;
+}
+
+.bo-week-card-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--bo-text);
+}
+
+.bo-week-card-meta {
+  font-size: 0.625rem;
+  color: var(--bo-text-secondary);
 }
 
 .bo-empty-slot {

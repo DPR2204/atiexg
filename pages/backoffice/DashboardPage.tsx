@@ -25,7 +25,8 @@ function getPresetRange(preset: DatePreset): { from: string; to: string } {
         }
         case 'month': {
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            return { from: monthStart.toISOString().split('T')[0], to: today };
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            return { from: monthStart.toISOString().split('T')[0], to: monthEnd.toISOString().split('T')[0] };
         }
         case 'year': {
             const yearStart = new Date(now.getFullYear(), 0, 1);

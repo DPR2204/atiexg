@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { DndContext, useDraggable, useDroppable, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
-import { updateReservation } from '../../lib/reservation-logic';
+import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import type { Reservation } from '../../types/backoffice';
 import { STATUS_CONFIG, type ReservationStatus } from '../../types/backoffice';
 
@@ -76,6 +77,7 @@ function DroppableDay({ dateStr, dayNumber, isToday, isSelected, children, onSel
 
 export default function CalendarioPage() {
     const { agent } = useAuth();
+    const navigate = useNavigate();
     const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -88,7 +90,7 @@ export default function CalendarioPage() {
 
     useEffect(() => {
         fetchReservations();
-    }, [year, month, viewMode]);
+    }, [year, month, viewMode, currentDate.toISOString()]);
 
     async function fetchReservations() {
         setLoading(true);
@@ -98,13 +100,13 @@ export default function CalendarioPage() {
             startStr = new Date(year, month, 1).toISOString().split('T')[0];
             endStr = new Date(year, month + 1, 0).toISOString().split('T')[0];
         } else {
-            // Week view: start of current week
+            // Week view: start of current week (Sunday)
             const curr = new Date(currentDate);
-            const first = curr.getDate() - curr.getDay();
-            const firstDay = new Date(curr.setDate(first));
-            const lastDay = new Date(curr.setDate(curr.getDate() + 6));
-            startStr = firstDay.toISOString().split('T')[0];
-            endStr = lastDay.toISOString().split('T')[0];
+            const dayOfWeek = curr.getDay();
+            const sunday = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() - dayOfWeek);
+            const saturday = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + 6);
+            startStr = sunday.toISOString().split('T')[0];
+            endStr = saturday.toISOString().split('T')[0];
         }
 
         const { data } = await supabase
@@ -247,9 +249,9 @@ export default function CalendarioPage() {
                                 {/* Week View Implementation */}
                                 <div className="bo-week-header">
                                     {Array.from({ length: 7 }).map((_, i) => {
-                                        const date = new Date(currentDate);
-                                        const day = date.getDate() - date.getDay() + i;
-                                        const d = new Date(date.setDate(day));
+                                        const base = new Date(currentDate);
+                                        const dayOfWeek = base.getDay();
+                                        const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - dayOfWeek + i);
                                         return (
                                             <div key={i} className="bo-week-col-header">
                                                 <span>{DAYS_ES[i]}</span>
@@ -260,17 +262,30 @@ export default function CalendarioPage() {
                                 </div>
                                 <div className="bo-week-grid">
                                     {Array.from({ length: 7 }).map((_, i) => {
-                                        const date = new Date(currentDate);
-                                        const day = date.getDate() - date.getDay() + i;
-                                        const dateStr = new Date(date.setDate(day)).toISOString().split('T')[0];
+                                        const base = new Date(currentDate);
+                                        const dayOfWeek = base.getDay();
+                                        const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - dayOfWeek + i);
+                                        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                                         const dayRes = reservations.filter(r => r.tour_date === dateStr);
+                                        const todayStr = new Date().toISOString().split('T')[0];
 
                                         return (
                                             // @ts-ignore
-                                            <DroppableDay key={i} dateStr={dateStr} dayNumber={null} isToday={dateStr === new Date().toISOString().split('T')[0]}>
+                                            <DroppableDay key={i} dateStr={dateStr} dayNumber={null} isToday={dateStr === todayStr}>
                                                 {/* @ts-ignore */}
-                                                {dayRes.map(res => <DraggableReservation key={res.id} res={res} />)}
-                                                {dayRes.length === 0 && <div className="bo-empty-slot">-</div>}
+                                                {dayRes.map(res => (
+                                                    <div key={res.id} className="bo-week-card" style={{
+                                                        backgroundColor: STATUS_CONFIG[res.status]?.bg,
+                                                        borderLeft: `3px solid ${STATUS_CONFIG[res.status]?.color}`,
+                                                    }} onClick={() => navigate(`/backoffice/reservas?editId=${res.id}`)}>
+                                                        <div className="bo-week-card-time">
+                                                            {res.start_time?.slice(0, 5) || '—'}
+                                                        </div>
+                                                        <div className="bo-week-card-title">{res.tour_name}</div>
+                                                        <div className="bo-week-card-meta">{res.pax_count} pax</div>
+                                                    </div>
+                                                ))}
+                                                {dayRes.length === 0 && <div className="bo-empty-slot">Sin tours</div>}
                                             </DroppableDay>
                                         );
                                     })}
@@ -293,7 +308,7 @@ export default function CalendarioPage() {
                                 ) : (
                                     <div className="bo-cal-detail-list">
                                         {reservations.filter(r => r.tour_date === selectedDay).map(res => (
-                                            <div key={res.id} className="bo-cal-detail-card">
+                                            <div key={res.id} className="bo-cal-detail-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/backoffice/reservas?editId=${res.id}`)}>
                                                 <div className="bo-cal-detail-time">{res.start_time?.slice(0, 5) || '—'}</div>
                                                 <div className="bo-cal-detail-info">
                                                     <div className="bo-cal-detail-tour">{res.tour_name}</div>

@@ -2,6 +2,19 @@ import { supabase } from './supabase';
 import type { Reservation, Agent } from '../types/backoffice';
 
 /**
+ * Generate a display code for a reservation.
+ * Format: RSVP-AEXG-DD/MM/AA-{id}
+ * Example: RSVP-AEXG-21/02/26-42
+ */
+export function formatReservationCode(id: number, tourDate?: string): string {
+    if (!tourDate) return `RSVP-AEXG-${id}`;
+    const dateStr = tourDate.split('T')[0]; // normalize
+    const [y, m, d] = dateStr.split('-');
+    const shortYear = y.slice(-2);
+    return `RSVP-AEXG-${d}/${m}/${shortYear}-${id}`;
+}
+
+/**
  * Helper to update a reservation and automatically generate granular audit logs.
  * @param reservationId - ID of the reservation to update
  * @param updates - Object containing the fields to update
