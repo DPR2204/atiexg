@@ -98,7 +98,7 @@ export default function ReservasPage() {
 
     // Expanded View State
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [expandedTab, setExpandedTab] = useState<'passengers' | 'audit' | 'menu'>('passengers');
+    const [expandedTab, setExpandedTab] = useState<'passengers' | 'audit' | 'menu' | 'tour'>('passengers');
     const [passengers, setPassengers] = useState<Passenger[]>([]);
     const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
     // Menu Config for Expanded View (Quick Edit)
