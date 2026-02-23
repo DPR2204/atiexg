@@ -1391,7 +1391,7 @@ export default function ReservasPage() {
                                                                         <input
                                                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-colors"
                                                                             value={customTourForm.tour_name || ''}
-                                                                            onChange={e => setCustomTourForm({ ...customTourForm, tour_name: e.target.value })}
+                                                                            onChange={e => { const v = e.target.value; setCustomTourForm(prev => ({ ...prev, tour_name: v })); }}
                                                                             placeholder={res.tour_name}
                                                                         />
                                                                     </div>
@@ -1402,7 +1402,7 @@ export default function ReservasPage() {
                                                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-colors resize-none"
                                                                             rows={4}
                                                                             value={customTourForm.includes || ''}
-                                                                            onChange={e => setCustomTourForm({ ...customTourForm, includes: e.target.value })}
+                                                                            onChange={e => { const v = e.target.value; setCustomTourForm(prev => ({ ...prev, includes: v })); }}
                                                                         />
                                                                     </div>
 
@@ -1415,9 +1415,12 @@ export default function ReservasPage() {
                                                                                         className="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
                                                                                         value={step.time}
                                                                                         onChange={e => {
-                                                                                            const newItinerary = [...(customTourForm.itinerary || [])];
-                                                                                            newItinerary[idx] = { ...step, time: e.target.value };
-                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
+                                                                                            const v = e.target.value;
+                                                                                            setCustomTourForm(prev => {
+                                                                                                const newItinerary = [...(prev.itinerary || [])];
+                                                                                                newItinerary[idx] = { ...newItinerary[idx], time: v };
+                                                                                                return { ...prev, itinerary: newItinerary };
+                                                                                            });
                                                                                         }}
                                                                                         placeholder="Hora"
                                                                                     />
@@ -1425,17 +1428,22 @@ export default function ReservasPage() {
                                                                                         className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
                                                                                         value={step.activity}
                                                                                         onChange={e => {
-                                                                                            const newItinerary = [...(customTourForm.itinerary || [])];
-                                                                                            newItinerary[idx] = { ...step, activity: e.target.value };
-                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
+                                                                                            const v = e.target.value;
+                                                                                            setCustomTourForm(prev => {
+                                                                                                const newItinerary = [...(prev.itinerary || [])];
+                                                                                                newItinerary[idx] = { ...newItinerary[idx], activity: v };
+                                                                                                return { ...prev, itinerary: newItinerary };
+                                                                                            });
                                                                                         }}
                                                                                         placeholder="Actividad"
                                                                                     />
                                                                                     <button
                                                                                         className="text-gray-400 hover:text-red-500 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                                         onClick={() => {
-                                                                                            const newItinerary = customTourForm.itinerary.filter((_: any, i: number) => i !== idx);
-                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
+                                                                                            setCustomTourForm(prev => ({
+                                                                                                ...prev,
+                                                                                                itinerary: prev.itinerary.filter((_: any, i: number) => i !== idx)
+                                                                                            }));
                                                                                         }}
                                                                                     >
                                                                                         <span className="sr-only">Eliminar</span>
@@ -1445,7 +1453,7 @@ export default function ReservasPage() {
                                                                             ))}
                                                                             <button
                                                                                 className="text-sm text-blue-600 font-medium hover:text-blue-800 mt-2"
-                                                                                onClick={() => setCustomTourForm({ ...customTourForm, itinerary: [...(customTourForm.itinerary || []), { time: '', activity: '' }] })}
+                                                                                onClick={() => setCustomTourForm(prev => ({ ...prev, itinerary: [...(prev.itinerary || []), { time: '', activity: '' }] }))}
                                                                             >
                                                                                 + Agregar Paso
                                                                             </button>
