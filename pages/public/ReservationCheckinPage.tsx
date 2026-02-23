@@ -1,15 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { formatReservationCode } from '../../lib/reservation-logic';
 import { downloadICS, googleCalendarUrl, outlookCalendarUrl } from '../../lib/calendar';
+import { buildRouteFromItinerary } from '../../lib/lake-coordinates';
 import {
     Loader2, User, Mail, Phone, ChevronRight, Check, Calendar, Users,
     MapPin, Clock, Info, ArrowLeft, Edit2, MessageSquare, PhoneCall,
     Anchor, Waves, Compass, CreditCard, Sparkles, Utensils, X,
     Shield, ChevronDown, AlertTriangle, CalendarPlus, Download
 } from 'lucide-react';
+
+const TourRouteMap = lazy(() => import('../../components/TourRouteMap'));
 
 function formatSpanishDate(dateStr: string): string {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -659,6 +662,49 @@ export default function ReservationCheckinPage() {
                         </div>
                     </div>
                 )}
+
+                {/* ── Route Map ── */}
+                {(() => {
+                    const itinerary = reservation.custom_tour_data?.itinerary || reservation.tour_itinerary;
+                    if (!itinerary || !Array.isArray(itinerary) || buildRouteFromItinerary(itinerary).length < 2) return null;
+                    const route = buildRouteFromItinerary(itinerary);
+                    return (
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-fade-in-up">
+                            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-[0.1em]">Ruta del Tour</h3>
+                            </div>
+                            <div className="p-3">
+                                <Suspense fallback={<div className="h-[260px] rounded-xl bg-gray-100 animate-pulse" />}>
+                                    <TourRouteMap
+                                        itinerary={itinerary}
+                                        className="h-[260px] rounded-xl overflow-hidden"
+                                    />
+                                </Suspense>
+                                <div className="mt-3 flex flex-wrap gap-2 px-1">
+                                    {route.map((stop, idx) => (
+                                        <div key={`${stop.name}-${idx}`} className="flex items-center gap-1 text-[11px] text-gray-500">
+                                            <span
+                                                className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+                                                style={{ background: idx === 0 ? '#dc2626' : idx === route.length - 1 ? '#16a34a' : '#1d4ed8' }}
+                                            >
+                                                {idx + 1}
+                                            </span>
+                                            <span className="font-semibold">
+                                                {stop.isReturn ? `${stop.name} (regreso)` : stop.name}
+                                            </span>
+                                            {idx < route.length - 1 && (
+                                                <ChevronRight className="w-3 h-3 text-gray-300" />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* ── Registration Form ── */}
                 <section id="passenger-form" className="scroll-mt-8">
