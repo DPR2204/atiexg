@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
+import ItineraryEditor from '../../components/backoffice/ItineraryEditor';
 import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
 import type { CustomTourData, Tour } from '../../types/shared';
 import { STATUS_CONFIG, MEAL_TYPE_LABELS, AUDIT_ACTION_LABELS } from '../../types/backoffice';
@@ -503,11 +504,11 @@ export default function ReservasPage() {
         }
     }
 
-    async function saveCustomTour(id: number) {
+    async function saveCustomTour(id: number, data: CustomTourData) {
         try {
             const { error } = await supabase
                 .from('reservations')
-                .update({ custom_tour_data: customTourForm })
+                .update({ custom_tour_data: data })
                 .eq('id', id);
 
             if (error) {
@@ -518,24 +519,16 @@ export default function ReservasPage() {
             // Update local state immediately so the saved data persists
             // even before fetchAll completes
             setReservations(prev => prev.map(r =>
-                r.id === id ? { ...r, custom_tour_data: { ...customTourForm } } : r
+                r.id === id ? { ...r, custom_tour_data: { ...data } } : r
             ));
+
+            // Also update customTourForm so re-expanding shows saved data
+            setCustomTourForm({ ...data });
 
             alert('Info del tour actualizada correctamente');
             fetchAll(true); // Silent refresh — no loading spinner flash
         } catch (e) {
             alert('Error inesperado al guardar: ' + (e as Error).message);
-        }
-    }
-
-    function importFromOriginal(tourId: number) {
-        const original = toursList.find(t => t.id === tourId);
-        if (original) {
-            setCustomTourForm({
-                tour_name: original.name,
-                itinerary: original.itinerary,
-                includes: original.includes
-            });
         }
     }
 
@@ -1375,92 +1368,12 @@ export default function ReservasPage() {
                                                             )}
 
                                                             {expandedTab === 'tour' && (
-                                                                <div className="bg-white max-w-4xl">
-                                                                    <div className="flex justify-between items-center mb-6">
-                                                                        <h4 className="font-bold text-gray-900">Personalizar Itinerario</h4>
-                                                                        <button
-                                                                            className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
-                                                                            onClick={() => importFromOriginal(res.tour_id)}
-                                                                        >
-                                                                            Restaurar Original
-                                                                        </button>
-                                                                    </div>
-
-                                                                    <div className="mb-6">
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Tour (Vista Cliente)</label>
-                                                                        <input
-                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-colors"
-                                                                            value={customTourForm.tour_name || ''}
-                                                                            onChange={e => setCustomTourForm({ ...customTourForm, tour_name: e.target.value })}
-                                                                            placeholder={res.tour_name}
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="mb-6">
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Qué Incluye</label>
-                                                                        <textarea
-                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white transition-colors resize-none"
-                                                                            rows={4}
-                                                                            value={customTourForm.includes || ''}
-                                                                            onChange={e => setCustomTourForm({ ...customTourForm, includes: e.target.value })}
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="mb-6">
-                                                                        <label className="block text-sm font-medium text-gray-700 mb-3">Itinerario</label>
-                                                                        <div className="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                                            {customTourForm.itinerary?.map((step: any, idx: number) => (
-                                                                                <div key={idx} className="flex gap-3 items-center group">
-                                                                                    <input
-                                                                                        className="w-24 px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
-                                                                                        value={step.time}
-                                                                                        onChange={e => {
-                                                                                            const newItinerary = [...(customTourForm.itinerary || [])];
-                                                                                            newItinerary[idx] = { ...step, time: e.target.value };
-                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
-                                                                                        }}
-                                                                                        placeholder="Hora"
-                                                                                    />
-                                                                                    <input
-                                                                                        className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm focus:border-blue-500 outline-none"
-                                                                                        value={step.activity}
-                                                                                        onChange={e => {
-                                                                                            const newItinerary = [...(customTourForm.itinerary || [])];
-                                                                                            newItinerary[idx] = { ...step, activity: e.target.value };
-                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
-                                                                                        }}
-                                                                                        placeholder="Actividad"
-                                                                                    />
-                                                                                    <button
-                                                                                        className="text-gray-400 hover:text-red-500 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                                        onClick={() => {
-                                                                                            const newItinerary = customTourForm.itinerary.filter((_: any, i: number) => i !== idx);
-                                                                                            setCustomTourForm({ ...customTourForm, itinerary: newItinerary });
-                                                                                        }}
-                                                                                    >
-                                                                                        <span className="sr-only">Eliminar</span>
-                                                                                        🗑️
-                                                                                    </button>
-                                                                                </div>
-                                                                            ))}
-                                                                            <button
-                                                                                className="text-sm text-blue-600 font-medium hover:text-blue-800 mt-2"
-                                                                                onClick={() => setCustomTourForm({ ...customTourForm, itinerary: [...(customTourForm.itinerary || []), { time: '', activity: '' }] })}
-                                                                            >
-                                                                                + Agregar Paso
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div className="flex justify-end pt-4 border-t border-gray-100">
-                                                                        <button
-                                                                            className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors"
-                                                                            onClick={() => saveCustomTour(res.id)}
-                                                                        >
-                                                                            Guardar Cambios
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
+                                                                <ItineraryEditor
+                                                                    initialData={customTourForm}
+                                                                    originalTour={toursList.find(t => t.id === res.tour_id) || null}
+                                                                    defaultTourName={res.tour_name}
+                                                                    onSave={(data) => saveCustomTour(res.id, data)}
+                                                                />
                                                             )}
 
                                                             {expandedTab === 'audit' && (
