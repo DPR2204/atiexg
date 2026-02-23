@@ -152,8 +152,8 @@ export default function ReservasPage() {
         fetchAll();
     }, [filterStatus]);
 
-    async function fetchAll() {
-        setLoading(true);
+    async function fetchAll(silent = false) {
+        if (!silent) setLoading(true);
         let query = supabase
             .from('reservations')
             .select(`
@@ -458,8 +458,8 @@ export default function ReservasPage() {
                 setQuickMenu(res.meal_options?.available_meals || []);
 
                 // Load Custom Tour Data (V7)
-                // Use custom data if it HAS content, otherwise fallback to tour defaults
-                if (res.custom_tour_data && (res.custom_tour_data.itinerary?.length || res.custom_tour_data.includes)) {
+                // Use saved custom data if it exists, otherwise fallback to tour defaults
+                if (res.custom_tour_data) {
                     setCustomTourForm(res.custom_tour_data);
                 } else {
                     // Pre-fill with default tour data if available
@@ -504,15 +504,27 @@ export default function ReservasPage() {
     }
 
     async function saveCustomTour(id: number) {
-        const { error } = await supabase
-            .from('reservations')
-            .update({ custom_tour_data: customTourForm })
-            .eq('id', id);
+        try {
+            const { error } = await supabase
+                .from('reservations')
+                .update({ custom_tour_data: customTourForm })
+                .eq('id', id);
 
-        if (error) alert('Error al guardar info del tour');
-        else {
+            if (error) {
+                alert('Error al guardar info del tour: ' + error.message);
+                return;
+            }
+
+            // Update local state immediately so the saved data persists
+            // even before fetchAll completes
+            setReservations(prev => prev.map(r =>
+                r.id === id ? { ...r, custom_tour_data: { ...customTourForm } } : r
+            ));
+
             alert('Info del tour actualizada correctamente');
-            fetchAll();
+            fetchAll(true); // Silent refresh — no loading spinner flash
+        } catch (e) {
+            alert('Error inesperado al guardar: ' + (e as Error).message);
         }
     }
 
