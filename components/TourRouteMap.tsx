@@ -40,6 +40,28 @@ function createNumberedIcon(index: number, isFirst: boolean, isLast: boolean) {
     });
 }
 
+/* ── Combined start/end marker for round-trip routes ── */
+function createStartEndIcon() {
+    return L.divIcon({
+        className: '',
+        html: `<div style="
+            width:34px;height:34px;border-radius:50%;
+            background:conic-gradient(#dc2626 0deg, #dc2626 180deg, #16a34a 180deg, #16a34a 360deg);
+            color:#fff;
+            display:flex;align-items:center;justify-content:center;
+            font-family:'Poppins',sans-serif;
+            border:3px solid #fff;
+            box-shadow:0 2px 10px rgba(0,0,0,0.35);
+            position:relative;z-index:20;
+        "><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+        </svg></div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+    });
+}
+
 /* ── Small directional arrow marker placed at segment midpoint ── */
 function createArrowIcon(angleDeg: number) {
     return L.divIcon({
@@ -193,18 +215,34 @@ export default function TourRouteMap({ itinerary, className }: TourRouteMapProps
                 <DirectionArrows path={waterPath} />
 
                 {/* Stop markers */}
-                {route.map((stop, idx) => (
-                    <Marker
-                        key={`${stop.name}-${idx}`}
-                        position={[stop.coords.lat, stop.coords.lng]}
-                        icon={createNumberedIcon(idx, idx === 0, idx === route.length - 1)}
-                        zIndexOffset={100}
-                    >
-                        <Tooltip direction="top" offset={[0, -16]} opacity={0.95} permanent={false}>
-                            <span style={{ fontWeight: 600, fontSize: 12 }}>{stop.name}</span>
-                        </Tooltip>
-                    </Marker>
-                ))}
+                {(() => {
+                    const isLoop = route.length >= 3 && route[route.length - 1].isReturn;
+                    return route.map((stop, idx) => {
+                        // Skip the last marker if it's a return to start (we merge it into marker #1)
+                        if (isLoop && idx === route.length - 1) return null;
+
+                        const isFirst = idx === 0;
+                        const isLast = !isLoop && idx === route.length - 1;
+                        const icon = isLoop && isFirst
+                            ? createStartEndIcon()
+                            : createNumberedIcon(idx, isFirst, isLast);
+
+                        return (
+                            <Marker
+                                key={`${stop.name}-${idx}`}
+                                position={[stop.coords.lat, stop.coords.lng]}
+                                icon={icon}
+                                zIndexOffset={isLoop && isFirst ? 200 : 100}
+                            >
+                                <Tooltip direction="top" offset={[0, -18]} opacity={0.95} permanent={false}>
+                                    <span style={{ fontWeight: 600, fontSize: 12 }}>
+                                        {isLoop && isFirst ? `${stop.name} (inicio / regreso)` : stop.name}
+                                    </span>
+                                </Tooltip>
+                            </Marker>
+                        );
+                    });
+                })()}
             </MapContainer>
         </div>
     );
