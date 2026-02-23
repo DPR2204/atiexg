@@ -61,12 +61,28 @@ async function syncAssets() {
 
         console.log(`Successfully filtered ${assets.length} assets from ${TARGET_FOLDER}.`);
 
-        assets.sort((a, b) => a.public_id.localeCompare(b.public_id));
         const outputPath = path.join(__dirname, '../src/data/cloudinary-assets.json');
         const dir = path.dirname(outputPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(outputPath, JSON.stringify(assets, null, 2));
-        console.log(`Saved to ${outputPath}`);
+
+        let existingAssets: any[] = [];
+        if (fs.existsSync(outputPath)) {
+            existingAssets = JSON.parse(fs.readFileSync(outputPath, 'utf-8'));
+        }
+        const existingIds = new Set(existingAssets.map((a: any) => a.public_id));
+
+        const newAssets = assets.filter(a => !existingIds.has(a.public_id));
+        console.log(`Found ${newAssets.length} new assets out of ${assets.length} total in Cloudinary folder.`);
+
+        if (newAssets.length > 0 || existingAssets.length === 0) {
+            const finalAssets = existingAssets.length === 0 ? assets : [...existingAssets, ...newAssets];
+            finalAssets.sort((a, b) => a.public_id.localeCompare(b.public_id));
+
+            fs.writeFileSync(outputPath, JSON.stringify(finalAssets, null, 2));
+            console.log(`Successfully merged. Saved ${finalAssets.length} total assets to ${outputPath}`);
+        } else {
+            console.log(`No new assets to add. Existing count: ${existingAssets.length}`);
+        }
     } catch (error) {
         console.error('Error:', error);
         process.exit(1);

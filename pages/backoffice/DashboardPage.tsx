@@ -82,6 +82,8 @@ export default function DashboardPage() {
     const [missingBoats, setMissingBoats] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
+    const [isSyncing, setIsSyncing] = useState(false);
+
     // Close report dropdown on outside click
     useEffect(() => {
         function handleClick(e: MouseEvent) {
@@ -96,6 +98,31 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchDashboard(appliedFrom, appliedTo);
     }, [appliedFrom, appliedTo]);
+
+    async function handleSyncGallery() {
+        if (!confirm('¿Estás seguro de que deseas sincronizar la galería? Esto activará un redespliegue del sitio que tomará alrededor de 2 minutos.')) return;
+
+        setIsSyncing(true);
+        try {
+            // Reemplace con su Webhook de Vercel/Netlify en el archivo .env
+            const webhookUrl = import.meta.env.VITE_DEPLOY_WEBHOOK_URL;
+            if (!webhookUrl) {
+                alert('No se ha configurado la URL del Webhook de despliegue (VITE_DEPLOY_WEBHOOK_URL).');
+                setIsSyncing(false);
+                return;
+            }
+
+            const response = await fetch(webhookUrl, { method: 'POST' });
+            if (!response.ok) throw new Error('Error al ejecutar el webhook');
+
+            alert('¡Sincronización iniciada! La galería se actualizará en unos minutos una vez que termine el despliegue.');
+        } catch (error) {
+            console.error('Error syncing:', error);
+            alert('Hubo un error al intentar iniciar la sincronización.');
+        } finally {
+            setIsSyncing(false);
+        }
+    }
 
     function handlePresetClick(preset: DatePreset) {
         setActivePreset(preset);
@@ -267,15 +294,28 @@ export default function DashboardPage() {
     return (
         <div className="bo-dashboard">
             {/* Greeting & Alerts */}
-            <header className="bo-header">
-                <h2 className="bo-title">Resumen Operativo</h2>
-                <p className="bo-subtitle">Hola, {agent?.name?.split(' ')[0] || 'Agent'}. Bienvenido de vuelta.</p>
-                {missingBoats > 0 && (
-                    <div className="bo-alert-banner" style={{ marginTop: '16px' }}>
-                        Atención: Hay <strong>{missingBoats}</strong> tours hoy sin lancha asignada.
-                    </div>
+            <header className="bo-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h2 className="bo-title">Resumen Operativo</h2>
+                    <p className="bo-subtitle">Hola, {agent?.name?.split(' ')[0] || 'Agent'}. Bienvenido de vuelta.</p>
+                </div>
+                {agent?.role === 'super_admin' && (
+                    <button
+                        className="bo-btn bo-btn--primary"
+                        onClick={handleSyncGallery}
+                        disabled={isSyncing}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                        <span>{isSyncing ? '↻ Sincronizando...' : '☁️ Sincronizar Galería Cloudinary'}</span>
+                    </button>
                 )}
             </header>
+
+            {missingBoats > 0 && (
+                <div className="bo-alert-banner" style={{ marginTop: '16px' }}>
+                    Atención: Hay <strong>{missingBoats}</strong> tours hoy sin lancha asignada.
+                </div>
+            )}
 
             {/* Date Filter Bar */}
             <div className="bo-date-filter-bar">
