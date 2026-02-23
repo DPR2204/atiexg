@@ -74,15 +74,16 @@ async function syncAssets() {
         const newAssets = assets.filter(a => !existingIds.has(a.public_id));
         console.log(`Found ${newAssets.length} new assets out of ${assets.length} total in Cloudinary folder.`);
 
-        if (newAssets.length > 0 || existingAssets.length === 0) {
-            const finalAssets = existingAssets.length === 0 ? assets : [...existingAssets, ...newAssets];
-            finalAssets.sort((a, b) => a.public_id.localeCompare(b.public_id));
+        const finalAssets = existingAssets.length === 0 ? assets : [...existingAssets, ...newAssets];
 
-            fs.writeFileSync(outputPath, JSON.stringify(finalAssets, null, 2));
-            console.log(`Successfully merged. Saved ${finalAssets.length} total assets to ${outputPath}`);
-        } else {
-            console.log(`No new assets to add. Existing count: ${existingAssets.length}`);
+        // Mezclar aleatoriamente las fotos (Fisher-Yates shuffle)
+        for (let i = finalAssets.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [finalAssets[i], finalAssets[j]] = [finalAssets[j], finalAssets[i]];
         }
+
+        fs.writeFileSync(outputPath, JSON.stringify(finalAssets, null, 2));
+        console.log(`Successfully merged and shuffled. Saved ${finalAssets.length} total assets to ${outputPath}`);
     } catch (error) {
         console.error('Error:', error);
         process.exit(1);
