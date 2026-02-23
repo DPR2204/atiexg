@@ -685,14 +685,16 @@ export default function ReservationCheckinPage() {
                                 </Suspense>
                                 <div className="mt-3 flex flex-wrap gap-2 px-1">
                                     {route.map((stop, idx) => (
-                                        <div key={stop.name} className="flex items-center gap-1 text-[11px] text-gray-500">
+                                        <div key={`${stop.name}-${idx}`} className="flex items-center gap-1 text-[11px] text-gray-500">
                                             <span
                                                 className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
                                                 style={{ background: idx === 0 ? '#dc2626' : idx === route.length - 1 ? '#16a34a' : '#1d4ed8' }}
                                             >
                                                 {idx + 1}
                                             </span>
-                                            <span className="font-semibold">{stop.name}</span>
+                                            <span className="font-semibold">
+                                                {stop.isReturn ? `${stop.name} (regreso)` : stop.name}
+                                            </span>
                                             {idx < route.length - 1 && (
                                                 <ChevronRight className="w-3 h-3 text-gray-300" />
                                             )}

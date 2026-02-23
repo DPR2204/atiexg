@@ -334,14 +334,16 @@ const TourPage = () => {
               </Suspense>
               <div className="mt-4 flex flex-wrap gap-3">
                 {buildRouteFromItinerary(tour.itinerary).map((stop, idx, arr) => (
-                  <div key={stop.name} className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <div key={`${stop.name}-${idx}`} className="flex items-center gap-1.5 text-xs text-gray-500">
                     <span
                       className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
                       style={{ background: idx === 0 ? '#dc2626' : idx === arr.length - 1 ? '#16a34a' : '#1d4ed8' }}
                     >
                       {idx + 1}
                     </span>
-                    <span className="font-medium">{stop.name}</span>
+                    <span className="font-medium">
+                      {stop.isReturn ? `${stop.name} (regreso)` : stop.name}
+                    </span>
                     {idx < arr.length - 1 && (
                       <svg className="w-3 h-3 text-gray-300 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
