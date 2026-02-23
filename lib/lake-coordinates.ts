@@ -33,17 +33,121 @@ export const LOCATIONS: Record<string, LatLng> = {
 };
 
 /**
- * Water waypoints for boat segments that would otherwise cross land
- * (e.g. around the San Pedro volcano peninsula between Santiago and San Pedro/San Juan).
+ * Shore-hugging water waypoints for boat segments.
+ * Each entry is a chain of intermediate points that keep the polyline
+ * over water — critical around the San Pedro volcano peninsula.
+ *
  * Key format: "OriginName→DestName"
  */
 export const WATER_WAYPOINTS: Record<string, LatLng[]> = {
-    'Santiago Atitlán→San Juan La Laguna':  [{ lat: 14.660, lng: -91.275 }],
-    'San Juan La Laguna→Santiago Atitlán':  [{ lat: 14.660, lng: -91.275 }],
-    'Santiago Atitlán→San Pedro La Laguna': [{ lat: 14.658, lng: -91.268 }],
-    'San Pedro La Laguna→Santiago Atitlán': [{ lat: 14.658, lng: -91.268 }],
-    'Santiago Atitlán→San Marcos La Laguna': [{ lat: 14.660, lng: -91.270 }],
-    'San Marcos La Laguna→Santiago Atitlán': [{ lat: 14.660, lng: -91.270 }],
+
+    // ── Santiago ↔ San Juan (around San Pedro volcano, western route) ──
+    'Santiago Atitlán→San Juan La Laguna': [
+        { lat: 14.6380, lng: -91.2420 },   // exit Santiago bay
+        { lat: 14.6430, lng: -91.2580 },   // hug south coast
+        { lat: 14.6520, lng: -91.2720 },   // round volcano base
+        { lat: 14.6650, lng: -91.2830 },   // west side of volcano
+        { lat: 14.6830, lng: -91.2870 },   // approach San Juan from south
+    ],
+    'San Juan La Laguna→Santiago Atitlán': [
+        { lat: 14.6830, lng: -91.2870 },
+        { lat: 14.6650, lng: -91.2830 },
+        { lat: 14.6520, lng: -91.2720 },
+        { lat: 14.6430, lng: -91.2580 },
+        { lat: 14.6380, lng: -91.2420 },
+    ],
+
+    // ── Santiago ↔ San Pedro (same western route, shorter) ──
+    'Santiago Atitlán→San Pedro La Laguna': [
+        { lat: 14.6380, lng: -91.2420 },
+        { lat: 14.6430, lng: -91.2580 },
+        { lat: 14.6520, lng: -91.2720 },
+        { lat: 14.6650, lng: -91.2810 },
+    ],
+    'San Pedro La Laguna→Santiago Atitlán': [
+        { lat: 14.6650, lng: -91.2810 },
+        { lat: 14.6520, lng: -91.2720 },
+        { lat: 14.6430, lng: -91.2580 },
+        { lat: 14.6380, lng: -91.2420 },
+    ],
+
+    // ── San Pedro ↔ San Juan (adjacent along west shore, slight curve out) ──
+    'San Pedro La Laguna→San Juan La Laguna': [
+        { lat: 14.6960, lng: -91.2800 },
+    ],
+    'San Juan La Laguna→San Pedro La Laguna': [
+        { lat: 14.6960, lng: -91.2800 },
+    ],
+
+    // ── Santiago ↔ San Marcos (all the way around west shore) ──
+    'Santiago Atitlán→San Marcos La Laguna': [
+        { lat: 14.6380, lng: -91.2420 },
+        { lat: 14.6430, lng: -91.2580 },
+        { lat: 14.6520, lng: -91.2720 },
+        { lat: 14.6650, lng: -91.2830 },
+        { lat: 14.6900, lng: -91.2870 },
+        { lat: 14.7100, lng: -91.2740 },
+    ],
+    'San Marcos La Laguna→Santiago Atitlán': [
+        { lat: 14.7100, lng: -91.2740 },
+        { lat: 14.6900, lng: -91.2870 },
+        { lat: 14.6650, lng: -91.2830 },
+        { lat: 14.6520, lng: -91.2720 },
+        { lat: 14.6430, lng: -91.2580 },
+        { lat: 14.6380, lng: -91.2420 },
+    ],
+
+    // ── Panajachel ↔ San Marcos (north shore, slight curve south to stay in water) ──
+    'Panajachel→San Marcos La Laguna': [
+        { lat: 14.7380, lng: -91.1800 },
+        { lat: 14.7340, lng: -91.2100 },
+        { lat: 14.7300, lng: -91.2350 },
+    ],
+    'San Marcos La Laguna→Panajachel': [
+        { lat: 14.7300, lng: -91.2350 },
+        { lat: 14.7340, lng: -91.2100 },
+        { lat: 14.7380, lng: -91.1800 },
+    ],
+
+    // ── Panajachel ↔ Santa Cruz (north shore hop) ──
+    'Panajachel→Santa Cruz La Laguna': [
+        { lat: 14.7390, lng: -91.1800 },
+    ],
+    'Santa Cruz La Laguna→Panajachel': [
+        { lat: 14.7390, lng: -91.1800 },
+    ],
+
+    // ── San Juan ↔ San Marcos (west shore, northward) ──
+    'San Juan La Laguna→San Marcos La Laguna': [
+        { lat: 14.7100, lng: -91.2770 },
+        { lat: 14.7180, lng: -91.2680 },
+    ],
+    'San Marcos La Laguna→San Juan La Laguna': [
+        { lat: 14.7180, lng: -91.2680 },
+        { lat: 14.7100, lng: -91.2770 },
+    ],
+
+    // ── San Pedro ↔ San Marcos (west shore, northward) ──
+    'San Pedro La Laguna→San Marcos La Laguna': [
+        { lat: 14.6980, lng: -91.2800 },
+        { lat: 14.7100, lng: -91.2770 },
+        { lat: 14.7180, lng: -91.2680 },
+    ],
+    'San Marcos La Laguna→San Pedro La Laguna': [
+        { lat: 14.7180, lng: -91.2680 },
+        { lat: 14.7100, lng: -91.2770 },
+        { lat: 14.6980, lng: -91.2800 },
+    ],
+
+    // ── Panajachel ↔ San Antonio Palopó (east shore, hug coast) ──
+    'Panajachel→San Antonio Palopó': [
+        { lat: 14.7320, lng: -91.1420 },
+        { lat: 14.7200, lng: -91.1250 },
+    ],
+    'San Antonio Palopó→Panajachel': [
+        { lat: 14.7200, lng: -91.1250 },
+        { lat: 14.7320, lng: -91.1420 },
+    ],
 };
 
 /** Location name aliases — maps common text fragments to canonical keys */
@@ -121,7 +225,7 @@ export function buildRouteFromItinerary(
 }
 
 /**
- * Build the full polyline path including water waypoints.
+ * Build the full polyline path including shore-hugging water waypoints.
  * Returns an array of [lat, lng] tuples for all segments.
  */
 export function buildWaterPath(
