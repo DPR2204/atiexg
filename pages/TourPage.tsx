@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Seo from '../components/Seo';
 import TourImage from '../components/TourImage';
@@ -12,6 +12,9 @@ import {
   getTourMeta,
   getTourPath,
 } from '../seo';
+import { buildRouteFromItinerary } from '../lib/lake-coordinates';
+
+const TourRouteMap = lazy(() => import('../components/TourRouteMap'));
 
 const formatWhatsApp = (tourName: string, priceLabel?: string, priceAmount?: string, addons?: string[]) => {
   const base = 'https://wa.me/50222681264?text=';
@@ -310,6 +313,46 @@ const TourPage = () => {
             </ul>
           </div>
         </section>
+
+        {/* Route Map */}
+        {buildRouteFromItinerary(tour.itinerary).length >= 2 && (
+          <section className="mt-12 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+            <div className="glass-card rounded-3xl p-6 sm:p-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                </span>
+                Ruta del tour
+              </h3>
+              <Suspense fallback={<div className="h-[300px] sm:h-[360px] rounded-2xl bg-gray-100 animate-pulse" />}>
+                <TourRouteMap
+                  itinerary={tour.itinerary}
+                  className="h-[300px] sm:h-[360px] rounded-2xl overflow-hidden"
+                />
+              </Suspense>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {buildRouteFromItinerary(tour.itinerary).map((stop, idx, arr) => (
+                  <div key={stop.name} className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                      style={{ background: idx === 0 ? '#dc2626' : idx === arr.length - 1 ? '#16a34a' : '#1d4ed8' }}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span className="font-medium">{stop.name}</span>
+                    {idx < arr.length - 1 && (
+                      <svg className="w-3 h-3 text-gray-300 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Pricing Options */}
         <section className="mt-12 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
