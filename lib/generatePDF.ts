@@ -13,7 +13,11 @@ export function generateReservationPDF(reservation: Reservation) {
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document;
-    if (!doc) return;
+    if (!doc) {
+        console.error('generateReservationPDF: could not access iframe document');
+        document.body.removeChild(iframe);
+        return;
+    }
 
     const tour = TOURS.find(t => t.id === reservation.tour_id);
     const total = reservation.total_amount;
@@ -268,10 +272,6 @@ export function generateReservationPDF(reservation: Reservation) {
                 <p>Atitlán Experiences • Panajachel, Sololá, Guatemala • atitlanexperiences.com</p>
                 <p>${reservation.notes || ''}</p>
             </div>
-            
-            <script>
-                window.onload = function() { window.print(); window.close(); };
-            </script>
         </body>
         </html>
     `;
@@ -280,8 +280,38 @@ export function generateReservationPDF(reservation: Reservation) {
     doc.write(content);
     doc.close();
 
-    // Clean up
-    setTimeout(() => {
+    // Use a reliable delay + afterprint for cleanup instead of window.onload
+    // window.onload is unreliable in iframes across browsers
+    const printWindow = iframe.contentWindow;
+    if (!printWindow) {
         document.body.removeChild(iframe);
-    }, 1000);
+        return;
+    }
+
+    // Clean up iframe after print dialog closes (or after a generous timeout)
+    const cleanup = () => {
+        try {
+            if (iframe.parentNode) {
+                document.body.removeChild(iframe);
+            }
+        } catch (_) { /* already removed */ }
+    };
+
+    // Listen for afterprint to clean up gracefully
+    printWindow.addEventListener('afterprint', cleanup);
+
+    // Fallback cleanup after 60 seconds in case afterprint never fires
+    const fallbackTimer = setTimeout(cleanup, 60000);
+
+    // Give the browser time to render the content and load fonts, then print
+    setTimeout(() => {
+        try {
+            printWindow.focus();
+            printWindow.print();
+        } catch (e) {
+            console.error('generateReservationPDF: print failed', e);
+            clearTimeout(fallbackTimer);
+            cleanup();
+        }
+    }, 800);
 }

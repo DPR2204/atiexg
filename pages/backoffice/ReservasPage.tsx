@@ -412,23 +412,37 @@ export default function ReservasPage() {
         }
     }
 
-    function handlePrint(res: Reservation) {
-        // ... (existing logic)
-        supabase
-            .from('reservations')
-            .select(`
-            *,
-            agent: agents(*),
-                boat: boats(*),
+    async function handlePrint(res: Reservation) {
+        try {
+            const { data, error } = await supabase
+                .from('reservations')
+                .select(`
+                    *,
+                    agent: agents(*),
+                    boat: boats(*),
                     driver: staff!reservations_driver_id_fkey(*),
-                        guide: staff!reservations_guide_id_fkey(*),
-                            passengers(*, meals: passenger_meals(*))
-                                `)
-            .eq('id', res.id)
-            .single()
-            .then(({ data }) => {
-                if (data) generateReservationPDF(data as any);
-            });
+                    guide: staff!reservations_guide_id_fkey(*),
+                    passengers(*, meals: passenger_meals(*))
+                `)
+                .eq('id', res.id)
+                .single();
+
+            if (error) {
+                console.error('handlePrint query error:', error);
+                alert('Error al cargar datos para el PDF: ' + error.message);
+                return;
+            }
+
+            if (!data) {
+                alert('No se encontró la reserva para generar el PDF.');
+                return;
+            }
+
+            generateReservationPDF(data as any);
+        } catch (e) {
+            console.error('handlePrint unexpected error:', e);
+            alert('Error inesperado al generar PDF. Intenta de nuevo.');
+        }
     }
 
     // ==========================================
