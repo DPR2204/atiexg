@@ -369,10 +369,10 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
         {item.resourceType === 'video' ? (
           <video
             src={getCloudinaryUrl(item.src, { resourceType: 'video' })}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain focus:outline-none"
             autoPlay
             loop
-            muted
+            controls
             playsInline
             onLoadedData={handleImageLoad}
             onError={handleImageLoad}
