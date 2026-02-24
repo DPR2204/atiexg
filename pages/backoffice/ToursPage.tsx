@@ -168,6 +168,7 @@ export default function ToursPage() {
 
     async function handleSubmit(e?: React.FormEvent) {
         if (e) e.preventDefault();
+        if (saving) return;
 
         if (!formData.name?.trim()) {
             setActiveTab('general');
@@ -175,36 +176,56 @@ export default function ToursPage() {
             return;
         }
 
-        // Verify auth session before saving
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (!currentSession) {
-            alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
-            window.location.href = '/backoffice/login';
-            return;
-        }
-
-        const payload = {
-            name: formData.name,
-            category: formData.category,
-            concept: formData.concept,
-            description: formData.description,
-            price: Number(formData.price) || 0,
-            duration: formData.duration,
-            image: formData.image,
-            format: formData.format,
-            includes: formData.includes,
-            is_best_seller: formData.isBestSeller ?? false,
-            is_new: formData.isNew ?? false,
-            itinerary: itinerarySteps,
-            prices: prices,
-            addons: addons,
-            gallery: gallery,
-            meals: selectedMeals as any,
-            features: features,
-        };
-
+        // Show feedback IMMEDIATELY, before any async work
         setSaving(true);
+
         try {
+            // Verify auth session (with 5s timeout so it never hangs)
+            let currentSession;
+            try {
+                const sessionResult = await Promise.race([
+                    supabase.auth.getSession(),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('SESSION_TIMEOUT')), 5000)
+                    ),
+                ]);
+                currentSession = sessionResult.data.session;
+            } catch {
+                alert('No se pudo verificar tu sesión. Intenta recargar la página.');
+                return;
+            }
+
+            if (!currentSession) {
+                alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+                window.location.href = '/backoffice/login';
+                return;
+            }
+
+            // Clean gallery: remove empty slots the user never filled
+            const cleanGallery = gallery.filter(g => g.trim() !== '');
+
+            const payload = {
+                name: formData.name,
+                category: formData.category || null,
+                concept: formData.concept || null,
+                description: formData.description || null,
+                price: Number(formData.price) || 0,
+                duration: formData.duration || null,
+                image: formData.image || null,
+                format: formData.format || null,
+                includes: formData.includes || null,
+                is_best_seller: formData.isBestSeller ?? false,
+                is_new: formData.isNew ?? false,
+                itinerary: itinerarySteps.length > 0 ? itinerarySteps : null,
+                prices: prices.length > 0 ? prices : null,
+                addons: addons.length > 0 ? addons : null,
+                gallery: cleanGallery.length > 0 ? cleanGallery : null,
+                meals: selectedMeals.length > 0 ? (selectedMeals as any) : null,
+                features: features.length > 0 ? features : null,
+            };
+
+            console.log('[Tours] Saving payload:', JSON.stringify(payload).length, 'bytes');
+
             const saveQuery = editingTour?.id
                 ? supabase.from('tours').update(payload).eq('id', editingTour.id)
                 : supabase.from('tours').insert([payload]);
@@ -218,14 +239,15 @@ export default function ToursPage() {
             ]);
 
             if (res.error) {
-                console.error('Supabase save error:', res.error);
+                console.error('[Tours] Save error:', res.error);
                 alert('Error guardando tour: ' + res.error.message + (res.error.code ? ` (código: ${res.error.code})` : ''));
             } else {
+                console.log('[Tours] Saved successfully');
                 setShowModal(false);
                 fetchTours();
             }
         } catch (err) {
-            console.error('Unexpected error saving tour:', err);
+            console.error('[Tours] Unexpected error:', err);
             if (err instanceof Error && err.message === 'TIMEOUT') {
                 alert('El servidor no respondió en 15 segundos. Verifica tu conexión e intenta de nuevo.');
             } else {
@@ -235,7 +257,6 @@ export default function ToursPage() {
             setSaving(false);
         }
     }
-
     // Image picker handlers
     function openImagePicker(target: 'main' | number) {
         setImagePickerTarget(target);
