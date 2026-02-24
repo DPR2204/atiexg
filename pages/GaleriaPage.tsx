@@ -26,6 +26,7 @@ interface GalleryItem {
   color: string;
   size: 'large' | 'medium' | 'small';
   orientation: 'landscape' | 'portrait';
+  resourceType?: 'image' | 'video';
 }
 
 const galleryItems: GalleryItem[] = [
@@ -205,7 +206,8 @@ const remainingItems: GalleryItem[] = cloudinaryAssets
       tourLink: TOUR_LINKS[location] || '/catalogo',
       color: COLORS[index % COLORS.length],
       size: SIZE_PATTERN[index % SIZE_PATTERN.length],
-      orientation: (asset.width > asset.height ? 'landscape' : 'portrait') as const,
+      orientation: asset.width > asset.height ? 'landscape' : 'portrait',
+      resourceType: (asset as any).resource_type === 'video' ? 'video' : 'image',
     };
   });
 
@@ -1074,20 +1076,34 @@ const GalleryCard: React.FC<{
         aria-hidden="true"
       />
 
-      {/* Image with parallax data attribute — extra height for parallax room */}
-      <img
-        ref={imgRef}
-        src={getCloudinaryUrl(item.src, { width: 1600 })}
-        srcSet={srcSet}
-        sizes={sizes}
-        alt={item.alt}
-        data-parallax={parallaxSpeed}
-        className={`absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        draggable={false}
-      />
+      {/* Media with parallax data attribute — extra height for parallax room */}
+      {item.resourceType === 'video' ? (
+        <video
+          ref={imgRef as any}
+          src={getCloudinaryUrl(item.src, { resourceType: 'video' })}
+          data-parallax={parallaxSpeed}
+          className={`absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onLoadedData={() => setLoaded(true)}
+        />
+      ) : (
+        <img
+          ref={imgRef}
+          src={getCloudinaryUrl(item.src, { width: 1600 })}
+          srcSet={srcSet}
+          sizes={sizes}
+          alt={item.alt}
+          data-parallax={parallaxSpeed}
+          className={`absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          draggable={false}
+        />
+      )}
 
       {/* Permanent subtle bottom gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/60 via-[#0a0a0a]/0 to-transparent" />

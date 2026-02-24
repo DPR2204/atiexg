@@ -19,13 +19,14 @@ interface CloudinaryOptions {
  * @param options Transformation options
  * @returns Fully qualified Cloudinary URL
  */
-export const getCloudinaryUrl = (publicId: string, options: CloudinaryOptions = {}) => {
+export const getCloudinaryUrl = (publicId: string, options: CloudinaryOptions & { resourceType?: 'image' | 'video' } = {}) => {
     const {
         width,
         height,
         crop = 'fill',
         quality = 'auto:good',
-        format = 'auto'
+        format = 'auto',
+        resourceType = 'image'
     } = options;
 
     const transformations = [
@@ -36,5 +37,5 @@ export const getCloudinaryUrl = (publicId: string, options: CloudinaryOptions = 
         height ? `h_${height}` : '',
     ].filter(Boolean).join(',');
 
-    return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${transformations}/${publicId}`;
+    return `https://res.cloudinary.com/${CLOUD_NAME}/${resourceType}/upload/${transformations}/${publicId}`;
 };

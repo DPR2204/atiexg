@@ -16,6 +16,7 @@ export interface GalleryItem {
   tourLink: string;
   size: 'large' | 'medium' | 'small';
   orientation: 'landscape' | 'portrait';
+  resourceType?: 'image' | 'video';
 }
 
 interface GalleryViewerProps {
@@ -81,15 +82,15 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
       const focusable = Array.from(
         overlay.querySelectorAll<HTMLElement>(
           'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-        ),
-      ).filter((el) => {
+        )
+      ).filter((el: HTMLElement) => {
         const style = getComputedStyle(el);
         return style.display !== 'none' && style.visibility !== 'hidden';
       });
 
       if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
+      const first = focusable[0] as HTMLElement;
+      const last = focusable[focusable.length - 1] as HTMLElement;
 
       if (e.shiftKey) {
         if (document.activeElement === first) {
@@ -365,14 +366,27 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
         ref={imageContainerRef}
         className="absolute inset-0 will-change-[clip-path,transform]"
       >
-        <img
-          src={getCloudinaryUrl(item.src, { width: 2400 })}
-          alt={item.alt}
-          className="w-full h-full object-cover"
-          draggable={false}
-          onLoad={handleImageLoad}
-          onError={handleImageLoad}
-        />
+        {item.resourceType === 'video' ? (
+          <video
+            src={getCloudinaryUrl(item.src, { resourceType: 'video' })}
+            className="w-full h-full object-contain"
+            autoPlay
+            loop
+            muted
+            playsInline
+            onLoadedData={handleImageLoad}
+            onError={handleImageLoad}
+          />
+        ) : (
+            <img
+              src={getCloudinaryUrl(item.src, { width: 2400 })}
+              alt={item.alt}
+              className="w-full h-full object-cover"
+              draggable={false}
+              onLoad={handleImageLoad}
+              onError={handleImageLoad}
+            />
+        )}
       </div>
 
       {/* ---- Loading indicator ---- */}
