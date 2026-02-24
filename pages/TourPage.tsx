@@ -13,6 +13,10 @@ import {
   getTourPath,
 } from '../seo';
 import { buildRouteFromItinerary } from '../lib/lake-coordinates';
+import { getCloudinaryUrl } from '../src/utils/cloudinary';
+
+const isVideoGalleryItem = (item: string) => item.startsWith('video:');
+const getGalleryPublicId = (item: string) => isVideoGalleryItem(item) ? item.slice(6) : item;
 
 const TourRouteMap = lazy(() => import('../components/TourRouteMap'));
 
@@ -135,15 +139,28 @@ const TourPage = () => {
         {/* Hero Section */}
         <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] items-start">
           <div className="animate-fade-in-up">
-            {/* Main Image */}
+            {/* Main Image / Video */}
             <div className="relative rounded-3xl overflow-hidden glass-card">
-              <TourImage
-                src={currentImage}
-                alt={tour.name}
-                className="w-full aspect-[4/3] object-cover"
-                sizes="(max-width: 1024px) 100vw, 60vw"
-                priority
-              />
+              {isVideoGalleryItem(currentImage) ? (
+                <video
+                  key={currentImage}
+                  src={getCloudinaryUrl(getGalleryPublicId(currentImage), { resourceType: 'video' })}
+                  className="w-full aspect-[4/3] object-cover"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  controls
+                />
+              ) : (
+                <TourImage
+                  src={currentImage}
+                  alt={tour.name}
+                  className="w-full aspect-[4/3] object-cover"
+                  sizes="(max-width: 1024px) 100vw, 60vw"
+                  priority
+                />
+              )}
               <div className="absolute top-4 left-4 flex gap-2">
                 {tour.isBestSeller && (
                   <span className="px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
@@ -169,17 +186,32 @@ const TourPage = () => {
                     key={img}
                     type="button"
                     onClick={() => setSelectedImageIndex(idx)}
-                    className={`shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 ${idx === selectedImageIndex
+                    className={`shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-200 relative ${idx === selectedImageIndex
                       ? 'border-red-500 shadow-lg shadow-red-500/20 scale-[1.02]'
                       : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                   >
-                    <TourImage
-                      src={img}
-                      alt={`${tour.name} - foto ${idx + 1}`}
-                      className="w-16 h-12 sm:w-20 sm:h-14 object-cover"
-                      sizes="80px"
-                    />
+                    {isVideoGalleryItem(img) ? (
+                      <>
+                        <img
+                          src={getCloudinaryUrl(getGalleryPublicId(img), { width: 80, height: 56, crop: 'fill', format: 'jpg', resourceType: 'video' })}
+                          alt={`${tour.name} - video ${idx + 1}`}
+                          className="w-16 h-12 sm:w-20 sm:h-14 object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-black/50 flex items-center justify-center">
+                            <div className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-white ml-0.5" />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <TourImage
+                        src={img}
+                        alt={`${tour.name} - foto ${idx + 1}`}
+                        className="w-16 h-12 sm:w-20 sm:h-14 object-cover"
+                        sizes="80px"
+                      />
+                    )}
                   </button>
                 ))}
               </div>
