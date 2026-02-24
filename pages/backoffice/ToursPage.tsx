@@ -175,6 +175,14 @@ export default function ToursPage() {
             return;
         }
 
+        // Verify auth session before saving
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!currentSession) {
+            alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+            window.location.href = '/backoffice/login';
+            return;
+        }
+
         const payload = {
             name: formData.name,
             category: formData.category,
@@ -197,25 +205,32 @@ export default function ToursPage() {
 
         setSaving(true);
         try {
-            let error;
-            if (editingTour?.id) {
-                const res = await supabase.from('tours').update(payload).eq('id', editingTour.id);
-                error = res.error;
-            } else {
-                const res = await supabase.from('tours').insert([payload]);
-                error = res.error;
-            }
+            const saveQuery = editingTour?.id
+                ? supabase.from('tours').update(payload).eq('id', editingTour.id)
+                : supabase.from('tours').insert([payload]);
 
-            if (error) {
-                console.error('Supabase save error:', error);
-                alert('Error guardando tour: ' + error.message + (error.code ? ` (código: ${error.code})` : ''));
+            // Race against a 15s timeout so the UI never hangs
+            const res = await Promise.race([
+                saveQuery,
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('TIMEOUT')), 15000)
+                ),
+            ]);
+
+            if (res.error) {
+                console.error('Supabase save error:', res.error);
+                alert('Error guardando tour: ' + res.error.message + (res.error.code ? ` (código: ${res.error.code})` : ''));
             } else {
                 setShowModal(false);
                 fetchTours();
             }
         } catch (err) {
             console.error('Unexpected error saving tour:', err);
-            alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
+            if (err instanceof Error && err.message === 'TIMEOUT') {
+                alert('El servidor no respondió en 15 segundos. Verifica tu conexión e intenta de nuevo.');
+            } else {
+                alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
+            }
         } finally {
             setSaving(false);
         }
