@@ -197,9 +197,10 @@ const remainingItems: GalleryItem[] = cloudinaryAssets
   .filter((asset) => !curatedIds.has(asset.public_id))
   .map((asset, index) => {
     const location = extractLocation(asset.display_name);
+    const isVideo = (asset as any).resource_type === 'video' || ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes((asset as any).format);
     return {
       id: galleryItems.length + index + 1,
-      src: asset.public_id,
+      src: isVideo && !(asset.public_id).includes('.') ? `${asset.public_id}.${(asset as any).format}` : asset.public_id,
       alt: asset.display_name,
       title: asset.display_name,
       location,
@@ -207,7 +208,7 @@ const remainingItems: GalleryItem[] = cloudinaryAssets
       color: COLORS[index % COLORS.length],
       size: SIZE_PATTERN[index % SIZE_PATTERN.length],
       orientation: asset.width > asset.height ? 'landscape' : 'portrait',
-      resourceType: (asset as any).resource_type === 'video' ? 'video' : 'image',
+      resourceType: isVideo ? 'video' : 'image',
     };
   });
 
