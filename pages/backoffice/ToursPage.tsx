@@ -15,6 +15,31 @@ interface CloudinaryAsset {
     format: string;
     created_at: string;
     url: string;
+    resource_type?: string;
+}
+
+const VIDEO_FORMATS = ['mp4', 'mov', 'webm', 'avi', 'mkv'];
+const isVideoAsset = (asset: CloudinaryAsset) => VIDEO_FORMATS.includes(asset.format);
+const isVideoGalleryItem = (item: string) => item.startsWith('video:');
+const getGalleryPublicId = (item: string) => isVideoGalleryItem(item) ? item.slice(6) : item;
+
+function getAssetThumbnailUrl(asset: CloudinaryAsset, width: number, height: number): string {
+    if (isVideoAsset(asset)) {
+        return getCloudinaryUrl(asset.public_id, { width, height, crop: 'fill', quality: 'auto:low', format: 'jpg', resourceType: 'video' });
+    }
+    return getCloudinaryUrl(asset.public_id, { width, height, crop: 'fill', quality: 'auto:low' });
+}
+
+function getGalleryItemThumbnailUrl(publicId: string, width: number, height: number, assetsMap: Map<string, CloudinaryAsset>): string {
+    const cleanId = getGalleryPublicId(publicId);
+    if (isVideoGalleryItem(publicId)) {
+        return getCloudinaryUrl(cleanId, { width, height, crop: 'fill', format: 'jpg', resourceType: 'video' });
+    }
+    const asset = assetsMap.get(cleanId);
+    if (asset && isVideoAsset(asset)) {
+        return getCloudinaryUrl(cleanId, { width, height, crop: 'fill', format: 'jpg', resourceType: 'video' });
+    }
+    return getCloudinaryUrl(cleanId, { width, height, crop: 'fill' });
 }
 
 const DEFAULT_CATEGORIES = ['Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'];
@@ -52,6 +77,13 @@ export default function ToursPage() {
         const all = new Set([...DEFAULT_CATEGORIES, ...fromTours, ...customCategories]);
         return Array.from(all).sort();
     }, [tours, customCategories]);
+
+    // Build lookup map for asset type detection
+    const assetsMap = useMemo(() => {
+        const map = new Map<string, CloudinaryAsset>();
+        (cloudinaryAssets as CloudinaryAsset[]).forEach(a => map.set(a.public_id, a));
+        return map;
+    }, []);
 
     // Filter cloudinary assets by search
     const filteredAssets = useMemo(() => {
@@ -131,8 +163,14 @@ export default function ToursPage() {
         else fetchTours();
     }
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
+    async function handleSubmit(e?: React.FormEvent) {
+        if (e) e.preventDefault();
+
+        if (!formData.name?.trim()) {
+            setActiveTab('general');
+            alert('El nombre del tour es requerido.');
+            return;
+        }
 
         const payload = {
             name: formData.name,
@@ -179,11 +217,13 @@ export default function ToursPage() {
     }
 
     function selectImage(publicId: string) {
+        const asset = assetsMap.get(publicId);
+        const taggedId = asset && isVideoAsset(asset) ? `video:${publicId}` : publicId;
         if (imagePickerTarget === 'main') {
             setFormData({ ...formData, image: publicId });
         } else {
             const newGallery = [...gallery];
-            newGallery[imagePickerTarget] = publicId;
+            newGallery[imagePickerTarget] = taggedId;
             setGallery(newGallery);
         }
         setShowImagePicker(false);
@@ -346,7 +386,7 @@ export default function ToursPage() {
                             </div>
 
                             {/* Content */}
-                            <form id="tour-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8">
+                            <form id="tour-form" onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto p-8">
 
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 max-w-2xl">
@@ -425,7 +465,7 @@ export default function ToursPage() {
 
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-sm font-medium text-gray-700">Galería de Imágenes</label>
+                                                <label className="text-sm font-medium text-gray-700">Galería (Imágenes y Videos)</label>
                                                 <div className="flex gap-2">
                                                     <button type="button" onClick={() => { addGalleryImage(); setTimeout(() => openImagePicker(gallery.length), 50); }} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Seleccionar Imagen</button>
                                                     <button type="button" onClick={addGalleryImage} className="text-xs text-gray-500 font-medium hover:text-gray-700">+ ID Manual</button>
@@ -434,13 +474,24 @@ export default function ToursPage() {
                                             <div className="space-y-2">
                                                 {gallery.map((img, idx) => (
                                                     <div key={idx} className="flex gap-2 items-center">
-                                                        {img && <img src={getCloudinaryUrl(img, { width: 64, height: 64, crop: 'fill' })} alt="" className="w-8 h-8 rounded object-cover border border-gray-200 flex-shrink-0" />}
-                                                        <input type="text" value={img} onChange={e => updateGalleryImage(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID" />
-                                                        <button type="button" onClick={() => openImagePicker(idx)} className="text-blue-500 hover:text-blue-700 p-1.5" title="Seleccionar imagen"><ImageIcon size={16} /></button>
+                                                        {img && (
+                                                            <div className="relative flex-shrink-0">
+                                                                <img src={getGalleryItemThumbnailUrl(img, 64, 64, assetsMap)} alt="" className="w-8 h-8 rounded object-cover border border-gray-200" />
+                                                                {isVideoGalleryItem(img) && (
+                                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                                        <div className="w-4 h-4 rounded-full bg-black/50 flex items-center justify-center">
+                                                                            <div className="w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-l-[5px] border-l-white ml-0.5" />
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        <input type="text" value={img} onChange={e => updateGalleryImage(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID o video:ID" />
+                                                        <button type="button" onClick={() => openImagePicker(idx)} className="text-blue-500 hover:text-blue-700 p-1.5" title="Seleccionar imagen o video"><ImageIcon size={16} /></button>
                                                         <button type="button" onClick={() => removeGalleryImage(idx)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
-                                                {gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imágenes en la galería.</p>}
+                                                {gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imágenes o videos en la galería.</p>}
                                             </div>
                                         </div>
                                     </div>
@@ -571,7 +622,7 @@ export default function ToursPage() {
                             </span>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
-                                <button type="submit" form="tour-form" className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2">
+                                <button type="submit" form="tour-form" onClick={(e) => { e.preventDefault(); handleSubmit(); }} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2">
                                     <Save size={18} /> Guardar Tour
                                 </button>
                             </div>
@@ -585,7 +636,7 @@ export default function ToursPage() {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                            <h3 className="text-lg font-bold text-gray-900">Seleccionar Imagen</h3>
+                            <h3 className="text-lg font-bold text-gray-900">Seleccionar Imagen o Video</h3>
                             <button onClick={() => setShowImagePicker(false)} className="text-gray-400 hover:text-gray-600"><X size={22} /></button>
                         </div>
                         <div className="px-4 py-3 border-b border-gray-100">
@@ -612,11 +663,14 @@ export default function ToursPage() {
                                         className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 focus:border-blue-500 focus:outline-none transition-all"
                                     >
                                         <img
-                                            src={getCloudinaryUrl(asset.public_id, { width: 200, height: 200, crop: 'fill', quality: 'auto:low' })}
+                                            src={getAssetThumbnailUrl(asset, 200, 200)}
                                             alt={asset.display_name}
                                             className="w-full h-full object-cover"
                                             loading="lazy"
                                         />
+                                        {isVideoAsset(asset) && (
+                                            <div className="absolute top-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Video</div>
+                                        )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
                                             <span className="text-white text-[10px] leading-tight font-medium truncate w-full">{asset.display_name}</span>
                                         </div>
