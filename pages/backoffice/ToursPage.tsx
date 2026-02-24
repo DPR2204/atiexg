@@ -65,6 +65,9 @@ export default function ToursPage() {
     const [showNewCategory, setShowNewCategory] = useState(false);
     const [newCategoryInput, setNewCategoryInput] = useState('');
 
+    // Saving state
+    const [saving, setSaving] = useState(false);
+
     // Image picker
     const [showImagePicker, setShowImagePicker] = useState(false);
     const [imagePickerTarget, setImagePickerTarget] = useState<'main' | number>('main');
@@ -192,20 +195,29 @@ export default function ToursPage() {
             features: features,
         };
 
-        let error;
-        if (editingTour?.id) {
-            const res = await supabase.from('tours').update(payload).eq('id', editingTour.id);
-            error = res.error;
-        } else {
-            const res = await supabase.from('tours').insert([payload]);
-            error = res.error;
-        }
+        setSaving(true);
+        try {
+            let error;
+            if (editingTour?.id) {
+                const res = await supabase.from('tours').update(payload).eq('id', editingTour.id);
+                error = res.error;
+            } else {
+                const res = await supabase.from('tours').insert([payload]);
+                error = res.error;
+            }
 
-        if (error) {
-            alert('Error saving tour: ' + error.message);
-        } else {
-            setShowModal(false);
-            fetchTours();
+            if (error) {
+                console.error('Supabase save error:', error);
+                alert('Error guardando tour: ' + error.message + (error.code ? ` (código: ${error.code})` : ''));
+            } else {
+                setShowModal(false);
+                fetchTours();
+            }
+        } catch (err) {
+            console.error('Unexpected error saving tour:', err);
+            alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -386,7 +398,7 @@ export default function ToursPage() {
                             </div>
 
                             {/* Content */}
-                            <form id="tour-form" onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto p-8">
+                            <form id="tour-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} noValidate className="flex-1 overflow-y-auto p-8">
 
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 max-w-2xl">
@@ -622,8 +634,8 @@ export default function ToursPage() {
                             </span>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
-                                <button type="submit" form="tour-form" onClick={(e) => { e.preventDefault(); handleSubmit(); }} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2">
-                                    <Save size={18} /> Guardar Tour
+                                <button type="button" disabled={saving} onClick={() => handleSubmit()} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <Save size={18} /> {saving ? 'Guardando...' : 'Guardar Tour'}
                                 </button>
                             </div>
                         </div>
