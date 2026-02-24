@@ -34,18 +34,19 @@ async function syncAssets() {
 
     try {
         const assets: any[] = [];
-        let next_cursor: string | undefined = undefined;
 
+        // Fetch Images
+        console.log(`Fetching images...`);
+        let next_cursor_images: string | undefined = undefined;
         do {
             const result: any = await cloudinary.api.resources({
                 type: 'upload',
+                resource_type: 'image',
                 max_results: 500,
-                next_cursor
+                next_cursor: next_cursor_images
             });
 
-            // Filtering by asset_folder as discovered in debug
             const folderAssets = result.resources.filter((r: any) => r.asset_folder === TARGET_FOLDER);
-
             assets.push(...folderAssets.map((resource: any) => ({
                 public_id: resource.public_id,
                 display_name: resource.display_name || resource.public_id,
@@ -53,11 +54,38 @@ async function syncAssets() {
                 height: resource.height,
                 format: resource.format,
                 created_at: resource.created_at,
-                url: resource.secure_url
+                url: resource.secure_url,
+                resource_type: 'image'
             })));
 
-            next_cursor = result.next_cursor;
-        } while (next_cursor);
+            next_cursor_images = result.next_cursor;
+        } while (next_cursor_images);
+
+        // Fetch Videos
+        console.log(`Fetching videos...`);
+        let next_cursor_videos: string | undefined = undefined;
+        do {
+            const result: any = await cloudinary.api.resources({
+                type: 'upload',
+                resource_type: 'video',
+                max_results: 500,
+                next_cursor: next_cursor_videos
+            });
+
+            const folderAssets = result.resources.filter((r: any) => r.asset_folder === TARGET_FOLDER);
+            assets.push(...folderAssets.map((resource: any) => ({
+                public_id: resource.public_id,
+                display_name: resource.display_name || resource.public_id,
+                width: resource.width,
+                height: resource.height,
+                format: resource.format,
+                created_at: resource.created_at,
+                url: resource.secure_url,
+                resource_type: 'video'
+            })));
+
+            next_cursor_videos = result.next_cursor;
+        } while (next_cursor_videos);
 
         console.log(`Successfully filtered ${assets.length} assets from ${TARGET_FOLDER}.`);
 
