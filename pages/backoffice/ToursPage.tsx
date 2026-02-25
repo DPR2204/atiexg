@@ -67,8 +67,9 @@ export default function ToursPage() {
     const [newCategoryInput, setNewCategoryInput] = useState('');
 
     // Saving state – ref avoids stale-closure issues across re-renders
-    const [saving, setSaving] = useState(false);
-    const savingRef = useRef(false);
+    type SavingState = 'idle' | 'session' | 'saving' | 'reloading';
+    const [savingState, setSavingState] = useState<SavingState>('idle');
+    const savingRef = useRef<SavingState>('idle');
 
     // Image picker
     const [showImagePicker, setShowImagePicker] = useState(false);
@@ -198,8 +199,8 @@ export default function ToursPage() {
         if (e) e.preventDefault();
         console.log('[Tours] handleSubmit called, savingRef:', savingRef.current);
 
-        if (savingRef.current) {
-            console.log('[Tours] Blocked: already saving');
+        if (savingRef.current !== 'idle') {
+            console.log('[Tours] Blocked: already saving in state', savingRef.current);
             return;
         }
 
@@ -210,24 +211,30 @@ export default function ToursPage() {
             return;
         }
 
-        // Show feedback IMMEDIATELY, before any async work
-        savingRef.current = true;
-        setSaving(true);
-        console.log('[Tours] Saving started');
+        const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string) => {
+            return Promise.race([
+                promise,
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Timeout: ${label} took longer than ${ms / 1000}s`)), ms))
+            ]);
+        };
 
         try {
+            savingRef.current = 'session';
+            setSavingState('session');
+            console.log('[Tours] Checking session...');
+
             let currentSession;
             try {
-                const { data, error } = await supabase.auth.getSession();
+                const { data, error } = await withTimeout<any>(supabase.auth.getSession(), 30000, 'Verificación de sesión');
                 if (error) {
                     console.error('[Tours] Session error:', error);
-                    alert('No se pudo verificar tu sesión. (' + error.message + '). Intenta recargar la página.');
+                    alert('Error en la sesión: ' + error.message);
                     return;
                 }
                 currentSession = data.session;
             } catch (err) {
                 console.error('[Tours] Unexpected session check error:', err);
-                alert('Error al verificar tu sesión. Intenta recargar la página.');
+                alert('La verificación de sesión falló o tomó demasiado tiempo. Intenta recargar la página. Detalle: ' + (err instanceof Error ? err.message : String(err)));
                 return;
             }
 
@@ -237,7 +244,11 @@ export default function ToursPage() {
                 return;
             }
 
-            // Read latest values from refs (never stale)
+            savingRef.current = 'saving';
+            setSavingState('saving');
+            console.log('[Tours] Saving data to DB...');
+
+            // Read latest values from refs
             const curGallery = galleryRef.current;
             const curItinerary = itineraryRef.current;
             const curPrices = pricesRef.current;
@@ -246,7 +257,6 @@ export default function ToursPage() {
             const curFeatures = featuresRef.current;
             const curEditing = editingTourRef.current;
 
-            // Clean gallery: remove empty slots the user never filled
             const cleanGallery = curGallery.filter(g => g.trim() !== '');
 
             const payload = {
@@ -272,34 +282,37 @@ export default function ToursPage() {
                 features: curFeatures.length > 0 ? curFeatures : null,
             };
 
-            console.log('[Tours] Payload ready:', JSON.stringify(payload).length, 'bytes, editing:', curEditing?.id ?? 'new');
+            console.log('[Tours] Payload read:', JSON.stringify(payload).length, 'bytes');
 
             const saveQuery = curEditing?.id
                 ? supabase.from('tours').update(payload).eq('id', curEditing.id)
                 : supabase.from('tours').insert([payload]);
 
             try {
-                const res = await saveQuery;
+                const res = await withTimeout<any>(saveQuery, 30000, 'Guardado en base de datos');
 
                 if (res.error) {
                     console.error('[Tours] Save error:', res.error);
                     alert('Error guardando tour: ' + res.error.message + (res.error.code ? ` (código: ${res.error.code})` : ''));
                 } else {
-                    console.log('[Tours] Saved successfully');
+                    console.log('[Tours] Saved successfully, reloading data...');
+                    savingRef.current = 'reloading';
+                    setSavingState('reloading');
                     setShowModal(false);
-                    await fetchTours();
+                    await withTimeout(fetchTours(), 15000, 'Recarga de tabla');
                     invalidateToursCache();
                 }
             } catch (err) {
-                throw err; // re-throw to be caught by outer try/catch
+                console.error('[Tours] Query execution error:', err);
+                alert('La petición tardó demasiado o falló la conexión: ' + (err instanceof Error ? err.message : String(err)));
             }
         } catch (err) {
-            console.error('[Tours] Unexpected error:', err);
+            console.error('[Tours] Unexpected global error:', err);
             alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
         } finally {
-            savingRef.current = false;
-            setSaving(false);
-            console.log('[Tours] Saving finished');
+            savingRef.current = 'idle';
+            setSavingState('idle');
+            console.log('[Tours] Saving finished, resetting state');
         }
     }, []);
 
@@ -730,8 +743,13 @@ export default function ToursPage() {
                             </span>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
-                                <button type="button" disabled={saving} onClick={() => { console.log('[Tours] Button click!'); handleSubmit(); }} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <Save size={18} /> {saving ? 'Guardando...' : 'Guardar Tour'}
+                                <button type="button" disabled={savingState !== 'idle'} onClick={() => { console.log('[Tours] Button click!'); handleSubmit(); }} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <Save size={18} /> {
+                                        savingState === 'session' ? 'Verificando...' :
+                                            savingState === 'saving' ? 'Guardando...' :
+                                                savingState === 'reloading' ? 'Cargando...' :
+                                                    'Guardar Tour'
+                                    }
                                 </button>
                             </div>
                         </div>
