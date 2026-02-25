@@ -585,6 +585,15 @@ body {
 }
 
 /* ========================================
+   SHADER REVEAL FALLBACK
+   ======================================== */
+@supports not (mask-image: linear-gradient(black, transparent)) {
+  [data-shader-reveal] {
+    opacity: var(--reveal, 0);
+  }
+}
+
+/* ========================================
    FOCUS STYLES
    ======================================== */
 :focus-visible {

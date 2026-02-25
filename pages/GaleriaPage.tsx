@@ -240,9 +240,18 @@ function supportsShaderReveal(): boolean {
     return false;
   }
 
-  // Skip on low-end devices (≤2 cores or ≤2 GB RAM)
+  // Stricter thresholds on mobile devices
+  const ua = navigator.userAgent;
+  const isMobileUA = /iPhone|iPad|Android/i.test(ua);
   const cores = navigator.hardwareConcurrency || 4;
   const memory = (navigator as any).deviceMemory || 4;
+
+  if (isMobileUA) {
+    // Require at least 4 hardware cores AND 4GB deviceMemory on mobile
+    return cores >= 4 && memory >= 4;
+  }
+
+  // Desktop: keep existing thresholds (>2 cores, >2GB)
   return cores > 2 && memory > 2;
 }
 
@@ -252,7 +261,7 @@ function supportsShaderReveal(): boolean {
 
 function buildCloudinarySrcSet(
   publicId: string,
-  widths = [800, 1200, 1800],
+  widths = [480, 800, 1200, 1800],
 ): { srcSet: string; sizes: string } {
   const srcSet = widths
     .map((w) => {
@@ -263,7 +272,7 @@ function buildCloudinarySrcSet(
 
   return {
     srcSet,
-    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
+    sizes: '(max-width: 480px) 95vw, (max-width: 768px) 50vw, (max-width: 1024px) 50vw, 33vw',
   };
 }
 
@@ -303,7 +312,11 @@ const GaleriaPage: React.FC = () => {
 
     // Skip Lenis on touch devices — native scroll is more reliable
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (isTouchDevice) return;
+    if (isTouchDevice) {
+      // Prevent ScrollTrigger recalculations on mobile address bar show/hide
+      ScrollTrigger.config({ ignoreMobileResize: true });
+      return;
+    }
 
     const lenis = new Lenis({
       duration: 1.2,
@@ -430,6 +443,9 @@ const GaleriaPage: React.FC = () => {
     const revealedGroups = new Set<string>();
 
     const ctx = gsap.context(() => {
+      // Mobile detection for reduced animation complexity
+      const isMobile = window.innerWidth < 768;
+
       // --- Reveal animation for each gallery group ---
       const groups = document.querySelectorAll<HTMLElement>('[data-gallery-group]');
       groups.forEach((group) => {
@@ -445,32 +461,34 @@ const GaleriaPage: React.FC = () => {
             c.setAttribute('data-shader-reveal', '');
             c.style.setProperty('--reveal', '0');
           });
-          gsap.set(cards, { opacity: 0, y: 15 });
+          gsap.set(cards, { opacity: 0, y: 15, force3D: true });
         } else {
-          gsap.set(cards, { opacity: 0, y: 40 });
+          gsap.set(cards, { opacity: 0, y: 40, force3D: true });
         }
-        if (labels.length) gsap.set(labels, { opacity: 0, y: 10 });
+        if (labels.length) gsap.set(labels, { opacity: 0, y: 10, force3D: true });
 
         const revealGroup = () => {
           if (revealedGroups.has(groupId)) return;
           revealedGroups.add(groupId);
 
           if (shaderCapable) {
-            gsap.set(cards, { opacity: 1 });
+            gsap.set(cards, { opacity: 1, force3D: true });
             gsap.to(cards, {
               '--reveal': 1,
               y: 0,
-              duration: 1.2,
-              stagger: 0.15,
+              duration: isMobile ? 0.6 : 1.2,
+              stagger: isMobile ? 0.08 : 0.15,
               ease: 'power2.out',
+              force3D: true,
             });
           } else {
             gsap.to(cards, {
               opacity: 1,
               y: 0,
-              duration: 0.8,
-              stagger: 0.1,
+              duration: isMobile ? 0.6 : 0.8,
+              stagger: isMobile ? 0.08 : 0.1,
               ease: 'power3.out',
+              force3D: true,
             });
           }
 
@@ -478,10 +496,11 @@ const GaleriaPage: React.FC = () => {
             gsap.to(labels, {
               opacity: 1,
               y: 0,
-              duration: 0.6,
-              stagger: shaderCapable ? 0.15 : 0.1,
+              duration: isMobile ? 0.4 : 0.6,
+              stagger: isMobile ? 0.08 : (shaderCapable ? 0.15 : 0.1),
               delay: 0.2,
               ease: 'power2.out',
+              force3D: true,
             });
           }
         };
@@ -502,24 +521,25 @@ const GaleriaPage: React.FC = () => {
       // --- Reveal for CTA sections ---
       const ctas = document.querySelectorAll<HTMLElement>('[data-gallery-cta]');
       ctas.forEach((cta) => {
-        gsap.set(cta, { opacity: 0, y: 30 });
+        gsap.set(cta, { opacity: 0, y: 30, force3D: true });
         ScrollTrigger.create({
           trigger: cta,
           start: 'top 85%',
           once: true,
           fastScrollEnd: true,
           onEnter: () => {
-            gsap.to(cta, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+            gsap.to(cta, { opacity: 1, y: 0, duration: isMobile ? 0.5 : 0.8, ease: 'power3.out', force3D: true });
           },
           onRefresh: (self) => {
             if (self.progress > 0) {
-              gsap.set(cta, { opacity: 1, y: 0 });
+              gsap.set(cta, { opacity: 1, y: 0, force3D: true });
             }
           },
         });
       });
 
       // --- Parallax on gallery images (only on non-touch / desktop) ---
+      // Completely skip parallax on touch devices to avoid expensive ScrollTrigger scrub
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       if (!isTouchDevice) {
         const parallaxImages = document.querySelectorAll<HTMLElement>('[data-parallax]');
@@ -528,6 +548,7 @@ const GaleriaPage: React.FC = () => {
           gsap.to(img, {
             yPercent: speed * 100,
             ease: 'none',
+            force3D: true,
             scrollTrigger: {
               trigger: img.closest('[data-gallery-card]') || img,
               start: 'top bottom',
@@ -619,8 +640,8 @@ const GaleriaPage: React.FC = () => {
       <section ref={heroRef} className="relative h-[100svh] min-h-[600px] overflow-hidden">
         <img
           ref={heroImgRef}
-          src={getCloudinaryUrl('DSC04387_zcq91s', { width: 2000 })}
-          srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [800, 1200, 2000]).srcSet}
+          src={getCloudinaryUrl('DSC04387_zcq91s', { width: 1400 })}
+          srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [600, 1000, 1400]).srcSet}
           sizes="100vw"
           alt="Vista panorámica del Lago de Atitlán desde el mirador de Santa Catarina Palopó"
           className="absolute inset-0 w-full h-full object-cover will-change-transform"
@@ -635,7 +656,7 @@ const GaleriaPage: React.FC = () => {
           <p className="hero-subtitle font-dm-sans text-xs sm:text-sm uppercase tracking-[0.35em] text-[#f5f0e8]/50 mb-3">
             Atitlán Experiences
           </p>
-          <h1 className="font-playfair text-[2.75rem] sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[0.95] tracking-tight">
+          <h1 className="font-playfair text-[2.75rem] sm:text-6xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-[0.95] tracking-tight">
             <span className="hero-title-line inline-block">Galería de</span>
             <br />
             <span className="hero-title-line inline-block italic">Experiencias</span>
@@ -664,34 +685,34 @@ const GaleriaPage: React.FC = () => {
         </div>
 
         {/* ---- Group 1: Large landscape + Medium portrait ---- */}
-        <div data-gallery-group="1" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5">
-          <div className="lg:col-span-8" data-gallery-card>
-            <GalleryCard item={galleryItems[0]} itemIndex={0} heightClass="h-[55vh] sm:h-[60vh] lg:h-[70vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
+        <div data-gallery-group="1" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5">
+          <div className="md:col-span-1 lg:col-span-8" data-gallery-card>
+            <GalleryCard item={galleryItems[0]} itemIndex={0} heightClass="h-[42vh] sm:h-[55vh] lg:h-[70vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
           </div>
-          <div className="lg:col-span-4" data-gallery-card>
-            <GalleryCard item={galleryItems[1]} itemIndex={1} heightClass="h-[55vh] sm:h-[50vh] lg:h-[70vh]" parallaxSpeed={0.18} onOpen={handleOpenViewer} />
+          <div className="md:col-span-1 lg:col-span-4" data-gallery-card>
+            <GalleryCard item={galleryItems[1]} itemIndex={1} heightClass="h-[42vh] sm:h-[50vh] lg:h-[70vh]" parallaxSpeed={0.18} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 2: Full-width large landscape ---- */}
         <div data-gallery-group="2" className="mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[2]} itemIndex={2} heightClass="h-[55vh] sm:h-[60vh] lg:h-[75vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[2]} itemIndex={2} heightClass="h-[42vh] sm:h-[55vh] lg:h-[75vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 3: Medium landscape + Small + Small ---- */}
         <div data-gallery-group="3" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div className="md:col-span-2 lg:col-span-7" data-gallery-card>
-            <GalleryCard item={galleryItems[3]} itemIndex={3} heightClass="h-[55vh] sm:h-[50vh] lg:h-[55vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[3]} itemIndex={3} heightClass="h-[42vh] sm:h-[50vh] lg:h-[55vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
           </div>
           <div className="lg:col-span-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 lg:gap-5 h-full">
               <div data-gallery-card>
-                <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[40vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
+                <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[35vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
               </div>
               <div data-gallery-card>
-                <GalleryCard item={galleryItems[5]} itemIndex={5} heightClass="h-[55vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
+                <GalleryCard item={galleryItems[5]} itemIndex={5} heightClass="h-[42vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
               </div>
             </div>
           </div>
@@ -738,27 +759,27 @@ const GaleriaPage: React.FC = () => {
         {/* ---- Group 4: Large landscape (full) ---- */}
         <div data-gallery-group="4">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[6]} itemIndex={6} heightClass="h-[55vh] sm:h-[65vh] lg:h-[80vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[6]} itemIndex={6} heightClass="h-[45vh] sm:h-[55vh] lg:h-[80vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 5: Medium portrait + Medium landscape ---- */}
-        <div data-gallery-group="5" className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
-          <div className="lg:col-span-5" data-gallery-card>
-            <GalleryCard item={galleryItems[9]} itemIndex={9} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
+        <div data-gallery-group="5" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
+          <div className="md:col-span-1 lg:col-span-5" data-gallery-card>
+            <GalleryCard item={galleryItems[9]} itemIndex={9} heightClass="h-[42vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
           </div>
-          <div className="lg:col-span-7" data-gallery-card>
-            <GalleryCard item={galleryItems[7]} itemIndex={7} heightClass="h-[55vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
+          <div className="md:col-span-1 lg:col-span-7" data-gallery-card>
+            <GalleryCard item={galleryItems[7]} itemIndex={7} heightClass="h-[42vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
           </div>
         </div>
 
         {/* ---- Group 6: Small + Small (closing pair) ---- */}
         <div data-gallery-group="6" className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[8]} itemIndex={8} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[8]} itemIndex={8} heightClass="h-[35vh] sm:h-[40vh] lg:h-[50vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
           </div>
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[40vh] sm:h-[45vh] lg:h-[50vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[35vh] sm:h-[40vh] lg:h-[50vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
           </div>
         </div>
 
@@ -885,24 +906,24 @@ const LAYOUT_CYCLE: LayoutRow[] = [
 
 const HEIGHT_MAP: Record<string, Record<'large' | 'medium' | 'small', string>> = {
   'two-asymmetric': {
-    large: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
-    medium: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
-    small: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+    large: 'h-[42vh] sm:h-[50vh] lg:h-[65vh]',
+    medium: 'h-[42vh] sm:h-[50vh] lg:h-[65vh]',
+    small: 'h-[42vh] sm:h-[50vh] lg:h-[65vh]',
   },
   full: {
-    large: 'h-[55vh] sm:h-[60vh] lg:h-[75vh]',
-    medium: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
-    small: 'h-[45vh] sm:h-[50vh] lg:h-[55vh]',
+    large: 'h-[42vh] sm:h-[55vh] lg:h-[75vh]',
+    medium: 'h-[42vh] sm:h-[50vh] lg:h-[65vh]',
+    small: 'h-[38vh] sm:h-[45vh] lg:h-[55vh]',
   },
   'two-asymmetric-reverse': {
-    large: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
-    medium: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
-    small: 'h-[50vh] sm:h-[55vh] lg:h-[65vh]',
+    large: 'h-[42vh] sm:h-[50vh] lg:h-[65vh]',
+    medium: 'h-[42vh] sm:h-[50vh] lg:h-[65vh]',
+    small: 'h-[42vh] sm:h-[50vh] lg:h-[65vh]',
   },
   three: {
-    large: 'h-[40vh] sm:h-[45vh] lg:h-[50vh]',
-    medium: 'h-[40vh] sm:h-[45vh] lg:h-[50vh]',
-    small: 'h-[35vh] sm:h-[40vh] lg:h-[45vh]',
+    large: 'h-[35vh] sm:h-[40vh] lg:h-[50vh]',
+    medium: 'h-[35vh] sm:h-[40vh] lg:h-[50vh]',
+    small: 'h-[32vh] sm:h-[38vh] lg:h-[45vh]',
   },
 };
 
@@ -949,9 +970,9 @@ const RemainingGalleryGrid: React.FC<{
 
         if (row.layout.type === 'two-asymmetric') {
           return (
-            <div key={groupNum} data-gallery-group={groupNum} className={`grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 ${mt}`}>
+            <div key={groupNum} data-gallery-group={groupNum} className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 ${mt}`}>
               {row.items[0] && (
-                <div className="lg:col-span-8" data-gallery-card>
+                <div className="md:col-span-1 lg:col-span-8" data-gallery-card>
                   <GalleryCard
                     item={row.items[0]}
                     itemIndex={startIndex + row.baseIdx}
@@ -962,7 +983,7 @@ const RemainingGalleryGrid: React.FC<{
                 </div>
               )}
               {row.items[1] && (
-                <div className="lg:col-span-4" data-gallery-card>
+                <div className="md:col-span-1 lg:col-span-4" data-gallery-card>
                   <GalleryCard
                     item={row.items[1]}
                     itemIndex={startIndex + row.baseIdx + 1}
@@ -978,9 +999,9 @@ const RemainingGalleryGrid: React.FC<{
 
         if (row.layout.type === 'two-asymmetric-reverse') {
           return (
-            <div key={groupNum} data-gallery-group={groupNum} className={`grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 ${mt}`}>
+            <div key={groupNum} data-gallery-group={groupNum} className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 ${mt}`}>
               {row.items[0] && (
-                <div className="lg:col-span-5" data-gallery-card>
+                <div className="md:col-span-1 lg:col-span-5" data-gallery-card>
                   <GalleryCard
                     item={row.items[0]}
                     itemIndex={startIndex + row.baseIdx}
@@ -991,7 +1012,7 @@ const RemainingGalleryGrid: React.FC<{
                 </div>
               )}
               {row.items[1] && (
-                <div className="lg:col-span-7" data-gallery-card>
+                <div className="md:col-span-1 lg:col-span-7" data-gallery-card>
                   <GalleryCard
                     item={row.items[1]}
                     itemIndex={startIndex + row.baseIdx + 1}
@@ -1072,7 +1093,7 @@ const GalleryCard: React.FC<{
     >
       {/* Blur placeholder — dominant color */}
       <div
-        className={`absolute inset-0 transition-opacity duration-700 ${loaded ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute inset-0 transition-opacity duration-500 ${loaded ? 'opacity-0' : 'opacity-100'}`}
         style={{ backgroundColor: item.color }}
         aria-hidden="true"
       />

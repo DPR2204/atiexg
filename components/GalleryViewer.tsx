@@ -47,7 +47,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
   const isAnimating = useRef(false);
   const sourceElRef = useRef(sourceEl);
   const previousFocusRef = useRef<HTMLElement | null>(document.activeElement as HTMLElement);
-  const touchStart = useRef({ x: 0, y: 0 });
+  const touchStart = useRef({ x: 0, y: 0, t: 0 });
   const touchDelta = useRef({ x: 0, y: 0 });
   const isDraggingDown = useRef(false);
   const pendingNavigation = useRef(false);
@@ -127,9 +127,10 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
 
       gsap.set(imgContainer, {
         clipPath: `inset(${top}px ${right}px ${bottom}px ${left}px round 16px)`,
+        force3D: true,
       });
-      gsap.set(overlay, { opacity: 1 });
-      gsap.set(content, { opacity: 0, y: 20 });
+      gsap.set(overlay, { opacity: 1, force3D: true });
+      gsap.set(content, { opacity: 0, y: 20, force3D: true });
 
       const tl = gsap.timeline({
         onComplete: () => {
@@ -143,16 +144,18 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
           clipPath: 'inset(0px 0px 0px 0px round 0px)',
           duration: 0.6,
           ease: 'power3.inOut',
+          force3D: true,
         },
         0,
       );
-      tl.to(content, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 0.35);
+      tl.to(content, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out', force3D: true }, 0.35);
     } else {
       // Fallback: simple fade
-      gsap.set(overlay, { opacity: 0 });
+      gsap.set(overlay, { opacity: 0, force3D: true });
       gsap.to(overlay, {
         opacity: 1,
         duration: 0.3,
+        force3D: true,
         onComplete: () => {
           isAnimating.current = false;
         },
@@ -183,7 +186,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
 
     // Fade out content first
     if (content) {
-      tl.to(content, { opacity: 0, y: 20, duration: 0.2 }, 0);
+      tl.to(content, { opacity: 0, y: 20, duration: 0.2, force3D: true }, 0);
     }
 
     // Clip-path back to source (only if same image as opened)
@@ -204,13 +207,14 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
           clipPath: `inset(${top}px ${right}px ${bottom}px ${left}px round 16px)`,
           duration: 0.5,
           ease: 'power3.inOut',
+          force3D: true,
         },
         0.05,
       );
-      tl.to(overlay, { opacity: 0, duration: 0.25 }, 0.4);
+      tl.to(overlay, { opacity: 0, duration: 0.25, force3D: true }, 0.4);
     } else {
       // Fade out everything
-      tl.to(overlay, { opacity: 0, duration: 0.35 }, 0.15);
+      tl.to(overlay, { opacity: 0, duration: 0.35, force3D: true }, 0.15);
     }
   }, [hasNavigated, onClose]);
 
@@ -223,15 +227,16 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
     const content = contentRef.current;
 
     requestAnimationFrame(() => {
-      if (imgContainer) gsap.set(imgContainer, { opacity: 1 });
+      if (imgContainer) gsap.set(imgContainer, { opacity: 1, force3D: true });
       if (content) {
-        gsap.set(content, { opacity: 0, y: 15 });
+        gsap.set(content, { opacity: 0, y: 15, force3D: true });
         gsap.to(content, {
           opacity: 1,
           y: 0,
           duration: 0.3,
           delay: 0.05,
           ease: 'power2.out',
+          force3D: true,
         });
       }
       setImageReady(true);
@@ -252,8 +257,8 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
 
       // Fade out image + text together
       const tl = gsap.timeline();
-      if (imgContainer) tl.to(imgContainer, { opacity: 0, duration: 0.2 }, 0);
-      if (content) tl.to(content, { opacity: 0, y: 10, duration: 0.2 }, 0);
+      if (imgContainer) tl.to(imgContainer, { opacity: 0, duration: 0.2, force3D: true }, 0);
+      if (content) tl.to(content, { opacity: 0, y: 10, duration: 0.2, force3D: true }, 0);
 
       tl.call(() => {
         setImageReady(false);
@@ -296,6 +301,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
     touchStart.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
+      t: Date.now(),
     };
     touchDelta.current = { x: 0, y: 0 };
     isDraggingDown.current = false;
@@ -313,33 +319,40 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
       gsap.set(imageContainerRef.current, {
         y: dy * 0.4,
         scale: 1 - progress * 0.06,
+        force3D: true,
       });
       gsap.set(overlayRef.current, {
         background: `rgba(10,10,10,${1 - progress * 0.6})`,
+        force3D: true,
       });
-      gsap.set(contentRef.current, { opacity: 1 - progress });
+      gsap.set(contentRef.current, { opacity: 1 - progress, force3D: true });
     }
   }, []);
 
   const onTouchEnd = useCallback(() => {
     const { x: dx, y: dy } = touchDelta.current;
+    const elapsed = Date.now() - touchStart.current.t;
+    const velocityX = elapsed > 0 ? Math.abs(dx) / elapsed : 0; // px/ms
+    const velocityY = elapsed > 0 ? Math.abs(dy) / elapsed : 0; // px/ms
 
     // Reset drag transforms first
     if (isDraggingDown.current) {
-      if (dy > 120) {
+      const dismissThreshold = Math.min(120, window.innerHeight * 0.2);
+      if (dy > dismissThreshold || velocityY > 0.5) {
         handleClose();
         return;
       }
       // Snap back
-      gsap.to(imageContainerRef.current, { y: 0, scale: 1, duration: 0.3, ease: 'power2.out' });
-      gsap.to(overlayRef.current, { background: 'rgba(10,10,10,1)', duration: 0.3 });
-      gsap.to(contentRef.current, { opacity: 1, duration: 0.3 });
+      gsap.to(imageContainerRef.current, { y: 0, scale: 1, duration: 0.3, ease: 'power2.out', force3D: true });
+      gsap.to(overlayRef.current, { background: 'rgba(10,10,10,1)', duration: 0.3, force3D: true });
+      gsap.to(contentRef.current, { opacity: 1, duration: 0.3, force3D: true });
       isDraggingDown.current = false;
       return;
     }
 
-    // Horizontal swipe
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+    // Horizontal swipe — accept if distance > 65px OR velocity > 0.5 px/ms
+    const horizontalSwipe = Math.abs(dx) > Math.abs(dy);
+    if (horizontalSwipe && (Math.abs(dx) > 65 || velocityX > 0.5)) {
       if (dx > 0) goPrev();
       else goNext();
     }
@@ -379,7 +392,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
           />
         ) : (
             <img
-              src={getCloudinaryUrl(item.src, { width: 2400 })}
+              src={getCloudinaryUrl(item.src, { width: Math.min(Math.round(window.innerWidth * (window.devicePixelRatio || 1)), 2400) })}
               alt={item.alt}
               className="w-full h-full object-cover"
               draggable={false}
@@ -403,7 +416,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
       <button
         ref={closeButtonRef}
         onClick={handleClose}
-        className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-[#0a0a0a]/40 backdrop-blur-md text-[#f5f0e8]/80 hover:text-[#f5f0e8] hover:bg-[#0a0a0a]/60 transition-colors duration-200"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-[#0a0a0a]/40 backdrop-blur-md text-[#f5f0e8]/80 hover:text-[#f5f0e8] hover:bg-[#0a0a0a]/60 transition-colors duration-200"
         aria-label="Cerrar visor de galería"
       >
         <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -437,6 +450,24 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
         </svg>
       </button>
+
+      {/* ---- Mobile nav buttons ---- */}
+      <div className="md:hidden absolute bottom-24 left-0 right-0 flex justify-between px-6 z-10">
+        <button
+          onClick={(e) => { e.stopPropagation(); goPrev(); }}
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md text-white/70 active:scale-95 transition-transform"
+          aria-label="Imagen anterior"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); goNext(); }}
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md text-white/70 active:scale-95 transition-transform"
+          aria-label="Imagen siguiente"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
 
       {/* ---- Content overlay ---- */}
       <div
@@ -484,8 +515,8 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
         </div>
 
         {/* Mobile nav hint */}
-        <p className="mt-4 font-dm-sans text-[10px] uppercase tracking-[0.2em] text-[#f5f0e8]/25 text-center sm:hidden">
-          Desliza para navegar
+        <p className="mt-4 font-dm-sans text-[10px] uppercase tracking-[0.2em] text-[#f5f0e8]/40 text-center sm:hidden">
+          Desliza ← → o usa los botones
         </p>
       </div>
     </div>
