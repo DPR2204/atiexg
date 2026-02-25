@@ -67,12 +67,29 @@ export function tourFormToDbPayload(
 }
 
 /** Validate a tour payload before sending to DB */
-export function validateTourPayload(payload: Record<string, any>): { valid: boolean; errors: string[] } {
+export function validateTourPayload(payload: Record<string, any>): { valid: boolean; errors: string[]; warnings: string[]; errorTabs: string[] } {
     const errors: string[] = [];
+    const warnings: string[] = [];
+    const errorTabs: string[] = [];
 
     if (!payload.name?.trim()) {
         errors.push('El nombre del tour es requerido.');
+        if (!errorTabs.includes('general')) errorTabs.push('general');
     }
 
-    return { valid: errors.length === 0, errors };
+    if (!payload.category?.trim()) {
+        errors.push('La categoría es requerida.');
+        if (!errorTabs.includes('general')) errorTabs.push('general');
+    }
+
+    if (payload.price == null || isNaN(Number(payload.price)) || Number(payload.price) < 0) {
+        errors.push('El precio debe ser un número mayor o igual a 0.');
+        if (!errorTabs.includes('prices')) errorTabs.push('prices');
+    }
+
+    if (!payload.image) {
+        warnings.push('No se ha seleccionado una imagen principal.');
+    }
+
+    return { valid: errors.length === 0, errors, warnings, errorTabs };
 }

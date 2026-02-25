@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import ItineraryEditor from '../../components/backoffice/ItineraryEditor';
+import { toast } from 'sonner';
 import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
 import type { CustomTourData, Tour } from '../../types/shared';
 import { STATUS_CONFIG, MEAL_TYPE_LABELS, AUDIT_ACTION_LABELS } from '../../types/backoffice';
@@ -91,6 +92,9 @@ export default function ReservasPage() {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 25;
 
     // Data lists
     const [boats, setBoats] = useState<any[]>([]);
@@ -239,7 +243,7 @@ export default function ReservasPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!agent) {
-            alert("Error: Sesión no válida");
+            toast.error("Error: Sesión no válida");
             return;
         }
 
@@ -268,7 +272,7 @@ export default function ReservasPage() {
             // Use unified logic for updates (single update call)
             const result = await updateReservation(editingId, payload, agent);
             if (!result.success) {
-                alert('Error al actualizar: ' + JSON.stringify(result.error));
+                toast.error('Error al actualizar: ' + JSON.stringify(result.error));
                 return;
             }
         } else {
@@ -294,7 +298,7 @@ export default function ReservasPage() {
 
         const result = await updateReservation(id, { status: newStatus }, agent);
         if (!result.success) {
-            alert('Error al actualizar estado');
+            toast.error('Error al actualizar estado');
         } else {
             setReservations(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
         }
@@ -355,7 +359,7 @@ export default function ReservasPage() {
 
                 if (updateError) {
                     console.error("Supabase update error:", updateError);
-                    alert("El link se generó pero hubo un error al guardarlo en la reserva. \n" + data.checkoutUrl);
+                    toast.warning("El link se generó pero hubo un error al guardarlo. Link: " + data.checkoutUrl);
                 } else {
                     await logAudit(showPaymentModal.id, 'updated', {
                         field_changed: 'payment_link_generated',
@@ -365,9 +369,9 @@ export default function ReservasPage() {
                     // Force copy to clipboard
                     try {
                         await navigator.clipboard.writeText(data.checkoutUrl);
-                        alert(`Link generado y copiado: ${data.checkoutUrl}`);
+                        toast.success('Link generado y copiado al portapapeles');
                     } catch (clipErr) {
-                        alert(`Link generado: ${data.checkoutUrl}`);
+                        toast.success('Link generado: ' + data.checkoutUrl);
                     }
 
                     setShowPaymentModal(null);
@@ -395,7 +399,7 @@ export default function ReservasPage() {
         }).eq('id', showPaymentModal.id);
 
         if (error) {
-            alert("Error al guardar link: " + error.message);
+            toast.error("Error al guardar link: " + error.message);
         } else {
             await logAudit(showPaymentModal.id, 'updated', {
                 field_changed: 'payment_link_manual',
@@ -423,19 +427,19 @@ export default function ReservasPage() {
 
             if (error) {
                 console.error('handlePrint query error:', error);
-                alert('Error al cargar datos para el PDF: ' + error.message);
+                toast.error('Error al cargar datos para el PDF: ' + error.message);
                 return;
             }
 
             if (!data) {
-                alert('No se encontró la reserva para generar el PDF.');
+                toast.error('No se encontró la reserva para generar el PDF.');
                 return;
             }
 
             generateReservationPDF(data as any);
         } catch (e) {
             console.error('handlePrint unexpected error:', e);
-            alert('Error inesperado al generar PDF. Intenta de nuevo.');
+            toast.error('Error inesperado al generar PDF. Intenta de nuevo.');
         }
     }
 
@@ -505,9 +509,9 @@ export default function ReservasPage() {
             .update({ meal_options: { available_meals: cleanedMenu } })
             .eq('id', id);
 
-        if (error) alert('Error al guardar menú');
+        if (error) toast.error('Error al guardar menú');
         else {
-            alert('Menú actualizado correctamente');
+            toast.success('Menú actualizado correctamente');
             await fetchAll();
         }
     }
@@ -520,7 +524,7 @@ export default function ReservasPage() {
                 .eq('id', id);
 
             if (error) {
-                alert('Error al guardar info del tour: ' + error.message);
+                toast.error('Error al guardar info del tour: ' + error.message);
                 return;
             }
 
@@ -533,10 +537,10 @@ export default function ReservasPage() {
             // Also update customTourForm so re-expanding shows saved data
             setCustomTourForm({ ...data });
 
-            alert('Info del tour actualizada correctamente');
+            toast.success('Info del tour actualizada correctamente');
             await fetchAll(true); // Silent refresh — no loading spinner flash
         } catch (e) {
-            alert('Error inesperado al guardar: ' + (e as Error).message);
+            toast.error('Error inesperado al guardar: ' + (e as Error).message);
         }
     }
 
@@ -555,7 +559,7 @@ export default function ReservasPage() {
             }]).select().single();
 
             if (error || !pax) {
-                alert('Error al agregar pasajero: ' + (error?.message || 'Sin datos'));
+                toast.error('Error al agregar pasajero: ' + (error?.message || 'Sin datos'));
                 return;
             }
 
@@ -589,14 +593,15 @@ export default function ReservasPage() {
                 new_value: pax.full_name
             }]);
         } catch (err) {
-            alert('Error inesperado: ' + (err as Error).message);
+            toast.error('Error inesperado: ' + (err as Error).message);
         }
     }
 
-    async function removePassenger(passId: number, resId: number) {
+    async function removePassenger(passId: number, resId: number, passengerName?: string) {
+        if (!confirm(`¿Eliminar pasajero ${passengerName || ''}? No se puede deshacer.`)) return;
         const { error } = await supabase.from('passengers').delete().eq('id', passId);
         if (error) {
-            alert('Error al eliminar pasajero: ' + error.message);
+            toast.error('Error al eliminar pasajero: ' + error.message);
             return;
         }
         // Re-fetch passengers directly
@@ -609,7 +614,7 @@ export default function ReservasPage() {
 
         const { error } = await supabase.from('reservations').delete().eq('id', id);
         if (error) {
-            alert('Error al eliminar: ' + error.message);
+            toast.error('Error al eliminar: ' + error.message);
         } else {
             await fetchAll();
         }
@@ -697,6 +702,41 @@ export default function ReservasPage() {
         setShowForm(true);
     }
 
+    // Reset page when search or filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filterStatus]);
+
+    // Client-side search filtering + pagination
+    const filteredReservations = useMemo(() => {
+        if (!searchQuery.trim()) return reservations;
+        const q = searchQuery.toLowerCase().trim();
+        return reservations.filter(res => {
+            // Match by reservation ID
+            if (String(res.id).includes(q)) return true;
+            // Match by formatted reservation code
+            if (formatReservationCode(res.id, res.tour_date).toLowerCase().includes(q)) return true;
+            // Match by tour name
+            if (res.tour_name?.toLowerCase().includes(q)) return true;
+            // Match by passenger name, email, or phone
+            if (res.passengers?.some(p =>
+                p.full_name?.toLowerCase().includes(q) ||
+                p.email?.toLowerCase().includes(q) ||
+                p.phone?.toLowerCase().includes(q)
+            )) return true;
+            return false;
+        });
+    }, [reservations, searchQuery]);
+
+    const totalFiltered = filteredReservations.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
+    const paginatedReservations = filteredReservations.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+    const showingFrom = totalFiltered === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    const showingTo = Math.min(currentPage * ITEMS_PER_PAGE, totalFiltered);
+
     const currentTourMeals = toursList.find(t => t.id === (editingId ? form.tour_id : (expandedId ? reservations.find(r => r.id === expandedId)?.tour_id : toursList[0]?.id)))?.meals || [];
 
     if (loading) return <div className="bo-loading"><div className="bo-loading-spinner" /></div>;
@@ -740,6 +780,30 @@ export default function ReservasPage() {
                         </button>
                     )
                 })}
+            </div>
+
+            {/* Search Bar */}
+            <div className="bo-section-card" style={{ marginBottom: 0, paddingBottom: '0.75rem', paddingTop: '0.75rem' }}>
+                <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+                        🔍
+                    </span>
+                    <input
+                        type="text"
+                        className="bo-input w-full pl-9"
+                        placeholder="Buscar por ID, cliente, tour, email o teléfono..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                        <button
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                            onClick={() => setSearchQuery('')}
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Payment Modal */}
@@ -1068,7 +1132,7 @@ export default function ReservasPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {reservations.map(res => {
+                            {paginatedReservations.map(res => {
                                 const commission = (res.total_amount * (agent?.commission_rate || 5) / 100).toFixed(2);
                                 const isExpanded = expandedId === res.id;
                                 const pending = res.total_amount - res.paid_amount;
@@ -1139,7 +1203,7 @@ export default function ReservasPage() {
                                                                 e.stopPropagation();
                                                                 const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
                                                                 navigator.clipboard.writeText(url);
-                                                                alert('Link copiado al portapapeles');
+                                                                toast.success('Link copiado al portapapeles');
                                                             }}
                                                         >
                                                             📋
@@ -1203,7 +1267,7 @@ export default function ReservasPage() {
                                                                                     onClick={() => {
                                                                                         const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
                                                                                         navigator.clipboard.writeText(url);
-                                                                                        alert('Link copiado!');
+                                                                                        toast.success('Link copiado!');
                                                                                     }}
                                                                                 >
                                                                                     <span>📋</span> Copiar
@@ -1239,7 +1303,7 @@ export default function ReservasPage() {
                                                                                         </div>
                                                                                     )}
                                                                                 </div>
-                                                                                <button className="text-gray-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition-colors" title="Eliminar Pasajero" onClick={() => removePassenger(p.id, res.id)}>✕</button>
+                                                                                <button className="text-gray-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition-colors" title="Eliminar Pasajero" onClick={() => removePassenger(p.id, res.id, p.full_name)}>✕</button>
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -1407,6 +1471,41 @@ export default function ReservasPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination Controls */}
+            {totalFiltered > ITEMS_PER_PAGE && (
+                <div className="bo-section-card" style={{ marginTop: 0, paddingTop: '0.75rem', paddingBottom: '0.75rem' }}>
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">
+                            Mostrando {showingFrom}-{showingTo} de {totalFiltered}
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                className="bo-btn bo-btn--ghost"
+                                disabled={currentPage <= 1}
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            >
+                                Anterior
+                            </button>
+                            <span className="flex items-center text-sm text-gray-600 px-2">
+                                Página {currentPage} de {totalPages}
+                            </span>
+                            <button
+                                className="bo-btn bo-btn--ghost"
+                                disabled={currentPage >= totalPages}
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            >
+                                Siguiente
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {totalFiltered <= ITEMS_PER_PAGE && totalFiltered > 0 && (
+                <div className="text-center text-sm text-gray-400 py-2">
+                    Mostrando {totalFiltered} reserva{totalFiltered !== 1 ? 's' : ''}
+                </div>
+            )}
         </div >
     );
 }

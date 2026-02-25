@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { invalidateToursCache } from '../../hooks/useTours';
 import { Tour, ItineraryStep, TourPrice, Addon } from '../../types/shared';
 import { tourFormToDbPayload, validateTourPayload, dbRowToTour } from '../../lib/tour-mapper';
@@ -188,6 +189,10 @@ export default function ToursPage() {
     const [form, dispatch] = useReducer(formReducer, INITIAL_FORM);
     const savingGuardRef = useRef(false);
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    const [errorTabs, setErrorTabs] = useState<string[]>([]);
+
     const [showNewCategory, setShowNewCategory] = useState(false);
     const [newCategoryInput, setNewCategoryInput] = useState('');
     const [customCategories, setCustomCategories] = useState<string[]>([]);
@@ -201,6 +206,27 @@ export default function ToursPage() {
         const all = new Set([...DEFAULT_CATEGORIES, ...fromTours, ...customCategories]);
         return Array.from(all).sort();
     }, [tours, customCategories]);
+
+    const uniqueCategories = useMemo(() => {
+        const cats = tours.map(t => t.category).filter(Boolean);
+        return Array.from(new Set(cats)).sort();
+    }, [tours]);
+
+    const filteredTours = useMemo(() => {
+        let result = tours;
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(t =>
+                (t.name || '').toLowerCase().includes(q) ||
+                (t.category || '').toLowerCase().includes(q) ||
+                (t.concept || '').toLowerCase().includes(q)
+            );
+        }
+        if (filterCategory) {
+            result = result.filter(t => t.category === filterCategory);
+        }
+        return result;
+    }, [tours, searchQuery, filterCategory]);
 
     const assetsMap = useMemo(() => {
         const map = new Map<string, CloudinaryAsset>();
@@ -255,6 +281,7 @@ export default function ToursPage() {
         setShowNewCategory(false);
         setNewCategoryInput('');
         setActiveTab('general');
+        setErrorTabs([]);
         setShowModal(true);
     }
 
@@ -263,6 +290,7 @@ export default function ToursPage() {
         setShowNewCategory(false);
         setNewCategoryInput('');
         setActiveTab('general');
+        setErrorTabs([]);
         setShowModal(true);
     }
 
@@ -294,11 +322,12 @@ export default function ToursPage() {
                 }
             );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            toast.success('Tour eliminado');
             await fetchTours();
             invalidateToursCache();
         } catch (err) {
             console.error('[Tours] Delete error:', err);
-            alert('Error al eliminar tour');
+            toast.error('Error al eliminar tour');
         }
     }
 
@@ -320,11 +349,18 @@ export default function ToursPage() {
             form.addons, form.gallery, form.meals, form.features
         );
         const validation = validateTourPayload(payload);
+        if (validation.warnings.length > 0) {
+            validation.warnings.forEach(w => toast.warning(w));
+        }
         if (!validation.valid) {
-            setActiveTab('general');
-            alert(validation.errors.join('\n'));
+            setErrorTabs(validation.errorTabs);
+            if (validation.errorTabs.length > 0) {
+                setActiveTab(validation.errorTabs[0] as Tab);
+            }
+            toast.error(validation.errors.join(' | '));
             return;
         }
+        setErrorTabs([]);
 
         const isEdit = !!form.general.id;
         const tourId = form.general.id;
@@ -383,6 +419,7 @@ export default function ToursPage() {
             }
 
             console.log('[Tours] Step 3: Success ✓');
+            toast.success('Tour guardado correctamente');
             console.log('[Tours] Step 4: Refreshing list...');
             setShowModal(false);
             await fetchTours();
@@ -398,7 +435,7 @@ export default function ToursPage() {
             } else {
                 msg = 'Error al guardar: ' + (err.message || String(err));
             }
-            alert(msg);
+            toast.error(msg);
         } finally {
             clearTimeout(timeoutId);
             savingGuardRef.current = false;
@@ -475,6 +512,21 @@ export default function ToursPage() {
                 </button>
             </div>
 
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                <input
+                    type="text"
+                    placeholder="Buscar por nombre, categoria o concepto..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="bo-input"
+                    style={{ flex: 1, minWidth: '200px' }}
+                />
+                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="bo-input" style={{ minWidth: '150px' }}>
+                    <option value="">Todas las categorias</option>
+                    {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+            </div>
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 border-b border-gray-200">
@@ -487,10 +539,15 @@ export default function ToursPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {tours.map(tour => (
+                        {filteredTours.map(tour => (
                             <tr key={tour.id} className="hover:bg-gray-50/50">
                                 <td className="px-6 py-4">
-                                    <div className="font-medium text-gray-900">{tour.name}</div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium text-gray-900">{tour.name}</span>
+                                        {tour.active === false && (
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700">Inactivo</span>
+                                        )}
+                                    </div>
                                     <div className="text-xs text-gray-500 truncate max-w-xs">{tour.concept}</div>
                                 </td>
                                 <td className="px-6 py-4"><span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{tour.category}</span></td>
@@ -504,6 +561,13 @@ export default function ToursPage() {
                                 </td>
                             </tr>
                         ))}
+                        {filteredTours.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-8 text-center text-gray-400 text-sm">
+                                    No se encontraron tours{searchQuery || filterCategory ? ' con los filtros aplicados' : ''}.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -531,9 +595,10 @@ export default function ToursPage() {
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id as Tab)}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200' : 'text-gray-600 hover:bg-gray-100'}`}
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200' : 'text-gray-600 hover:bg-gray-100'} ${errorTabs.includes(tab.id) ? 'ring-2 ring-red-400 bg-red-50 text-red-700' : ''}`}
                                     >
                                         <tab.icon size={18} /> {tab.label}
+                                        {errorTabs.includes(tab.id) && <span className="ml-auto w-2 h-2 rounded-full bg-red-500" />}
                                     </button>
                                 ))}
                             </div>

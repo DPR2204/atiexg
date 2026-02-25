@@ -3,6 +3,7 @@ import { Outlet, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Search } from 'lucide-react';
+import { Toaster } from 'sonner';
 import CommandPalette from './CommandPalette';
 import ErrorBoundary from '../ErrorBoundary';
 
@@ -270,6 +271,7 @@ export default function BackofficeLayout() {
             </main>
 
             <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
+            <Toaster position="top-right" richColors closeButton duration={3000} />
         </div>
     );
 }

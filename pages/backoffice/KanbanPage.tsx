@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -25,7 +25,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import { Reservation, ReservationStatus, STATUS_CONFIG } from '../../types/backoffice';
-import { LayoutGrid, Loader2, Calendar, User, Ship } from 'lucide-react';
+import { LayoutGrid, Loader2, Calendar, User, Ship, Search } from 'lucide-react';
+import { toast } from 'sonner';
 
 // --- Kanban Components ---
 
@@ -66,7 +67,7 @@ const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
             {...attributes}
             {...listeners}
             className={`bo-kanban-card ${isDragging ? 'is-dragging' : ''}`}
-            onDoubleClick={() => onEdit?.(reservation.id)}
+            onClick={() => onEdit?.(reservation.id)}
         >
             <div className="bo-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span className="bo-text-mono bo-text-xs bo-text-muted">
@@ -163,6 +164,24 @@ export default function KanbanPage() {
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeId, setActiveId] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredReservations = useMemo(() => {
+        const q = searchQuery.toLowerCase().trim();
+        if (!q) return reservations;
+        return reservations.filter((r) => {
+            const code = formatReservationCode(r.id, r.tour_date).toLowerCase();
+            const tourName = (r.tour_name || '').toLowerCase();
+            const agentName = (r.agent?.name || '').toLowerCase();
+            const boatName = (r.boat?.name || '').toLowerCase();
+            return (
+                tourName.includes(q) ||
+                code.includes(q) ||
+                agentName.includes(q) ||
+                boatName.includes(q)
+            );
+        });
+    }, [reservations, searchQuery]);
 
     function handleEditReservation(id: number) {
         navigate(`/backoffice/reservas?editId=${id}`);
@@ -268,10 +287,14 @@ export default function KanbanPage() {
         if (newStatus && agent) {
             // Save previous state for granular rollback
             const previousReservations = [...reservations];
+            const statusLabel = STATUS_CONFIG[newStatus].label;
             try {
                 const result = await updateReservation(resId, { status: newStatus }, agent);
-                if (!result.success) {
+                if (result.success) {
+                    toast.success(`Reserva movida a ${statusLabel}`);
+                } else {
                     console.error('Error updating status:', result.error);
+                    toast.error('Error al mover reserva');
                     // Granular rollback: restore only the affected item
                     const oldRes = previousReservations.find(r => r.id === resId);
                     if (oldRes) {
@@ -282,6 +305,7 @@ export default function KanbanPage() {
                 }
             } catch (err) {
                 console.error('Error updating status:', err);
+                toast.error('Error al mover reserva');
                 setReservations(previousReservations);
             }
         }
@@ -308,6 +332,18 @@ export default function KanbanPage() {
                 </div>
             </div>
 
+            <div style={{ position: 'relative', maxWidth: '400px', marginBottom: '1rem' }}>
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--bo-text-muted)' }} />
+                <input
+                    type="text"
+                    placeholder="Buscar por tour, código, agente o lancha..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bo-input"
+                    style={{ paddingLeft: '36px', width: '100%' }}
+                />
+            </div>
+
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCorners}
@@ -315,14 +351,14 @@ export default function KanbanPage() {
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
             >
-                <p style={{ fontSize: '0.75rem', color: 'var(--bo-text-muted)', marginBottom: '0.5rem' }}>Doble clic en una tarjeta para editarla</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--bo-text-muted)', marginBottom: '0.5rem' }}>Clic en una tarjeta para editarla</p>
                 <div className="bo-kanban-board">
                     {COLUMNS.map((col) => (
                         <KanbanColumn
                             key={col}
                             id={col}
                             status={col}
-                            reservations={reservations.filter((r) => r.status === col)}
+                            reservations={filteredReservations.filter((r) => r.status === col)}
                             onEdit={handleEditReservation}
                         />
                     ))}
