@@ -390,16 +390,38 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
             onLoadedData={handleImageLoad}
             onError={handleImageLoad}
           />
-        ) : (
-            <img
-              src={getCloudinaryUrl(item.src, { width: Math.min(Math.round(window.innerWidth * (window.devicePixelRatio || 1)), 2400) })}
-              alt={item.alt}
-              className="w-full h-full object-cover"
-              draggable={false}
-              onLoad={handleImageLoad}
-              onError={handleImageLoad}
-            />
-        )}
+        ) : (() => {
+            const isMobile = window.innerWidth < 768;
+            const fullWidth = isMobile
+              ? Math.min(Math.round(window.innerWidth * (window.devicePixelRatio || 1)), 1200)
+              : Math.min(Math.round(window.innerWidth * (window.devicePixelRatio || 1)), 2400);
+            const placeholderUrl = getCloudinaryUrl(item.src, { width: 60, quality: 'auto:low' });
+            const fullUrl = getCloudinaryUrl(item.src, { width: fullWidth });
+
+            return (
+              <>
+                {/* Low-res placeholder — visible instantly while full image loads */}
+                <img
+                  src={placeholderUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ filter: 'blur(20px)', transform: 'scale(1.1)' }}
+                  draggable={false}
+                />
+                {/* Full resolution image */}
+                <img
+                  src={fullUrl}
+                  alt={item.alt}
+                  className="relative w-full h-full object-cover"
+                  draggable={false}
+                  onLoad={handleImageLoad}
+                  onError={handleImageLoad}
+                />
+              </>
+            );
+          })()
+        }
       </div>
 
       {/* ---- Loading indicator ---- */}

@@ -247,8 +247,9 @@ function supportsShaderReveal(): boolean {
   const memory = (navigator as any).deviceMemory || 4;
 
   if (isMobileUA) {
-    // Require at least 4 hardware cores AND 4GB deviceMemory on mobile
-    return cores >= 4 && memory >= 4;
+    // Disable shader reveal on mobile — the simpler opacity+y animation is
+    // more reliable across browsers and avoids mask-image / @property issues
+    return false;
   }
 
   // Desktop: keep existing thresholds (>2 cores, >2GB)
@@ -315,7 +316,16 @@ const GaleriaPage: React.FC = () => {
     if (isTouchDevice) {
       // Prevent ScrollTrigger recalculations on mobile address bar show/hide
       ScrollTrigger.config({ ignoreMobileResize: true });
-      return;
+
+      // Ensure ScrollTrigger works with native scroll — refresh positions
+      // once layout is stable and again after images likely loaded
+      const raf1 = requestAnimationFrame(() => ScrollTrigger.refresh());
+      const timer = setTimeout(() => ScrollTrigger.refresh(), 1500);
+
+      return () => {
+        cancelAnimationFrame(raf1);
+        clearTimeout(timer);
+      };
     }
 
     const lenis = new Lenis({
@@ -558,6 +568,10 @@ const GaleriaPage: React.FC = () => {
           });
         });
       }
+
+      // Refresh trigger positions after all triggers are registered
+      // Critical on mobile where native scroll is used without Lenis
+      ScrollTrigger.refresh();
     }, containerRef);
 
     return () => ctx.revert();
