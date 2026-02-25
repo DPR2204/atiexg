@@ -262,12 +262,41 @@ export default function ToursPage() {
             const safePayload = JSON.parse(JSON.stringify(payload));
             console.log('[Tours] Payload read:', JSON.stringify(safePayload).length, 'bytes');
 
-            const saveQuery = curEditing?.id
-                ? supabase.from('tours').update(safePayload).eq('id', curEditing.id)
-                : supabase.from('tours').insert([safePayload]);
+            // We use native fetch() instead of supabase.from().insert() because supabase-js occasionally 
+            // hangs indefinitely on large JSON payloads over spotty connections due to websocket sync issues.
+            const url = (import.meta as any).env.VITE_SUPABASE_URL;
+            const key = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
+            const session = (await supabase.auth.getSession()).data.session;
+
+            if (!url || !key) throw new Error("Missing Supabase env credentials");
+
+            let fetchUrl = `${url}/rest/v1/tours`;
+            let method = 'POST';
+
+            if (curEditing?.id) {
+                fetchUrl = `${fetchUrl}?id=eq.${curEditing.id}`;
+                method = 'PATCH';
+            }
+
+            const fetchQuery = fetch(fetchUrl, {
+                method,
+                headers: {
+                    'apikey': key,
+                    'Authorization': session ? `Bearer ${session.access_token}` : `Bearer ${key}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(safePayload)
+            }).then(async res => {
+                if (!res.ok) {
+                    const errorJson = await res.json().catch(() => ({}));
+                    return { error: { message: errorJson.message || `HTTP ${res.status}`, details: errorJson.details, hint: errorJson.hint, code: errorJson.code } };
+                }
+                return { error: null };
+            });
 
             try {
-                const res = await withTimeout<any>(saveQuery, 30000, 'Guardado en base de datos');
+                const res = await withTimeout<any>(fetchQuery, 30000, 'Guardado en base de datos (REST Protocol)');
 
                 if (res.error) {
                     // Log the precise details for debugging
