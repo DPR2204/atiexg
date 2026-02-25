@@ -306,11 +306,10 @@ export default function ToursPage() {
         }, 15000);
 
         try {
-            // Read token synchronously from localStorage (supabase-js stores it here)
-            const storageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
+            // Read token synchronously from localStorage (custom storageKey in lib/supabase.ts)
             let accessToken: string | null = null;
             try {
-                const stored = localStorage.getItem(storageKey);
+                const stored = localStorage.getItem('atiexg-bo-auth');
                 if (stored) {
                     const parsed = JSON.parse(stored);
                     accessToken = parsed?.access_token || null;
