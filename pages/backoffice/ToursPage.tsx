@@ -257,11 +257,14 @@ export default function ToursPage() {
                 features: curFeatures.length > 0 ? curFeatures : null,
             };
 
-            console.log('[Tours] Payload read:', JSON.stringify(payload).length, 'bytes');
+            // Force deep serialization to strip any implicit `undefined` fields or non-serializable proxies
+            // that might cause supabase-js's internal serializer to hang indefinitely.
+            const safePayload = JSON.parse(JSON.stringify(payload));
+            console.log('[Tours] Payload read:', JSON.stringify(safePayload).length, 'bytes');
 
             const saveQuery = curEditing?.id
-                ? supabase.from('tours').update(payload).eq('id', curEditing.id)
-                : supabase.from('tours').insert([payload]);
+                ? supabase.from('tours').update(safePayload).eq('id', curEditing.id)
+                : supabase.from('tours').insert([safePayload]);
 
             try {
                 const res = await withTimeout<any>(saveQuery, 30000, 'Guardado en base de datos');
