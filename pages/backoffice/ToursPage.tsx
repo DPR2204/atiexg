@@ -200,6 +200,11 @@ export default function ToursPage() {
     const [showImagePicker, setShowImagePicker] = useState(false);
     const [imagePickerTarget, setImagePickerTarget] = useState<'main' | number>('main');
     const [imageSearch, setImageSearch] = useState('');
+    const [debouncedImageSearch, setDebouncedImageSearch] = useState('');
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedImageSearch(imageSearch), 300);
+        return () => clearTimeout(t);
+    }, [imageSearch]);
 
     const categories = useMemo(() => {
         const fromTours = tours.map(t => t.category).filter(Boolean);
@@ -236,13 +241,13 @@ export default function ToursPage() {
 
     const filteredAssets = useMemo(() => {
         const assets = cloudinaryAssets as CloudinaryAsset[];
-        if (!imageSearch.trim()) return assets;
-        const q = imageSearch.toLowerCase();
+        if (!debouncedImageSearch.trim()) return assets;
+        const q = debouncedImageSearch.toLowerCase();
         return assets.filter(a =>
             a.display_name.toLowerCase().includes(q) ||
             a.public_id.toLowerCase().includes(q)
         );
-    }, [imageSearch]);
+    }, [debouncedImageSearch]);
 
     useEffect(() => { fetchTours(); }, []);
 
@@ -518,6 +523,7 @@ export default function ToursPage() {
                     placeholder="Buscar por nombre, categoria o concepto..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
+                    aria-label="Buscar tours"
                     className="bo-input"
                     style={{ flex: 1, minWidth: '200px' }}
                 />
@@ -555,8 +561,8 @@ export default function ToursPage() {
                                 <td className="px-6 py-4 text-gray-500">{tour.duration}</td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        <button onClick={() => handleEdit(tour)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"><Pencil size={16} /></button>
-                                        <button onClick={() => handleDelete(tour.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
+                                        <button onClick={() => handleEdit(tour)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded" aria-label="Editar tour"><Pencil size={16} /></button>
+                                        <button onClick={() => handleDelete(tour.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded" aria-label="Eliminar tour"><Trash2 size={16} /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -580,7 +586,7 @@ export default function ToursPage() {
                                 <h2 className="text-xl font-bold text-gray-900">{isEditing ? 'Editar Tour' : 'Nuevo Tour'}</h2>
                                 <p className="text-xs text-gray-500">Completa todos los campos requeridos</p>
                             </div>
-                            <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                            <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600" aria-label="Cerrar"><X size={24} /></button>
                         </div>
 
                         <div className="flex flex-1 overflow-hidden">
@@ -608,16 +614,16 @@ export default function ToursPage() {
                                     <div className="space-y-6 max-w-2xl">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700">Nombre del Tour</label>
+                                                <label className="text-sm font-medium text-gray-700">Nombre del Tour <span style={{ color: 'var(--bo-danger, #D32F2F)' }}>*</span></label>
                                                 <input type="text" required value={form.general.name || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { name: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700">Categoria</label>
+                                                <label className="text-sm font-medium text-gray-700">Categoria <span style={{ color: 'var(--bo-danger, #D32F2F)' }}>*</span></label>
                                                 {showNewCategory ? (
                                                     <div className="flex gap-2">
                                                         <input type="text" autoFocus value={newCategoryInput} onChange={e => setNewCategoryInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(); } }} placeholder="Nombre de la nueva categoria" className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
-                                                        <button type="button" onClick={confirmNewCategory} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={18} /></button>
-                                                        <button type="button" onClick={() => setShowNewCategory(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
+                                                        <button type="button" onClick={confirmNewCategory} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" aria-label="Confirmar categoria"><Check size={18} /></button>
+                                                        <button type="button" onClick={() => setShowNewCategory(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg" aria-label="Cancelar"><X size={18} /></button>
                                                     </div>
                                                 ) : (
                                                     <select value={form.general.category || 'Signature'} onChange={e => handleCategoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
@@ -698,8 +704,8 @@ export default function ToursPage() {
                                                             </div>
                                                         )}
                                                         <input type="text" value={img} onChange={e => dispatch({ type: 'UPDATE_GALLERY', index: idx, value: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID o video:ID" />
-                                                        <button type="button" onClick={() => openImagePicker(idx)} className="text-blue-500 hover:text-blue-700 p-1.5" title="Seleccionar imagen o video"><ImageIcon size={16} /></button>
-                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_GALLERY', index: idx })} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16} /></button>
+                                                        <button type="button" onClick={() => openImagePicker(idx)} className="text-blue-500 hover:text-blue-700 p-1.5" title="Seleccionar imagen o video" aria-label="Seleccionar imagen o video"><ImageIcon size={16} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_GALLERY', index: idx })} className="text-gray-400 hover:text-red-500 p-1.5" aria-label="Eliminar imagen de galeria"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
                                                 {form.gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imagenes o videos en la galeria.</p>}
@@ -734,7 +740,7 @@ export default function ToursPage() {
                                                         <div className="w-32">
                                                             <input type="text" placeholder="Monto" value={p.amount} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'amount', value: e.target.value })} className="w-full px-2 py-1.5 border rounded text-sm text-right font-mono" />
                                                         </div>
-                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_PRICE', index: idx })} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_PRICE', index: idx })} className="text-gray-400 hover:text-red-500 p-2" aria-label="Eliminar precio"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -751,7 +757,7 @@ export default function ToursPage() {
                                                             <input type="text" placeholder="Nombre Add-on" value={addon.label} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'label', value: e.target.value })} className="w-full px-2 py-1 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm" />
                                                             <input type="text" placeholder="Precio" value={addon.price} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'price', value: e.target.value })} className="w-full px-2 py-0.5 text-xs text-gray-500 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none" />
                                                         </div>
-                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_ADDON', index: idx })} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={14} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_ADDON', index: idx })} className="text-gray-400 hover:text-red-500 p-2" aria-label="Eliminar add-on"><Trash2 size={14} /></button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -773,7 +779,7 @@ export default function ToursPage() {
                                                         <div className="flex gap-3 items-start">
                                                             <input type="text" placeholder="00:00" value={step.time} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'time', value: e.target.value })} className="w-20 px-2 py-1.5 border rounded text-sm font-mono text-center" />
                                                             <textarea rows={2} placeholder="Descripcion de la actividad" value={step.activity} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'activity', value: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none" />
-                                                            <button type="button" onClick={() => dispatch({ type: 'REMOVE_STEP', index: idx })} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16} /></button>
+                                                            <button type="button" onClick={() => dispatch({ type: 'REMOVE_STEP', index: idx })} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Eliminar paso"><X size={16} /></button>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -805,7 +811,7 @@ export default function ToursPage() {
                                                 {form.features.map((feat, idx) => (
                                                     <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
                                                         {feat}
-                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_FEATURE', index: idx })} className="hover:text-green-900"><X size={12} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_FEATURE', index: idx })} className="hover:text-green-900" aria-label="Eliminar caracteristica"><X size={12} /></button>
                                                     </span>
                                                 ))}
                                             </div>
@@ -836,7 +842,7 @@ export default function ToursPage() {
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                         <div className="flex items-center justify-between p-4 border-b border-gray-100">
                             <h3 className="text-lg font-bold text-gray-900">Seleccionar Imagen o Video</h3>
-                            <button onClick={() => setShowImagePicker(false)} className="text-gray-400 hover:text-gray-600"><X size={22} /></button>
+                            <button onClick={() => setShowImagePicker(false)} className="text-gray-400 hover:text-gray-600" aria-label="Cerrar"><X size={22} /></button>
                         </div>
                         <div className="px-4 py-3 border-b border-gray-100">
                             <div className="relative">

@@ -3699,3 +3699,43 @@
     padding: 0.5rem 0.75rem;
   }
 }
+
+/* ============================================
+   ACCESSIBILITY — Focus Visible
+   ============================================ */
+
+.bo-btn:focus-visible,
+.bo-nav-item:focus-visible,
+.bo-input:focus-visible,
+.bo-select:focus-visible,
+.bo-textarea:focus-visible,
+.bo-kanban-card:focus-visible {
+  outline: 2px solid var(--bo-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--bo-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.bo-modal-close:focus-visible {
+  outline: 2px solid var(--bo-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.bo-action-btn:focus-visible {
+  outline: 2px solid var(--bo-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.bo-expand-btn:focus-visible {
+  outline: 2px solid var(--bo-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+.bo-filter-chip:focus-visible,
+.bo-filter-tab:focus-visible {
+  outline: 2px solid var(--bo-primary, #3b82f6);
+  outline-offset: 2px;
+}

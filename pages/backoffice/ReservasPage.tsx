@@ -93,6 +93,7 @@ export default function ReservasPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 25;
 
@@ -702,15 +703,21 @@ export default function ReservasPage() {
         setShowForm(true);
     }
 
+    // Debounce search query by 300ms
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
+        return () => clearTimeout(t);
+    }, [searchQuery]);
+
     // Reset page when search or filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, filterStatus]);
+    }, [debouncedSearchQuery, filterStatus]);
 
     // Client-side search filtering + pagination
     const filteredReservations = useMemo(() => {
-        if (!searchQuery.trim()) return reservations;
-        const q = searchQuery.toLowerCase().trim();
+        if (!debouncedSearchQuery.trim()) return reservations;
+        const q = debouncedSearchQuery.toLowerCase().trim();
         return reservations.filter(res => {
             // Match by reservation ID
             if (String(res.id).includes(q)) return true;
@@ -726,7 +733,7 @@ export default function ReservasPage() {
             )) return true;
             return false;
         });
-    }, [reservations, searchQuery]);
+    }, [reservations, debouncedSearchQuery]);
 
     const totalFiltered = filteredReservations.length;
     const totalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
@@ -794,11 +801,13 @@ export default function ReservasPage() {
                         placeholder="Buscar por ID, cliente, tour, email o teléfono..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
+                        aria-label="Buscar reservas"
                     />
                     {searchQuery && (
                         <button
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
                             onClick={() => setSearchQuery('')}
+                            aria-label="Limpiar busqueda"
                         >
                             ✕
                         </button>
@@ -813,7 +822,7 @@ export default function ReservasPage() {
                         <div className="bo-modal bo-modal--sm">
                             <div className="bo-modal-header">
                                 <h3>Generar Link de Pago</h3>
-                                <button className="bo-modal-close" onClick={() => setShowPaymentModal(null)}>✕</button>
+                                <button className="bo-modal-close" onClick={() => setShowPaymentModal(null)} aria-label="Cerrar">✕</button>
                             </div>
                             <div className="bo-modal-body">
                                 <p className="mb-2">Tour: <strong>{showPaymentModal.tour_name}</strong></p>
@@ -873,7 +882,7 @@ export default function ReservasPage() {
                         <div className="bo-modal" onClick={e => e.stopPropagation()}>
                             <div className="bo-modal-header">
                                 <h3>{editingId ? 'Editar Reserva' : 'Nueva Reserva'}</h3>
-                                <button className="bo-modal-close" onClick={resetForm}>✕</button>
+                                <button className="bo-modal-close" onClick={resetForm} aria-label="Cerrar">✕</button>
                             </div>
                             <form onSubmit={handleSubmit} className="bo-modal-body">
                                 <div className="bo-form-grid">
@@ -1144,6 +1153,7 @@ export default function ReservasPage() {
                                                 <button
                                                     className="bo-expand-btn"
                                                     onClick={() => toggleExpanded(res.id)}
+                                                    aria-label={isExpanded ? 'Contraer detalles' : 'Expandir detalles'}
                                                 >
                                                     {isExpanded ? '▼' : '▶'}
                                                 </button>
@@ -1181,10 +1191,10 @@ export default function ReservasPage() {
                                             <td><StatusBadge status={res.status} /></td>
                                             <td className="bo-text-right">
                                                 <div className="bo-action-btns">
-                                                    <button className="bo-action-btn bo-action-btn--edit" title="Editar" onClick={() => startEdit(res)}>✏️</button>
-                                                    <button className="bo-action-btn bo-action-btn--pdf" title="PDF" onClick={() => handlePrint(res)}>📄</button>
-                                                    <button className="bo-action-btn bo-action-btn--pay" title="Cobrar" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
-                                                    <button className="bo-action-btn bo-action-btn--delete" title="Eliminar" onClick={() => deleteReservation(res.id)}>🗑️</button>
+                                                    <button className="bo-action-btn bo-action-btn--edit" title="Editar" aria-label="Editar reserva" onClick={() => startEdit(res)}>✏️</button>
+                                                    <button className="bo-action-btn bo-action-btn--pdf" title="PDF" aria-label="Generar PDF" onClick={() => handlePrint(res)}>📄</button>
+                                                    <button className="bo-action-btn bo-action-btn--pay" title="Cobrar" aria-label="Generar link de pago" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
+                                                    <button className="bo-action-btn bo-action-btn--delete" title="Eliminar" aria-label="Eliminar reserva" onClick={() => deleteReservation(res.id)}>🗑️</button>
                                                 </div>
                                                 {res.payment_url && (
                                                     <div className="bo-cell-link">
@@ -1199,6 +1209,7 @@ export default function ReservasPage() {
                                                         <button
                                                             className="bo-action-btn"
                                                             title="Copiar Link"
+                                                            aria-label="Copiar link de check-in"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 const url = `${window.location.origin}/reservas/checkin/${res.public_token}`;
@@ -1303,7 +1314,7 @@ export default function ReservasPage() {
                                                                                         </div>
                                                                                     )}
                                                                                 </div>
-                                                                                <button className="text-gray-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition-colors" title="Eliminar Pasajero" onClick={() => removePassenger(p.id, res.id, p.full_name)}>✕</button>
+                                                                                <button className="text-gray-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition-colors" title="Eliminar Pasajero" aria-label="Eliminar pasajero" onClick={() => removePassenger(p.id, res.id, p.full_name)}>✕</button>
                                                                             </div>
                                                                         ))}
                                                                     </div>

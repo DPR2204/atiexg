@@ -237,8 +237,8 @@ export default function RecursosPage() {
                                         <td className="bo-text-right">
                                             {isAdmin && (
                                                 <div className="bo-flex bo-gap-1 bo-justify-end">
-                                                    <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditBoat(boat)}>Editar</button>
-                                                    <button className="bo-btn bo-btn--danger bo-btn--sm" onClick={() => deleteBoat(boat)}>Eliminar</button>
+                                                    <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditBoat(boat)} aria-label="Editar lancha">Editar</button>
+                                                    <button className="bo-btn bo-btn--danger bo-btn--sm" onClick={() => deleteBoat(boat)} aria-label="Eliminar lancha">Eliminar</button>
                                                 </div>
                                             )}
                                         </td>
@@ -306,11 +306,11 @@ export default function RecursosPage() {
                                             <td className="bo-text-right">
                                                 {isAdmin && (
                                                     <div className="bo-flex bo-gap-1 bo-justify-end">
-                                                        <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)}>Editar</button>
-                                                        <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)}>
+                                                        <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)} aria-label="Editar personal">Editar</button>
+                                                        <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)} aria-label={member.active ? 'Desactivar personal' : 'Activar personal'}>
                                                             {member.active ? 'Baja' : 'Alta'}
                                                         </button>
-                                                        <button className="bo-btn bo-btn--danger bo-btn--sm" onClick={() => deleteStaff(member)}>Eliminar</button>
+                                                        <button className="bo-btn bo-btn--danger bo-btn--sm" onClick={() => deleteStaff(member)} aria-label="Eliminar personal">Eliminar</button>
                                                     </div>
                                                 )}
                                             </td>
@@ -363,11 +363,11 @@ export default function RecursosPage() {
                                             <td className="bo-text-right">
                                                 {isAdmin && (
                                                     <div className="bo-flex bo-gap-1 bo-justify-end">
-                                                        <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)}>Editar</button>
-                                                        <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)}>
+                                                        <button className="bo-btn bo-btn--ghost bo-btn--sm" onClick={() => startEditStaff(member)} aria-label="Editar personal">Editar</button>
+                                                        <button className={`bo-btn bo-btn--sm ${member.active ? 'bo-btn--danger' : 'bo-btn--primary'}`} onClick={() => toggleStaffActive(member)} aria-label={member.active ? 'Desactivar personal' : 'Activar personal'}>
                                                             {member.active ? 'Baja' : 'Alta'}
                                                         </button>
-                                                        <button className="bo-btn bo-btn--danger bo-btn--sm" onClick={() => deleteStaff(member)}>Eliminar</button>
+                                                        <button className="bo-btn bo-btn--danger bo-btn--sm" onClick={() => deleteStaff(member)} aria-label="Eliminar personal">Eliminar</button>
                                                     </div>
                                                 )}
                                             </td>
@@ -386,7 +386,7 @@ export default function RecursosPage() {
                     <div className="bo-modal bo-modal--sm" onClick={(e) => e.stopPropagation()}>
                         <div className="bo-modal-header">
                             <h3>{editingBoat ? 'Editar Lancha' : 'Nueva Lancha'}</h3>
-                            <button className="bo-modal-close" onClick={() => setShowBoatForm(false)}>✕</button>
+                            <button className="bo-modal-close" onClick={() => setShowBoatForm(false)} aria-label="Cerrar">✕</button>
                         </div>
                         <form onSubmit={saveBoat} className="bo-modal-body">
                             <div className="bo-form-group">
@@ -420,7 +420,7 @@ export default function RecursosPage() {
                     <div className="bo-modal bo-modal--sm" onClick={(e) => e.stopPropagation()}>
                         <div className="bo-modal-header">
                             <h3>{editingStaff ? 'Editar Personal' : 'Nuevo Personal'}</h3>
-                            <button className="bo-modal-close" onClick={() => setShowStaffForm(false)}>✕</button>
+                            <button className="bo-modal-close" onClick={() => setShowStaffForm(false)} aria-label="Cerrar">✕</button>
                         </div>
                         <form onSubmit={saveStaff} className="bo-modal-body">
                             <div className="bo-form-group">

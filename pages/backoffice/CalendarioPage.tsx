@@ -54,7 +54,7 @@ function DraggableReservation({ res, isOverlay = false }: { res: Reservation; is
     );
 }
 
-function DroppableDay({ dateStr, dayNumber, isToday, isSelected, isOtherMonth, children, onSelect }: any) {
+function DroppableDay({ dateStr, dayNumber, isToday, isSelected, isOtherMonth, children, onSelect, 'aria-label': ariaLabel }: any) {
     const { setNodeRef, isOver } = useDroppable({
         id: dateStr,
     });
@@ -64,6 +64,7 @@ function DroppableDay({ dateStr, dayNumber, isToday, isSelected, isOtherMonth, c
             ref={setNodeRef}
             className={`bo-cal-cell ${!dayNumber ? 'bo-cal-cell--empty' : ''} ${isToday ? 'bo-cal-cell--today' : ''} ${isSelected ? 'bo-cal-cell--selected' : ''} ${isOver ? 'bo-cal-cell--over' : ''} ${isOtherMonth ? 'bo-cal-cell--other-month' : ''}`}
             onClick={onSelect}
+            aria-label={ariaLabel}
         >
             {dayNumber && <span className="bo-cal-date">{dayNumber}</span>}
             <div className="bo-cal-cell-content">
@@ -184,6 +185,16 @@ export default function CalendarioPage() {
         setSelectedDay(null);
     }, [year, month, viewMode]);
 
+    const reservationsByDate = useMemo(() => {
+        const map = new Map<string, Reservation[]>();
+        reservations.forEach(r => {
+            const key = r.tour_date;
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(r);
+        });
+        return map;
+    }, [reservations]);
+
     const calendarGrid = useMemo(() => {
         if (viewMode === 'week') return []; // Handled separately
 
@@ -245,13 +256,13 @@ export default function CalendarioPage() {
 
                 <div className="bo-cal-nav">
                     <div className="bo-cal-nav-group">
-                        <button className="bo-btn bo-btn--ghost" onClick={() => {
+                        <button className="bo-btn bo-btn--ghost" aria-label="Periodo anterior" onClick={() => {
                             const d = new Date(currentDate);
                             viewMode === 'month' ? d.setMonth(d.getMonth() - 1) : d.setDate(d.getDate() - 7);
                             setCurrentDate(d);
                         }}>← Anterior</button>
-                        <button className="bo-btn bo-btn--ghost bo-btn--today" onClick={() => setCurrentDate(new Date())}>Hoy</button>
-                        <button className="bo-btn bo-btn--ghost" onClick={() => {
+                        <button className="bo-btn bo-btn--ghost bo-btn--today" aria-label="Ir a hoy" onClick={() => setCurrentDate(new Date())}>Hoy</button>
+                        <button className="bo-btn bo-btn--ghost" aria-label="Periodo siguiente" onClick={() => {
                             const d = new Date(currentDate);
                             viewMode === 'month' ? d.setMonth(d.getMonth() + 1) : d.setDate(d.getDate() + 7);
                             setCurrentDate(d);
@@ -269,7 +280,7 @@ export default function CalendarioPage() {
                                 </div>
                                 <div className="bo-cal-grid">
                                     {calendarGrid.map((day, i) => {
-                                        const dayRes = day ? reservations.filter(r => r.tour_date === day.dateStr) : [];
+                                        const dayRes = day ? (reservationsByDate.get(day.dateStr) || []) : [];
                                         const MAX_VISIBLE = 3;
                                         const visibleRes = dayRes.slice(0, MAX_VISIBLE);
                                         const overflowCount = dayRes.length - MAX_VISIBLE;
@@ -282,12 +293,14 @@ export default function CalendarioPage() {
                                                 isSelected={day?.dateStr === selectedDay}
                                                 isOtherMonth={day?.isOtherMonth}
                                                 onSelect={() => day && setSelectedDay(day.dateStr)}
+                                                aria-label={day ? `${day.date} de ${MONTHS_ES[month]} ${year}${dayRes.length ? `, ${dayRes.length} reserva${dayRes.length > 1 ? 's' : ''}` : ''}` : undefined}
                                             >
                                                 {/* @ts-ignore */}
                                                 {visibleRes.map(res => <DraggableReservation key={res.id} res={res} />)}
                                                 {overflowCount > 0 && (
                                                     <button
                                                         className="bo-cal-overflow-badge"
+                                                        aria-label={`Ver ${overflowCount} reservas mas`}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (day) setSelectedDay(day.dateStr);
@@ -324,7 +337,7 @@ export default function CalendarioPage() {
                                         const dayOfWeek = base.getDay();
                                         const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - dayOfWeek + i);
                                         const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                                        const dayRes = reservations.filter(r => r.tour_date === dateStr);
+                                        const dayRes = reservationsByDate.get(dateStr) || [];
                                         const todayStr = new Date().toISOString().split('T')[0];
 
                                         return (
@@ -357,7 +370,7 @@ export default function CalendarioPage() {
                                 <h4 className="bo-cal-detail-title">
                                     {new Date(selectedDay + 'T12:00:00').toLocaleDateString('es-GT', { weekday: 'long', day: 'numeric', month: 'long' })}
                                 </h4>
-                                {reservations.filter(r => r.tour_date === selectedDay).length === 0 ? (
+                                {(reservationsByDate.get(selectedDay) || []).length === 0 ? (
                                     <div className="bo-cal-detail-list">
                                         <div className="bo-empty-state">
                                             <span className="bo-empty-state-icon">📅</span>
@@ -366,7 +379,7 @@ export default function CalendarioPage() {
                                     </div>
                                 ) : (
                                     <div className="bo-cal-detail-list">
-                                        {reservations.filter(r => r.tour_date === selectedDay).map(res => (
+                                        {(reservationsByDate.get(selectedDay) || []).map(res => (
                                             <div key={res.id} className="bo-cal-detail-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/backoffice/reservas?editId=${res.id}`)}>
                                                 <div className="bo-cal-detail-time">{res.start_time?.slice(0, 5) || '—'}</div>
                                                 <div className="bo-cal-detail-info">

@@ -51,7 +51,7 @@ interface KanbanCardProps {
     onEdit?: (id: number) => void;
 }
 
-const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
+const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onEdit }: KanbanCardProps) {
     const isNonDraggable = NON_DRAGGABLE_STATUSES.includes(reservation.status);
 
     const {
@@ -92,6 +92,7 @@ const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
             {...attributes}
             {...listeners}
             className={`bo-kanban-card ${isDragging ? 'is-dragging' : ''}`}
+            aria-label={`Reserva ${formatReservationCode(reservation.id, reservation.tour_date)} - ${reservation.tour_name} - ${clientName || 'Sin pasajero'}`}
             onClick={() => onEdit?.(reservation.id)}
         >
             <div className="bo-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -165,7 +166,7 @@ const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
             )}
         </div>
     );
-};
+});
 
 interface KanbanColumnProps {
     key?: React.Key;
@@ -465,6 +466,7 @@ export default function KanbanPage() {
                     placeholder="Buscar por tour, código, agente o lancha..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Buscar reservas"
                     className="bo-input"
                     style={{ paddingLeft: '36px', width: '100%' }}
                 />
