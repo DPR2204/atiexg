@@ -223,24 +223,20 @@ export default function ToursPage() {
             setSavingState('session');
             console.log('[Tours] Checking session...');
 
-            let currentSession;
             try {
-                const { data, error } = await withTimeout<any>(supabase.auth.getSession(), 30000, 'Verificación de sesión');
-                if (error) {
-                    console.error('[Tours] Session error:', error);
-                    alert('Error en la sesión: ' + error.message);
+                // Using getUser() instead of getSession() because getSession() can hang 
+                // indefinitely in the implicit flow if the refresh token is missing/invalid.
+                // getUser() forces a server-side check and returns reliably.
+                const { data, error } = await withTimeout<any>(supabase.auth.getUser(), 15000, 'Verificación de sesión (getUser)');
+                if (error || !data?.user) {
+                    console.error('[Tours] Auth error:', error);
+                    alert('Tu sesión ha expirado o no es válida. Por favor, inicia sesión de nuevo.');
+                    window.location.href = '/backoffice/login';
                     return;
                 }
-                currentSession = data.session;
             } catch (err) {
                 console.error('[Tours] Unexpected session check error:', err);
                 alert('La verificación de sesión falló o tomó demasiado tiempo. Intenta recargar la página. Detalle: ' + (err instanceof Error ? err.message : String(err)));
-                return;
-            }
-
-            if (!currentSession) {
-                alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
-                window.location.href = '/backoffice/login';
                 return;
             }
 
