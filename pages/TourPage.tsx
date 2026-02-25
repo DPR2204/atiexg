@@ -311,6 +311,12 @@ const TourPage = () => {
                 </li>
               ))}
             </ul>
+            {tour.includes && (
+              <div className="mt-6 pt-5 border-t border-gray-100">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Incluye</p>
+                <p className="text-gray-600 text-sm whitespace-pre-line">{tour.includes}</p>
+              </div>
+            )}
           </div>
 
           {/* Itinerary */}
