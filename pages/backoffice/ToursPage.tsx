@@ -305,32 +305,8 @@ export default function ToursPage() {
         }, 15000);
 
         try {
-            // Step 3: Verify session
-            console.log('[Tours] Step 3: Checking session...');
-            let session;
-            try {
-                const sessionResult = await Promise.race([
-                    supabase.auth.getSession(),
-                    new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error('SESSION_CHECK_TIMEOUT')), 5000)
-                    ),
-                ]);
-                session = sessionResult.data.session;
-            } catch {
-                console.warn('[Tours] Step 3b: Session check failed, refreshing...');
-                try {
-                    const { data: refreshData } = await supabase.auth.refreshSession();
-                    session = refreshData.session;
-                } catch {
-                    throw new Error('SESSION_EXPIRED');
-                }
-            }
-
-            if (!session) throw new Error('SESSION_EXPIRED');
-            console.log('[Tours] Step 3: Session OK');
-
-            // Step 4: Try supabase-js
-            console.log('[Tours] Step 4: Saving via supabase-js...');
+            // Step 3: Try supabase-js directly (it injects auth token automatically)
+            console.log('[Tours] Step 3: Saving via supabase-js...');
             let saved = false;
             try {
                 const query = isEdit
@@ -346,37 +322,56 @@ export default function ToursPage() {
 
                 if (result.error) throw result.error;
                 saved = true;
-                console.log('[Tours] Step 4: Success via supabase-js');
+                console.log('[Tours] Step 3: Success via supabase-js');
             } catch (sbErr: any) {
                 if (sbErr.message === 'TIMEOUT' || sbErr.name === 'AbortError') throw sbErr;
-                if (sbErr.message === 'SESSION_EXPIRED') throw sbErr;
 
-                // Step 5: Fallback to native fetch
-                console.warn('[Tours] Step 5: supabase-js failed:', sbErr.message, '— fallback to native fetch');
+                // Step 4: Fallback to native fetch
+                console.warn('[Tours] Step 4: supabase-js failed:', sbErr.message, '— fallback to native fetch');
+
+                // Read token synchronously from supabase's internal storage (no async getSession call)
+                const storageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
+                let accessToken: string | null = null;
+                try {
+                    const stored = localStorage.getItem(storageKey);
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        accessToken = parsed?.access_token || null;
+                    }
+                } catch { /* localStorage read failed, proceed with anon key */ }
+
+                const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
                 const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tours${isEdit ? `?id=eq.${tourId}` : ''}`;
                 const res = await fetch(url, {
                     method: isEdit ? 'PATCH' : 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${session.access_token}`,
+                        'apikey': anonKey,
+                        'Authorization': `Bearer ${accessToken || anonKey}`,
                         'Prefer': 'return=minimal',
                     },
                     body: JSON.stringify(isEdit ? payload : [payload]),
                     signal: controller.signal,
                 });
 
+                if (res.status === 401 || res.status === 403) {
+                    console.error('[Tours] Step 4: 401/403 — session expired, reloading...');
+                    alert('Sesión expirada, recargando...');
+                    window.location.reload();
+                    return;
+                }
+
                 if (!res.ok) {
                     const text = await res.text().catch(() => 'No response body');
                     throw new Error(`HTTP ${res.status}: ${text}`);
                 }
                 saved = true;
-                console.log('[Tours] Step 5: Success via native fetch');
+                console.log('[Tours] Step 4: Success via native fetch');
             }
 
             if (saved) {
                 clearTimeout(timeoutId);
-                console.log('[Tours] Step 6: Refreshing list...');
+                console.log('[Tours] Step 5: Refreshing list...');
                 setShowModal(false);
                 await fetchTours();
                 invalidateToursCache();
@@ -389,8 +384,6 @@ export default function ToursPage() {
             let msg: string;
             if (err.message === 'TIMEOUT' || err.name === 'AbortError') {
                 msg = 'El servidor no respondió en 15 segundos. Verifica tu conexión e intenta de nuevo.';
-            } else if (err.message === 'SESSION_EXPIRED') {
-                msg = 'Tu sesión expiró. Recarga la página e inicia sesión de nuevo.';
             } else {
                 msg = 'Error al guardar: ' + (err.message || String(err));
             }
