@@ -288,8 +288,11 @@ export default function ToursPage() {
                 const res = await withTimeout<any>(saveQuery, 30000, 'Guardado en base de datos');
 
                 if (res.error) {
-                    console.error('[Tours] Save error:', res.error);
-                    alert('Error guardando tour: ' + res.error.message + (res.error.code ? ` (código: ${res.error.code})` : ''));
+                    // Log the precise details for debugging
+                    console.error('[Tours] DB Error details:', JSON.stringify(res.error, null, 2));
+                    console.error('[Tours] Failed Payload Gallery:', JSON.stringify(payload.gallery));
+
+                    alert(`Error de Base de Datos guardando tour:\n\nMensaje: ${res.error.message}\nDetalle: ${res.error.details || 'N/A'}\nHint: ${res.error.hint || 'N/A'}\nCódigo: ${res.error.code}`);
                 } else {
                     console.log('[Tours] Saved successfully, reloading data...');
                     savingRef.current = 'reloading';
