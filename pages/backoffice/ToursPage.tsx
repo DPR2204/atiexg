@@ -527,7 +527,7 @@ export default function ToursPage() {
                 </select>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden bo-table-wrap">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
@@ -574,7 +574,7 @@ export default function ToursPage() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col bo-modal-responsive">
                         <div className="flex items-center justify-between p-6 border-b border-gray-100">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900">{isEditing ? 'Editar Tour' : 'Nuevo Tour'}</h2>
@@ -584,7 +584,7 @@ export default function ToursPage() {
                         </div>
 
                         <div className="flex flex-1 overflow-hidden">
-                            <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 space-y-2 overflow-y-auto">
+                            <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 space-y-2 overflow-y-auto bo-form-tabs-mobile">
                                 {([
                                     { id: 'general', label: 'General', icon: Settings },
                                     { id: 'media', label: 'Multimedia', icon: ImageIcon },

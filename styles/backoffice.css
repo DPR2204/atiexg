@@ -970,6 +970,11 @@
    TABLES
    ============================================ */
 
+.bo-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .bo-table-container {
   background: var(--bo-surface);
   border: 1px solid var(--bo-border);
@@ -2245,6 +2250,17 @@
   margin-bottom: 1rem;
 }
 
+.bo-cal-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bo-btn--today {
+  font-weight: 600;
+  border: 1px solid var(--bo-border);
+}
+
 .bo-cal-month {
   font-size: 1.125rem;
   font-weight: 600;
@@ -2314,6 +2330,18 @@
   cursor: default;
 }
 
+.bo-cal-cell--other-month {
+  background: color-mix(in srgb, var(--bo-bg) 60%, var(--bo-border) 40%);
+}
+
+.bo-cal-cell--other-month .bo-cal-date {
+  opacity: 0.4;
+}
+
+.bo-cal-cell--other-month .bo-cal-card {
+  opacity: 0.5;
+}
+
 .bo-cal-cell--today {
   background: var(--bo-accent-light);
 }
@@ -2379,6 +2407,26 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Overflow Badge */
+.bo-cal-overflow-badge {
+  display: block;
+  width: 100%;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--bo-accent);
+  background: var(--bo-accent-light);
+  border: none;
+  border-radius: var(--bo-radius-xs);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--bo-transition);
+}
+
+.bo-cal-overflow-badge:hover {
+  background: color-mix(in srgb, var(--bo-accent-light) 70%, var(--bo-accent) 30%);
 }
 
 /* Detail Panel */
@@ -2663,14 +2711,34 @@
   .bo-stats-grid {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 768px) {
   .bo-kanban {
-    flex-direction: column;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
   }
 
   .bo-kanban-col {
-    min-width: 100%;
-    max-width: 100%;
+    min-width: 280px;
+    scroll-snap-align: start;
+  }
+
+  .bo-kanban-board {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+
+  .bo-kanban-column {
+    scroll-snap-align: start;
+  }
+
+  .bo-kanban-page .bo-kanban {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
   }
 }
 
@@ -3589,5 +3657,45 @@
     right: auto;
     left: 0;
     width: 100%;
+  }
+}
+
+/* ============================================
+   P2 MOBILE RESPONSIVENESS IMPROVEMENTS
+   ============================================ */
+
+/* Modal responsive — fullscreen on small screens */
+@media (max-width: 640px) {
+  .bo-modal-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Tour form sidebar tabs should be horizontal on mobile */
+  .bo-form-tabs-mobile {
+    flex-direction: row !important;
+    overflow-x: auto;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 0.25rem;
+  }
+
+  .bo-form-tabs-mobile button {
+    white-space: nowrap;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Tighter padding on small screens */
+  .bo-content {
+    padding: 0.75rem;
+  }
+
+  .bo-header {
+    padding: 0.5rem 0.75rem;
   }
 }

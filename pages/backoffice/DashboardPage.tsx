@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import type { Reservation } from '../../types/backoffice';
@@ -58,6 +60,7 @@ const PRESET_LABELS: Record<DatePreset, string> = {
 
 export default function DashboardPage() {
     const { agent } = useAuth();
+    const navigate = useNavigate();
 
     // Date filter state
     const defaultRange = getPresetRange('month');
@@ -99,15 +102,21 @@ export default function DashboardPage() {
         fetchDashboard(appliedFrom, appliedTo);
     }, [appliedFrom, appliedTo]);
 
+    const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+
     async function handleSyncGallery() {
-        if (!confirm('¿Estás seguro de que deseas sincronizar la galería? Esto activará un redespliegue del sitio que tomará alrededor de 2 minutos.')) return;
+        if (!showSyncConfirm) {
+            setShowSyncConfirm(true);
+            return;
+        }
+        setShowSyncConfirm(false);
 
         setIsSyncing(true);
         try {
             // Reemplace con su Webhook de Vercel/Netlify en el archivo .env
             const webhookUrl = import.meta.env.VITE_DEPLOY_WEBHOOK_URL;
             if (!webhookUrl) {
-                alert('No se ha configurado la URL del Webhook de despliegue (VITE_DEPLOY_WEBHOOK_URL).');
+                toast.error('No se ha configurado la URL del Webhook de despliegue (VITE_DEPLOY_WEBHOOK_URL).');
                 setIsSyncing(false);
                 return;
             }
@@ -115,10 +124,10 @@ export default function DashboardPage() {
             const response = await fetch(webhookUrl, { method: 'POST' });
             if (!response.ok) throw new Error('Error al ejecutar el webhook');
 
-            alert('¡Sincronización iniciada! La galería se actualizará en unos minutos una vez que termine el despliegue.');
+            toast.success('Sincronización iniciada. La galería se actualizará en unos minutos.');
         } catch (error) {
             console.error('Error syncing:', error);
-            alert('Hubo un error al intentar iniciar la sincronización.');
+            toast.error('Hubo un error al intentar iniciar la sincronización.');
         } finally {
             setIsSyncing(false);
         }
@@ -289,14 +298,30 @@ export default function DashboardPage() {
                     <p className="bo-subtitle">Hola, {agent?.name?.split(' ')[0] || 'Agent'}. Bienvenido de vuelta.</p>
                 </div>
                 {agent?.role === 'super_admin' && (
-                    <button
-                        className="bo-btn bo-btn--primary"
-                        onClick={handleSyncGallery}
-                        disabled={isSyncing}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
-                        <span>{isSyncing ? '↻ Sincronizando...' : '☁️ Sincronizar Galería Cloudinary'}</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {showSyncConfirm && (
+                            <span style={{ fontSize: '0.8rem', color: '#6B6F7B' }}>
+                                Esto activara un redespliegue (~2 min).
+                            </span>
+                        )}
+                        <button
+                            className={`bo-btn ${showSyncConfirm ? 'bo-btn--danger' : 'bo-btn--primary'}`}
+                            onClick={handleSyncGallery}
+                            disabled={isSyncing}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <span>{isSyncing ? '↻ Sincronizando...' : showSyncConfirm ? 'Confirmar Sincronizacion' : '☁️ Sincronizar Galeria Cloudinary'}</span>
+                        </button>
+                        {showSyncConfirm && (
+                            <button
+                                className="bo-btn bo-btn--outline"
+                                onClick={() => setShowSyncConfirm(false)}
+                                style={{ padding: '6px 12px' }}
+                            >
+                                Cancelar
+                            </button>
+                        )}
+                    </div>
                 )}
             </header>
 
@@ -382,6 +407,11 @@ export default function DashboardPage() {
                 </div>
             </div>
 
+            {/* Active date range indicator */}
+            <div style={{ fontSize: '0.8rem', color: '#6B6F7B', marginBottom: '0.5rem' }}>
+                Datos del {fmtShortDate(appliedFrom)} al {fmtShortDate(appliedTo)}
+            </div>
+
             {/* Stats cards */}
             <div className="bo-stats-grid">
                 <div className="bo-stat-card">
@@ -447,12 +477,32 @@ export default function DashboardPage() {
                                     </thead>
                                     <tbody>
                                         {todayReservations.map((res) => (
-                                            <tr key={res.id}>
+                                            <tr
+                                                key={res.id}
+                                                onClick={() => navigate(`/backoffice/reservas?edit=${res.id}`)}
+                                                style={{ cursor: 'pointer' }}
+                                                className="bo-table-row-hover"
+                                            >
                                                 <td className="bo-cell-bold">{res.tour_name}</td>
                                                 <td>{res.start_time?.slice(0, 5) || '—'}</td>
                                                 <td>{res.pax_count}</td>
                                                 <td style={{ color: !res.boat_id ? 'var(--bo-danger)' : 'inherit' }}>
-                                                    {(res.boat as any)?.name || '⚠ Sin Asignar'}
+                                                    {(res.boat as any)?.name || (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span style={{
+                                                                display: 'inline-block',
+                                                                padding: '1px 6px',
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: 600,
+                                                                borderRadius: '4px',
+                                                                backgroundColor: '#FEF2F2',
+                                                                color: '#DC2626',
+                                                                border: '1px solid #FECACA',
+                                                            }}>
+                                                                Sin Lancha
+                                                            </span>
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     <span className="bo-status-badge" style={{ backgroundColor: STATUS_CONFIG[res.status]?.bg, color: STATUS_CONFIG[res.status]?.color }}>
@@ -482,9 +532,16 @@ export default function DashboardPage() {
                         ) : (
                             <div className="bo-top-tours">
                                 {topTours.map((t, i) => (
-                                    <div key={t.name} className="bo-top-tour-item">
+                                    <div
+                                        key={t.name}
+                                        className="bo-top-tour-item"
+                                        onClick={() => navigate('/backoffice/tours')}
+                                        style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}
+                                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+                                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
                                         <span className="bo-top-tour-rank">#{i + 1}</span>
-                                        <span className="bo-top-tour-name">{t.name}</span>
+                                        <span className="bo-top-tour-name" style={{ textDecoration: 'underline', textDecorationColor: '#D1D5DB', textUnderlineOffset: '2px' }}>{t.name}</span>
                                         <span className="bo-top-tour-count">{t.count}</span>
                                     </div>
                                 ))}
@@ -505,10 +562,17 @@ export default function DashboardPage() {
                         ) : (
                             <div className="bo-ranking-list">
                                 {agentRanking.map((a, i) => (
-                                    <div key={a.name} className="bo-ranking-item">
+                                    <div
+                                        key={a.name}
+                                        className="bo-ranking-item"
+                                        onClick={() => navigate('/backoffice/reservas')}
+                                        style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}
+                                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+                                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
                                         <div className="bo-ranking-item-left">
                                             <span className="bo-ranking-item-rank">#{i + 1}</span>
-                                            <span className="bo-ranking-item-name">{a.name}</span>
+                                            <span className="bo-ranking-item-name" style={{ textDecoration: 'underline', textDecorationColor: '#D1D5DB', textUnderlineOffset: '2px' }}>{a.name}</span>
                                         </div>
                                         <div className="bo-ranking-item-right">
                                             <div className="bo-ranking-item-amount">${a.amount.toLocaleString()}</div>

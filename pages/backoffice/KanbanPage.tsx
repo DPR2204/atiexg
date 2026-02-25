@@ -9,6 +9,7 @@ import {
     useSensor,
     useSensors,
     DragOverlay,
+    useDroppable,
     defaultDropAnimationSideEffects,
     DragStartEvent,
     DragOverEvent,
@@ -25,8 +26,21 @@ import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import { Reservation, ReservationStatus, STATUS_CONFIG } from '../../types/backoffice';
-import { LayoutGrid, Loader2, Calendar, User, Ship, Search } from 'lucide-react';
+import { LayoutGrid, Loader2, Calendar, User, Ship, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Valid status transitions: which statuses can move to which
+const VALID_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
+    offered: ['reserved', 'cancelled'],
+    reserved: ['offered', 'paid', 'cancelled'],
+    paid: ['reserved', 'in_progress', 'cancelled'],
+    in_progress: ['paid', 'completed', 'cancelled'],
+    completed: [],
+    cancelled: [],
+};
+
+// Statuses that should not be draggable
+const NON_DRAGGABLE_STATUSES: ReservationStatus[] = ['completed', 'cancelled'];
 
 // --- Kanban Components ---
 
@@ -38,6 +52,8 @@ interface KanbanCardProps {
 }
 
 const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
+    const isNonDraggable = NON_DRAGGABLE_STATUSES.includes(reservation.status);
+
     const {
         attributes,
         listeners,
@@ -50,15 +66,24 @@ const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
             type: 'Reservation',
             reservation,
         },
+        disabled: isNonDraggable,
     });
 
-    const style = {
+    const style: React.CSSProperties = {
         transform: CSS.Translate.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
+        cursor: isNonDraggable ? 'default' : undefined,
     };
 
     const config = STATUS_CONFIG[reservation.status];
+
+    // Client name: first passenger's full_name
+    const clientName = reservation.passengers?.[0]?.full_name;
+
+    // Missing info alerts
+    const missingBoat = !reservation.boat_id;
+    const missingAgent = !reservation.agent_id;
 
     return (
         <div
@@ -77,9 +102,20 @@ const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
                     {config.label}
                 </span>
             </div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.75rem', color: 'var(--bo-text)' }}>
+            <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem', color: 'var(--bo-text)' }}>
                 {reservation.tour_name}
             </h4>
+
+            {/* Client name and total amount */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '0.5rem' }}>
+                <span style={{ fontSize: '11px', color: 'var(--bo-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    {clientName || 'Sin pasajero'}
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--bo-text)', fontFamily: 'var(--bo-font-mono)', whiteSpace: 'nowrap' }}>
+                    ${reservation.total_amount?.toFixed(2) ?? '0.00'}
+                </span>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--bo-text-secondary)' }}>
                     <Calendar size={12} />
@@ -103,6 +139,30 @@ const KanbanCard = ({ reservation, isDragging, onEdit }: KanbanCardProps) => {
                     </div>
                 </div>
             )}
+
+            {/* Alert badges for missing info */}
+            {(missingBoat || missingAgent) && (
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--bo-border)', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {missingBoat && (
+                        <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '3px',
+                            fontSize: '10px', color: '#E65100', background: '#FFF3E0',
+                            padding: '2px 6px', borderRadius: '4px', fontWeight: 500,
+                        }}>
+                            <AlertTriangle size={10} /> Sin lancha
+                        </span>
+                    )}
+                    {missingAgent && (
+                        <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '3px',
+                            fontSize: '10px', color: '#E65100', background: '#FFF3E0',
+                            padding: '2px 6px', borderRadius: '4px', fontWeight: 500,
+                        }}>
+                            <AlertTriangle size={10} /> Sin agente
+                        </span>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
@@ -116,7 +176,7 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn = ({ status, reservations, id, onEdit }: KanbanColumnProps) => {
-    const { setNodeRef } = useSortable({
+    const { setNodeRef: setSortableRef } = useSortable({
         id,
         data: {
             type: 'Column',
@@ -124,7 +184,21 @@ const KanbanColumn = ({ status, reservations, id, onEdit }: KanbanColumnProps) =
         },
     });
 
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+        id: `droppable-${id}`,
+        data: {
+            type: 'Column',
+            status,
+        },
+    });
+
     const config = STATUS_CONFIG[status];
+
+    // Combine refs for the body element
+    const bodyRef = (node: HTMLElement | null) => {
+        setSortableRef(node);
+        setDroppableRef(node);
+    };
 
     return (
         <div className="bo-kanban-column">
@@ -138,13 +212,37 @@ const KanbanColumn = ({ status, reservations, id, onEdit }: KanbanColumnProps) =
                 </span>
             </div>
 
-            <div ref={setNodeRef} className="bo-kanban-body">
+            <div
+                ref={bodyRef}
+                className="bo-kanban-body"
+                style={isOver ? {
+                    border: '2px dashed ' + config.color,
+                    backgroundColor: config.bg,
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease',
+                } : {
+                    border: '2px dashed transparent',
+                    transition: 'all 0.2s ease',
+                }}
+            >
                 <SortableContext items={reservations.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     {reservations.map((res) => (
                         <KanbanCard key={res.id} reservation={res} onEdit={onEdit} />
                     ))}
                 </SortableContext>
-                {reservations.length === 0 && (
+                {isOver && (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        fontSize: '12px',
+                        color: config.color,
+                        fontWeight: 500,
+                        opacity: 0.8,
+                    }}>
+                        Soltar aqui
+                    </div>
+                )}
+                {reservations.length === 0 && !isOver && (
                     <div className="bo-empty-state bo-empty-state--sm">
                         <p>No hay reservas</p>
                     </div>
@@ -209,7 +307,8 @@ export default function KanbanPage() {
                 .select(`
           *,
           agent:agents(name),
-          boat:boats(name)
+          boat:boats(name),
+          passengers(full_name)
         `)
                 .order('tour_date', { ascending: true });
 
@@ -223,7 +322,16 @@ export default function KanbanPage() {
     }
 
     const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id as number);
+        const draggedId = event.active.id as number;
+        const draggedRes = reservations.find(r => r.id === draggedId);
+
+        // Prevent dragging completed/cancelled reservations
+        if (draggedRes && NON_DRAGGABLE_STATUSES.includes(draggedRes.status)) {
+            toast.warning(`Las reservas ${STATUS_CONFIG[draggedRes.status].label.toLowerCase()}s no se pueden mover`);
+            return;
+        }
+
+        setActiveId(draggedId);
     };
 
     const handleDragOver = (event: DragOverEvent) => {
@@ -275,6 +383,12 @@ export default function KanbanPage() {
         if (!over) return;
 
         const resId = active.id as number;
+
+        // Save previous state for granular rollback
+        const previousReservations = [...reservations];
+        const originalRes = previousReservations.find(r => r.id === resId);
+        const originalStatus = originalRes?.status;
+
         // handleDragOver already updated local state, so read the new status from current state
         // Use functional read to get the latest value and avoid stale closure
         let newStatus: ReservationStatus | undefined;
@@ -284,30 +398,42 @@ export default function KanbanPage() {
             return prev; // no-op, just reading
         });
 
-        if (newStatus && agent) {
-            // Save previous state for granular rollback
-            const previousReservations = [...reservations];
-            const statusLabel = STATUS_CONFIG[newStatus].label;
-            try {
-                const result = await updateReservation(resId, { status: newStatus }, agent);
-                if (result.success) {
-                    toast.success(`Reserva movida a ${statusLabel}`);
-                } else {
-                    console.error('Error updating status:', result.error);
-                    toast.error('Error al mover reserva');
-                    // Granular rollback: restore only the affected item
-                    const oldRes = previousReservations.find(r => r.id === resId);
-                    if (oldRes) {
-                        setReservations(prev => prev.map(r => r.id === resId ? oldRes : r));
-                    } else {
-                        await fetchReservations();
-                    }
-                }
-            } catch (err) {
-                console.error('Error updating status:', err);
+        // If the status hasn't changed, nothing to do
+        if (!newStatus || newStatus === originalStatus || !agent) return;
+
+        // Check if the original status is non-draggable (completed/cancelled)
+        if (originalStatus && NON_DRAGGABLE_STATUSES.includes(originalStatus)) {
+            toast.warning(`Las reservas ${STATUS_CONFIG[originalStatus].label.toLowerCase()}s no se pueden mover`);
+            setReservations(previousReservations);
+            return;
+        }
+
+        // Check for non-recommended transition
+        if (originalStatus && !VALID_TRANSITIONS[originalStatus]?.includes(newStatus)) {
+            toast.warning('Transicion no recomendada');
+            // Still allow it — don't return
+        }
+
+        const statusLabel = STATUS_CONFIG[newStatus].label;
+        try {
+            const result = await updateReservation(resId, { status: newStatus }, agent);
+            if (result.success) {
+                toast.success(`Reserva movida a ${statusLabel}`);
+            } else {
+                console.error('Error updating status:', result.error);
                 toast.error('Error al mover reserva');
-                setReservations(previousReservations);
+                // Granular rollback: restore only the affected item
+                const oldRes = previousReservations.find(r => r.id === resId);
+                if (oldRes) {
+                    setReservations(prev => prev.map(r => r.id === resId ? oldRes : r));
+                } else {
+                    await fetchReservations();
+                }
             }
+        } catch (err) {
+            console.error('Error updating status:', err);
+            toast.error('Error al mover reserva');
+            setReservations(previousReservations);
         }
     };
 

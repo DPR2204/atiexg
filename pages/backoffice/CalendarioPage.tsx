@@ -37,22 +37,24 @@ function DraggableReservation({ res, isOverlay = false }: { res: Reservation; is
         zIndex: isOverlay ? 999 : 'auto',
     };
 
+    const tooltipText = `${res.tour_name} — ${res.start_time?.slice(0, 5) || 'Sin hora'} • ${res.pax_count} pax`;
+
     return (
-        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={`bo-cal-card ${isOverlay ? 'bo-cal-card--overlay' : ''}`}>
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className={`bo-cal-card ${isOverlay ? 'bo-cal-card--overlay' : ''}`} title={tooltipText}>
             <div className="bo-cal-card-title">{res.tour_name}</div>
             <div className="bo-cal-card-meta">
                 {res.start_time?.slice(0, 5)} • {res.pax_count} pax
             </div>
             {res.end_date && res.end_date !== res.tour_date && (
                 <div className="bo-cal-card-span">
-                    🔄 Multi-día
+                    Multi-dia
                 </div>
             )}
         </div>
     );
 }
 
-function DroppableDay({ dateStr, dayNumber, isToday, isSelected, children, onSelect }: any) {
+function DroppableDay({ dateStr, dayNumber, isToday, isSelected, isOtherMonth, children, onSelect }: any) {
     const { setNodeRef, isOver } = useDroppable({
         id: dateStr,
     });
@@ -60,7 +62,7 @@ function DroppableDay({ dateStr, dayNumber, isToday, isSelected, children, onSel
     return (
         <div
             ref={setNodeRef}
-            className={`bo-cal-cell ${!dayNumber ? 'bo-cal-cell--empty' : ''} ${isToday ? 'bo-cal-cell--today' : ''} ${isSelected ? 'bo-cal-cell--selected' : ''} ${isOver ? 'bo-cal-cell--over' : ''}`}
+            className={`bo-cal-cell ${!dayNumber ? 'bo-cal-cell--empty' : ''} ${isToday ? 'bo-cal-cell--today' : ''} ${isSelected ? 'bo-cal-cell--selected' : ''} ${isOver ? 'bo-cal-cell--over' : ''} ${isOtherMonth ? 'bo-cal-cell--other-month' : ''}`}
             onClick={onSelect}
         >
             {dayNumber && <span className="bo-cal-date">{dayNumber}</span>}
@@ -177,19 +179,50 @@ export default function CalendarioPage() {
     /* Placeholder - realized I need to add useAuth first */
 
 
+    // Clear selection when navigating to a different month or week
+    useEffect(() => {
+        setSelectedDay(null);
+    }, [year, month, viewMode]);
+
     const calendarGrid = useMemo(() => {
         if (viewMode === 'week') return []; // Handled separately
 
         const firstDayOfMonth = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const grid: Array<{ date: number; dateStr: string } | null> = [];
+        const grid: Array<{ date: number; dateStr: string; isOtherMonth?: boolean } | null> = [];
 
-        for (let i = 0; i < firstDayOfMonth; i++) grid.push(null);
+        // Fill leading cells with previous month's days
+        if (firstDayOfMonth > 0) {
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+                const d = prevMonthDays - i;
+                const prevMonth = month === 0 ? 12 : month;
+                const prevYear = month === 0 ? year - 1 : year;
+                grid.push({
+                    date: d,
+                    dateStr: `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+                    isOtherMonth: true,
+                });
+            }
+        }
         for (let d = 1; d <= daysInMonth; d++) {
             grid.push({
                 date: d,
                 dateStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
             });
+        }
+        // Fill trailing cells with next month's days
+        const remaining = grid.length % 7;
+        if (remaining > 0) {
+            const nextMonth = month + 2 > 12 ? 1 : month + 2;
+            const nextYear = month + 2 > 12 ? year + 1 : year;
+            for (let d = 1; d <= 7 - remaining; d++) {
+                grid.push({
+                    date: d,
+                    dateStr: `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+                    isOtherMonth: true,
+                });
+            }
         }
         return grid;
     }, [year, month, viewMode]);
@@ -211,17 +244,20 @@ export default function CalendarioPage() {
                 </header>
 
                 <div className="bo-cal-nav">
-                    <button className="bo-btn bo-btn--ghost" onClick={() => {
-                        const d = new Date(currentDate);
-                        viewMode === 'month' ? d.setMonth(d.getMonth() - 1) : d.setDate(d.getDate() - 7);
-                        setCurrentDate(d);
-                    }}>← Anterior</button>
+                    <div className="bo-cal-nav-group">
+                        <button className="bo-btn bo-btn--ghost" onClick={() => {
+                            const d = new Date(currentDate);
+                            viewMode === 'month' ? d.setMonth(d.getMonth() - 1) : d.setDate(d.getDate() - 7);
+                            setCurrentDate(d);
+                        }}>← Anterior</button>
+                        <button className="bo-btn bo-btn--ghost bo-btn--today" onClick={() => setCurrentDate(new Date())}>Hoy</button>
+                        <button className="bo-btn bo-btn--ghost" onClick={() => {
+                            const d = new Date(currentDate);
+                            viewMode === 'month' ? d.setMonth(d.getMonth() + 1) : d.setDate(d.getDate() + 7);
+                            setCurrentDate(d);
+                        }}>Siguiente →</button>
+                    </div>
                     <h3 className="bo-cal-month">{viewMode === 'month' ? `${MONTHS_ES[month]} ${year}` : `Semana del ${currentDate.toLocaleDateString()}`}</h3>
-                    <button className="bo-btn bo-btn--ghost" onClick={() => {
-                        const d = new Date(currentDate);
-                        viewMode === 'month' ? d.setMonth(d.getMonth() + 1) : d.setDate(d.getDate() + 7);
-                        setCurrentDate(d);
-                    }}>Siguiente →</button>
                 </div>
 
                 {loading ? <div className="bo-loading"><div className="bo-loading-spinner" /></div> : (
@@ -234,6 +270,9 @@ export default function CalendarioPage() {
                                 <div className="bo-cal-grid">
                                     {calendarGrid.map((day, i) => {
                                         const dayRes = day ? reservations.filter(r => r.tour_date === day.dateStr) : [];
+                                        const MAX_VISIBLE = 3;
+                                        const visibleRes = dayRes.slice(0, MAX_VISIBLE);
+                                        const overflowCount = dayRes.length - MAX_VISIBLE;
                                         return (                                                // @ts-ignore
                                             <DroppableDay
                                                 key={day?.dateStr || `empty-${i}`}
@@ -241,10 +280,22 @@ export default function CalendarioPage() {
                                                 dayNumber={day?.date}
                                                 isToday={day?.dateStr === new Date().toISOString().split('T')[0]}
                                                 isSelected={day?.dateStr === selectedDay}
+                                                isOtherMonth={day?.isOtherMonth}
                                                 onSelect={() => day && setSelectedDay(day.dateStr)}
                                             >
                                                 {/* @ts-ignore */}
-                                                {dayRes.map(res => <DraggableReservation key={res.id} res={res} />)}
+                                                {visibleRes.map(res => <DraggableReservation key={res.id} res={res} />)}
+                                                {overflowCount > 0 && (
+                                                    <button
+                                                        className="bo-cal-overflow-badge"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (day) setSelectedDay(day.dateStr);
+                                                        }}
+                                                    >
+                                                        +{overflowCount} mas
+                                                    </button>
+                                                )}
                                             </DroppableDay>
                                         );
                                     })}
@@ -284,7 +335,8 @@ export default function CalendarioPage() {
                                                     <div key={res.id} className="bo-week-card" style={{
                                                         backgroundColor: STATUS_CONFIG[res.status]?.bg,
                                                         borderLeft: `3px solid ${STATUS_CONFIG[res.status]?.color}`,
-                                                    }} onClick={() => navigate(`/backoffice/reservas?editId=${res.id}`)}>
+                                                    }} onClick={() => navigate(`/backoffice/reservas?editId=${res.id}`)}
+                                                    title={`${res.tour_name} — ${res.start_time?.slice(0, 5) || 'Sin hora'} • ${res.pax_count} pax`}>
                                                         <div className="bo-week-card-time">
                                                             {res.start_time?.slice(0, 5) || '—'}
                                                         </div>

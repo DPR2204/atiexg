@@ -211,7 +211,7 @@ export default function RecursosPage() {
                         <p>{boatSearch ? 'Sin resultados para la busqueda' : 'No hay lanchas registradas'}</p>
                     </div>
                 ) : (
-                    <div className="bo-table-container">
+                    <div className="bo-table-container bo-table-wrap">
                         <table className="bo-table">
                             <thead>
                                 <tr>
@@ -282,7 +282,7 @@ export default function RecursosPage() {
                             <p>{staffSearch ? 'Sin resultados' : 'No hay lancheros registrados'}</p>
                         </div>
                     ) : (
-                        <div className="bo-table-container">
+                        <div className="bo-table-container bo-table-wrap">
                             <table className="bo-table">
                                 <thead>
                                     <tr>
@@ -339,7 +339,7 @@ export default function RecursosPage() {
                             <p>{staffSearch ? 'Sin resultados' : 'No hay guias registrados'}</p>
                         </div>
                     ) : (
-                        <div className="bo-table-container">
+                        <div className="bo-table-container bo-table-wrap">
                             <table className="bo-table">
                                 <thead>
                                     <tr>
