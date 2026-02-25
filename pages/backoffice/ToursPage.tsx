@@ -298,6 +298,7 @@ export default function ToursPage() {
         savingGuardRef.current = true;
         dispatch({ type: 'SET_SAVING', saving: true });
 
+        // Native fetch — bypasses supabase-js entirely (its client hangs on writes)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
             console.log('[Tours] Step X: 15s timeout — aborting');
@@ -305,84 +306,60 @@ export default function ToursPage() {
         }, 15000);
 
         try {
-            // Step 3: Try supabase-js directly (it injects auth token automatically)
-            console.log('[Tours] Step 3: Saving via supabase-js...');
-            let saved = false;
+            // Read token synchronously from localStorage (supabase-js stores it here)
+            const storageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
+            let accessToken: string | null = null;
             try {
-                const query = isEdit
-                    ? supabase.from('tours').update(payload).eq('id', tourId!)
-                    : supabase.from('tours').insert([payload]);
-
-                const result = await Promise.race([
-                    query,
-                    new Promise<never>((_, reject) => {
-                        controller.signal.addEventListener('abort', () => reject(new Error('TIMEOUT')));
-                    }),
-                ]);
-
-                if (result.error) throw result.error;
-                saved = true;
-                console.log('[Tours] Step 3: Success via supabase-js');
-            } catch (sbErr: any) {
-                if (sbErr.message === 'TIMEOUT' || sbErr.name === 'AbortError') throw sbErr;
-
-                // Step 4: Fallback to native fetch
-                console.warn('[Tours] Step 4: supabase-js failed:', sbErr.message, '— fallback to native fetch');
-
-                // Read token synchronously from supabase's internal storage (no async getSession call)
-                const storageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
-                let accessToken: string | null = null;
-                try {
-                    const stored = localStorage.getItem(storageKey);
-                    if (stored) {
-                        const parsed = JSON.parse(stored);
-                        accessToken = parsed?.access_token || null;
-                    }
-                } catch { /* localStorage read failed, proceed with anon key */ }
-
-                const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-                const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tours${isEdit ? `?id=eq.${tourId}` : ''}`;
-                const res = await fetch(url, {
-                    method: isEdit ? 'PATCH' : 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': anonKey,
-                        'Authorization': `Bearer ${accessToken || anonKey}`,
-                        'Prefer': 'return=minimal',
-                    },
-                    body: JSON.stringify(isEdit ? payload : [payload]),
-                    signal: controller.signal,
-                });
-
-                if (res.status === 401 || res.status === 403) {
-                    console.error('[Tours] Step 4: 401/403 — session expired, reloading...');
-                    alert('Sesión expirada, recargando...');
-                    window.location.reload();
-                    return;
+                const stored = localStorage.getItem(storageKey);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    accessToken = parsed?.access_token || null;
                 }
+            } catch { /* proceed with anon key */ }
 
-                if (!res.ok) {
-                    const text = await res.text().catch(() => 'No response body');
-                    throw new Error(`HTTP ${res.status}: ${text}`);
-                }
-                saved = true;
-                console.log('[Tours] Step 4: Success via native fetch');
+            const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tours${isEdit ? `?id=eq.${tourId}` : ''}`;
+
+            console.log('[Tours] Step 3: Saving via native fetch...', { url, method: isEdit ? 'PATCH' : 'POST', hasToken: !!accessToken });
+
+            const res = await fetch(url, {
+                method: isEdit ? 'PATCH' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': anonKey,
+                    'Authorization': `Bearer ${accessToken || anonKey}`,
+                    'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify(isEdit ? payload : [payload]),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (res.status === 401 || res.status === 403) {
+                console.error('[Tours] Step 3: 401/403 — session expired');
+                alert('Sesión expirada, recargando...');
+                window.location.reload();
+                return;
             }
 
-            if (saved) {
-                clearTimeout(timeoutId);
-                console.log('[Tours] Step 5: Refreshing list...');
-                setShowModal(false);
-                await fetchTours();
-                invalidateToursCache();
+            if (!res.ok) {
+                const text = await res.text().catch(() => 'No response body');
+                throw new Error(`HTTP ${res.status}: ${text}`);
             }
+
+            console.log('[Tours] Step 3: Success ✓');
+            console.log('[Tours] Step 4: Refreshing list...');
+            setShowModal(false);
+            await fetchTours();
+            invalidateToursCache();
 
         } catch (err: any) {
             clearTimeout(timeoutId);
             console.error('[Tours] Error:', err);
 
             let msg: string;
-            if (err.message === 'TIMEOUT' || err.name === 'AbortError') {
+            if (err.name === 'AbortError') {
                 msg = 'El servidor no respondió en 15 segundos. Verifica tu conexión e intenta de nuevo.';
             } else {
                 msg = 'Error al guardar: ' + (err.message || String(err));
