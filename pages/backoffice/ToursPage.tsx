@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { invalidateToursCache } from '../../hooks/useTours';
 import { Tour, ItineraryStep, TourPrice, Addon } from '../../types/shared';
 import { tourFormToDbPayload, validateTourPayload, dbRowToTour } from '../../lib/tour-mapper';
@@ -224,9 +223,26 @@ export default function ToursPage() {
     async function fetchTours() {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('tours').select('*').order('id', { ascending: true });
-            if (error) throw error;
-            if (data) setTours(data);
+            // Native fetch — supabase-js hangs intermittently
+            const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            let accessToken: string | null = null;
+            try {
+                const stored = localStorage.getItem('atiexg-bo-auth');
+                if (stored) accessToken = JSON.parse(stored)?.access_token || null;
+            } catch { /* use anon key */ }
+
+            const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tours?order=id.asc&select=*`,
+                {
+                    headers: {
+                        'apikey': anonKey,
+                        'Authorization': `Bearer ${accessToken || anonKey}`,
+                    },
+                }
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setTours(data.map(dbRowToTour));
         } catch (err) {
             console.error('[Tours] Error fetching tours:', err);
         } finally {
@@ -258,12 +274,31 @@ export default function ToursPage() {
     }
 
     async function handleDelete(id: number) {
-        if (!confirm('Are you sure you want to delete this tour?')) return;
-        const { error } = await supabase.from('tours').delete().eq('id', id);
-        if (error) alert('Error deleting tour');
-        else {
+        if (!confirm('¿Estás seguro de que quieres eliminar este tour?')) return;
+        try {
+            const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            let accessToken: string | null = null;
+            try {
+                const stored = localStorage.getItem('atiexg-bo-auth');
+                if (stored) accessToken = JSON.parse(stored)?.access_token || null;
+            } catch { /* use anon key */ }
+
+            const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tours?id=eq.${id}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': anonKey,
+                        'Authorization': `Bearer ${accessToken || anonKey}`,
+                    },
+                }
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             await fetchTours();
             invalidateToursCache();
+        } catch (err) {
+            console.error('[Tours] Delete error:', err);
+            alert('Error al eliminar tour');
         }
     }
 
@@ -351,7 +386,7 @@ export default function ToursPage() {
             console.log('[Tours] Step 4: Refreshing list...');
             setShowModal(false);
             await fetchTours();
-            invalidateToursCache();
+            invalidateToursCache(); // notify other useTours() consumers (public site cache)
 
         } catch (err: any) {
             clearTimeout(timeoutId);
