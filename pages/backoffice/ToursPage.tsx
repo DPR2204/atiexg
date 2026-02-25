@@ -216,18 +216,18 @@ export default function ToursPage() {
         console.log('[Tours] Saving started');
 
         try {
-            // Verify auth session (with 5s timeout so it never hangs)
             let currentSession;
             try {
-                const sessionResult = await Promise.race([
-                    supabase.auth.getSession(),
-                    new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error('SESSION_TIMEOUT')), 5000)
-                    ),
-                ]);
-                currentSession = sessionResult.data.session;
-            } catch {
-                alert('No se pudo verificar tu sesión. Intenta recargar la página.');
+                const { data, error } = await supabase.auth.getSession();
+                if (error) {
+                    console.error('[Tours] Session error:', error);
+                    alert('No se pudo verificar tu sesión. (' + error.message + '). Intenta recargar la página.');
+                    return;
+                }
+                currentSession = data.session;
+            } catch (err) {
+                console.error('[Tours] Unexpected session check error:', err);
+                alert('Error al verificar tu sesión. Intenta recargar la página.');
                 return;
             }
 
@@ -278,14 +278,8 @@ export default function ToursPage() {
                 ? supabase.from('tours').update(payload).eq('id', curEditing.id)
                 : supabase.from('tours').insert([payload]);
 
-            // Race against a 15s timeout so the UI never hangs
-            let timeoutId: ReturnType<typeof setTimeout>;
-            const timeoutPromise = new Promise<never>((_, reject) => {
-                timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 15000);
-            });
             try {
-                const res = await Promise.race([saveQuery, timeoutPromise]);
-                clearTimeout(timeoutId!);
+                const res = await saveQuery;
 
                 if (res.error) {
                     console.error('[Tours] Save error:', res.error);
@@ -297,16 +291,11 @@ export default function ToursPage() {
                     invalidateToursCache();
                 }
             } catch (err) {
-                clearTimeout(timeoutId!);
                 throw err; // re-throw to be caught by outer try/catch
             }
         } catch (err) {
             console.error('[Tours] Unexpected error:', err);
-            if (err instanceof Error && err.message === 'TIMEOUT') {
-                alert('El servidor no respondió en 15 segundos. Verifica tu conexión e intenta de nuevo.');
-            } else {
-                alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
-            }
+            alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
         } finally {
             savingRef.current = false;
             setSaving(false);
