@@ -115,4 +115,4 @@ const TourCard: React.FC<TourCardProps> = ({
     );
 };
 
-export default TourCard;
+export default React.memo(TourCard);

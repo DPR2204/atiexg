@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 
 const TOUR_PHOTOS = [
     {
@@ -32,9 +32,10 @@ const TOUR_PHOTOS = [
 interface MarqueeRowProps {
     speed?: number;   // px per second
     reverse?: boolean;
+    isVisibleRef: React.RefObject<boolean>;
 }
 
-const MarqueeRow: React.FC<MarqueeRowProps> = ({ speed = 40, reverse = false }) => {
+const MarqueeRow: React.FC<MarqueeRowProps> = ({ speed = 40, reverse = false, isVisibleRef }) => {
     const trackRef = useRef<HTMLDivElement>(null);
     const offsetRef = useRef(0);
     const rafRef = useRef<number>(0);
@@ -43,6 +44,10 @@ const MarqueeRow: React.FC<MarqueeRowProps> = ({ speed = 40, reverse = false }) 
     const animate = useCallback(
         (timestamp: number) => {
             if (!trackRef.current) return;
+            if (!isVisibleRef.current) {
+                rafRef.current = requestAnimationFrame(animate);
+                return;
+            }
 
             if (!lastTimeRef.current) lastTimeRef.current = timestamp;
             const delta = (timestamp - lastTimeRef.current) / 1000; // seconds
@@ -115,8 +120,22 @@ const MarqueeRow: React.FC<MarqueeRowProps> = ({ speed = 40, reverse = false }) 
 /* ── Main Section ─────────────────────────────────────────── */
 
 const SocialProofGallery: React.FC = () => {
+    const sectionRef = useRef<HTMLDivElement>(null);
+    const isVisibleRef = useRef(true);
+
+    useEffect(() => {
+        const el = sectionRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+            { threshold: 0 }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <section className="py-20 lg:py-28 overflow-hidden bg-gray-50/50">
+        <section ref={sectionRef} className="py-20 lg:py-28 overflow-hidden bg-gray-50/50">
             {/* Heading */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-12 text-center">
                 <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">
@@ -132,13 +151,13 @@ const SocialProofGallery: React.FC = () => {
             </div>
 
             {/* Row 1 – scrolls left */}
-            <MarqueeRow speed={40} />
+            <MarqueeRow speed={40} isVisibleRef={isVisibleRef} />
 
             {/* Spacer */}
             <div className="h-4" />
 
             {/* Row 2 – scrolls right */}
-            <MarqueeRow speed={35} reverse />
+            <MarqueeRow speed={35} reverse isVisibleRef={isVisibleRef} />
         </section>
     );
 };

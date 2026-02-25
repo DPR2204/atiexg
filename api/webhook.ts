@@ -1,3 +1,12 @@
+import { createClient } from '@supabase/supabase-js';
+
+function getSupabaseAdmin() {
+    const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    if (!url || !key) throw new Error('Missing Supabase credentials for webhook');
+    return createClient(url, key);
+}
+
 // Types for Vercel Serverless Functions
 interface VercelRequest {
     method?: string;
@@ -38,8 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Handle different event types
         switch (payload.event) {
-            case 'checkout.completed':
-                // Payment was successful
+            case 'checkout.completed': {
                 console.log('Payment completed:', {
                     id: payload.data.id,
                     amount: payload.data.amount_in_cents / 100,
@@ -47,11 +55,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     metadata: payload.data.metadata,
                 });
 
-                // TODO: In the future, you could:
-                // - Send confirmation email
-                // - Save to database (Firebase)
-                // - Notify via WhatsApp API
+                const checkoutId = payload.data.id;
+                if (checkoutId) {
+                    try {
+                        const supabase = getSupabaseAdmin();
+                        const { error: updateError } = await supabase
+                            .from('reservations')
+                            .update({ status: 'paid' })
+                            .eq('payment_id', checkoutId);
+                        if (updateError) {
+                            console.error('Error updating reservation status:', updateError);
+                        }
+                    } catch (dbError) {
+                        console.error('Database error in webhook:', dbError);
+                    }
+                }
                 break;
+            }
 
             case 'checkout.expired':
                 console.log('Checkout expired:', payload.data.id);

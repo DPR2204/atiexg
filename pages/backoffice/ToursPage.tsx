@@ -245,13 +245,16 @@ export default function ToursPage() {
                 category: fd.category || null,
                 concept: fd.concept || null,
                 description: fd.description || null,
-                price: Number(fd.price) || 0,
+                price: fd.price != null ? Number(fd.price) : 0,
                 duration: fd.duration || null,
                 image: fd.image || null,
                 format: fd.format || null,
                 includes: fd.includes || null,
                 is_best_seller: fd.isBestSeller ?? false,
                 is_new: fd.isNew ?? false,
+                rating: Number(fd.rating) || 5.0,
+                reviews: Number(fd.reviews) || 0,
+                active: fd.active ?? true,
                 itinerary: curItinerary.length > 0 ? curItinerary : null,
                 prices: curPrices.length > 0 ? curPrices : null,
                 addons: curAddons.length > 0 ? curAddons : null,
@@ -267,20 +270,25 @@ export default function ToursPage() {
                 : supabase.from('tours').insert([payload]);
 
             // Race against a 15s timeout so the UI never hangs
-            const res = await Promise.race([
-                saveQuery,
-                new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error('TIMEOUT')), 15000)
-                ),
-            ]);
+            let timeoutId: ReturnType<typeof setTimeout>;
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 15000);
+            });
+            try {
+                const res = await Promise.race([saveQuery, timeoutPromise]);
+                clearTimeout(timeoutId!);
 
-            if (res.error) {
-                console.error('[Tours] Save error:', res.error);
-                alert('Error guardando tour: ' + res.error.message + (res.error.code ? ` (código: ${res.error.code})` : ''));
-            } else {
-                console.log('[Tours] Saved successfully');
-                setShowModal(false);
-                fetchTours();
+                if (res.error) {
+                    console.error('[Tours] Save error:', res.error);
+                    alert('Error guardando tour: ' + res.error.message + (res.error.code ? ` (código: ${res.error.code})` : ''));
+                } else {
+                    console.log('[Tours] Saved successfully');
+                    setShowModal(false);
+                    fetchTours();
+                }
+            } catch (err) {
+                clearTimeout(timeoutId!);
+                throw err; // re-throw to be caught by outer try/catch
             }
         } catch (err) {
             console.error('[Tours] Unexpected error:', err);
@@ -307,11 +315,13 @@ export default function ToursPage() {
         const asset = assetsMap.get(publicId);
         const taggedId = asset && isVideoAsset(asset) ? `video:${publicId}` : publicId;
         if (imagePickerTarget === 'main') {
-            setFormData({ ...formData, image: publicId });
+            setFormData(prev => ({ ...prev, image: publicId }));
         } else {
-            const newGallery = [...gallery];
-            newGallery[imagePickerTarget] = taggedId;
-            setGallery(newGallery);
+            setGallery(prev => {
+                const newGallery = [...prev];
+                newGallery[imagePickerTarget] = taggedId;
+                return newGallery;
+            });
         }
         setShowImagePicker(false);
     }
@@ -322,7 +332,7 @@ export default function ToursPage() {
             setShowNewCategory(true);
             setNewCategoryInput('');
         } else {
-            setFormData({ ...formData, category: value as any });
+            setFormData(prev => ({ ...prev, category: value as any }));
             setShowNewCategory(false);
         }
     }
@@ -331,7 +341,7 @@ export default function ToursPage() {
         const trimmed = newCategoryInput.trim();
         if (trimmed) {
             setCustomCategories(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
-            setFormData({ ...formData, category: trimmed as any });
+            setFormData(prev => ({ ...prev, category: trimmed as any }));
             setShowNewCategory(false);
             setNewCategoryInput('');
         }
@@ -340,45 +350,57 @@ export default function ToursPage() {
     // Helper Functions
     // Itinerary
     function updateStep(index: number, field: keyof ItineraryStep, value: string) {
-        const newSteps = [...itinerarySteps];
-        newSteps[index] = { ...newSteps[index], [field]: value };
-        setItinerarySteps(newSteps);
+        setItinerarySteps(prev => {
+            const newSteps = [...prev];
+            newSteps[index] = { ...newSteps[index], [field]: value };
+            return newSteps;
+        });
     }
-    function addStep() { setItinerarySteps([...itinerarySteps, { time: '', activity: '' }]); }
-    function removeStep(index: number) { setItinerarySteps(itinerarySteps.filter((_, i) => i !== index)); }
+    function addStep() { setItinerarySteps(prev => [...prev, { time: '', activity: '' }]); }
+    function removeStep(index: number) { setItinerarySteps(prev => prev.filter((_, i) => i !== index)); }
 
     // Prices
     function updatePrice(index: number, field: keyof TourPrice, value: string) {
-        const newPrices = [...prices];
-        newPrices[index] = { ...newPrices[index], [field]: value };
-        setPrices(newPrices);
+        setPrices(prev => {
+            const newPrices = [...prev];
+            newPrices[index] = { ...newPrices[index], [field]: value };
+            return newPrices;
+        });
     }
     function addPrice() {
-        const id = (prices.length + 1).toString();
-        setPrices([...prices, { id, label: 'Por persona', amount: '$0 USD', description: '' }]);
+        setPrices(prev => {
+            const id = (prev.length + 1).toString();
+            return [...prev, { id, label: 'Por persona', amount: '$0 USD', description: '' }];
+        });
     }
-    function removePrice(index: number) { setPrices(prices.filter((_, i) => i !== index)); }
+    function removePrice(index: number) { setPrices(prev => prev.filter((_, i) => i !== index)); }
 
     // Addons
     function updateAddon(index: number, field: keyof Addon, value: string) {
-        const newAddons = [...addons];
-        newAddons[index] = { ...newAddons[index], [field]: value };
-        setAddons(newAddons);
+        setAddons(prev => {
+            const newAddons = [...prev];
+            newAddons[index] = { ...newAddons[index], [field]: value };
+            return newAddons;
+        });
     }
     function addAddon() {
-        const id = `a${addons.length + 1}`;
-        setAddons([...addons, { id, label: '', price: '$0' }]);
+        setAddons(prev => {
+            const id = `a${prev.length + 1}`;
+            return [...prev, { id, label: '', price: '$0' }];
+        });
     }
-    function removeAddon(index: number) { setAddons(addons.filter((_, i) => i !== index)); }
+    function removeAddon(index: number) { setAddons(prev => prev.filter((_, i) => i !== index)); }
 
     // Gallery
-    function addGalleryImage() { setGallery([...gallery, '']); }
+    function addGalleryImage() { setGallery(prev => [...prev, '']); }
     function updateGalleryImage(index: number, value: string) {
-        const newGallery = [...gallery];
-        newGallery[index] = value;
-        setGallery(newGallery);
+        setGallery(prev => {
+            const newGallery = [...prev];
+            newGallery[index] = value;
+            return newGallery;
+        });
     }
-    function removeGalleryImage(index: number) { setGallery(gallery.filter((_, i) => i !== index)); }
+    function removeGalleryImage(index: number) { setGallery(prev => prev.filter((_, i) => i !== index)); }
 
     // Array Inputs (Features)
     function handleKeyDown(e: React.KeyboardEvent, list: string[], setList: (l: string[]) => void) {
@@ -398,8 +420,8 @@ export default function ToursPage() {
         <div className="p-6 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Gestión de Tours</h1>
-                    <p className="text-gray-500">Administra el catálogo completo</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Gestion de Tours</h1>
+                    <p className="text-gray-500">Administra el catalogo completo</p>
                 </div>
                 <button onClick={handleCreate} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                     <Plus size={18} /> Nuevo Tour
@@ -411,9 +433,9 @@ export default function ToursPage() {
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
                             <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Tour</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Categoría</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Categoria</th>
                             <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Precio Base</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Duración</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Duracion</th>
                             <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Acciones</th>
                         </tr>
                     </thead>
@@ -458,8 +480,8 @@ export default function ToursPage() {
                                     { id: 'general', label: 'General', icon: Settings },
                                     { id: 'media', label: 'Multimedia', icon: ImageIcon },
                                     { id: 'prices', label: 'Precios y Add-ons', icon: DollarSign },
-                                    { id: 'logistics', label: 'Logística', icon: MapPin },
-                                    { id: 'features', label: 'Características', icon: List },
+                                    { id: 'logistics', label: 'Logistica', icon: MapPin },
+                                    { id: 'features', label: 'Caracteristicas', icon: List },
                                 ].map((tab) => (
                                     <button
                                         key={tab.id}
@@ -480,10 +502,10 @@ export default function ToursPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Nombre del Tour</label>
-                                                <input type="text" required value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" required value={formData.name || ''} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700">Categoría</label>
+                                                <label className="text-sm font-medium text-gray-700">Categoria</label>
                                                 {showNewCategory ? (
                                                     <div className="flex gap-2">
                                                         <input
@@ -492,7 +514,7 @@ export default function ToursPage() {
                                                             value={newCategoryInput}
                                                             onChange={e => setNewCategoryInput(e.target.value)}
                                                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(); } }}
-                                                            placeholder="Nombre de la nueva categoría"
+                                                            placeholder="Nombre de la nueva categoria"
                                                             className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                                                         />
                                                         <button type="button" onClick={confirmNewCategory} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={18} /></button>
@@ -501,36 +523,36 @@ export default function ToursPage() {
                                                 ) : (
                                                     <select value={formData.category || 'Signature'} onChange={e => handleCategoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                                                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                                        <option value="__new__">+ Nueva categoría...</option>
+                                                        <option value="__new__">+ Nueva categoria...</option>
                                                     </select>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-gray-700">Concepto (Subtítulo corto)</label>
-                                            <input type="text" required value={formData.concept || ''} onChange={e => setFormData({ ...formData, concept: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            <label className="text-sm font-medium text-gray-700">Concepto (Subtitulo corto)</label>
+                                            <input type="text" required value={formData.concept || ''} onChange={e => setFormData(prev => ({ ...prev, concept: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-gray-700">Descripción detallada</label>
-                                            <textarea rows={4} value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
+                                            <label className="text-sm font-medium text-gray-700">Descripcion detallada</label>
+                                            <textarea rows={4} value={formData.description || ''} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700">Duración</label>
-                                                <input type="text" placeholder="Ej. 6-8 h" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <label className="text-sm font-medium text-gray-700">Duracion</label>
+                                                <input type="text" placeholder="Ej. 6-8 h" value={formData.duration || ''} onChange={e => setFormData(prev => ({ ...prev, duration: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Formato</label>
-                                                <input type="text" placeholder="Ej. Privado · Todo incluido" value={formData.format || ''} onChange={e => setFormData({ ...formData, format: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" placeholder="Ej. Privado - Todo incluido" value={formData.format || ''} onChange={e => setFormData(prev => ({ ...prev, format: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                         </div>
                                         <div className="flex gap-6 pt-4">
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" checked={formData.isBestSeller || false} onChange={e => setFormData({ ...formData, isBestSeller: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                                                <input type="checkbox" checked={formData.isBestSeller || false} onChange={e => setFormData(prev => ({ ...prev, isBestSeller: e.target.checked }))} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
                                                 <span className="text-sm text-gray-700">Best Seller</span>
                                             </label>
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" checked={formData.isNew || false} onChange={e => setFormData({ ...formData, isNew: e.target.checked })} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                                                <input type="checkbox" checked={formData.isNew || false} onChange={e => setFormData(prev => ({ ...prev, isNew: e.target.checked }))} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
                                                 <span className="text-sm text-gray-700">Nuevo Tour</span>
                                             </label>
                                         </div>
@@ -542,7 +564,7 @@ export default function ToursPage() {
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Imagen Principal</label>
                                             <div className="flex gap-3 items-center">
-                                                <input type="text" value={formData.image || ''} onChange={e => setFormData({ ...formData, image: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. DSC04496_noiz4x" />
+                                                <input type="text" value={formData.image || ''} onChange={e => setFormData(prev => ({ ...prev, image: e.target.value }))} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. DSC04496_noiz4x" />
                                                 <button type="button" onClick={() => openImagePicker('main')} className="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
                                                     <ImageIcon size={16} /> Seleccionar
                                                 </button>
@@ -552,7 +574,7 @@ export default function ToursPage() {
 
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-sm font-medium text-gray-700">Galería (Imágenes y Videos)</label>
+                                                <label className="text-sm font-medium text-gray-700">Galeria (Imagenes y Videos)</label>
                                                 <div className="flex gap-2">
                                                     <button type="button" onClick={() => { addGalleryImage(); setTimeout(() => openImagePicker(gallery.length), 50); }} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Seleccionar Imagen</button>
                                                     <button type="button" onClick={addGalleryImage} className="text-xs text-gray-500 font-medium hover:text-gray-700">+ ID Manual</button>
@@ -578,7 +600,7 @@ export default function ToursPage() {
                                                         <button type="button" onClick={() => removeGalleryImage(idx)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
-                                                {gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imágenes o videos en la galería.</p>}
+                                                {gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imagenes o videos en la galeria.</p>}
                                             </div>
                                         </div>
                                     </div>
@@ -590,7 +612,7 @@ export default function ToursPage() {
                                             <label className="text-sm font-medium text-blue-900">Precio Base (Referencia)</label>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-gray-500">$</span>
-                                                <input type="number" value={formData.price || ''} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" min="0" />
+                                                <input type="number" value={formData.price ?? ''} onChange={e => setFormData(prev => ({ ...prev, price: Number(e.target.value) }))} className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" min="0" />
                                                 <span className="text-sm text-gray-500">USD</span>
                                             </div>
                                             <p className="text-xs text-blue-700">Este es el precio que se muestra en las tarjetas de la lista.</p>
@@ -599,14 +621,14 @@ export default function ToursPage() {
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-gray-900">Opciones de Precio</label>
-                                                <button type="button" onClick={addPrice} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Opción</button>
+                                                <button type="button" onClick={addPrice} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Opcion</button>
                                             </div>
                                             <div className="grid grid-cols-1 gap-4">
                                                 {prices.map((p, idx) => (
                                                     <div key={idx} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                         <div className="flex-1 space-y-2">
                                                             <input type="text" placeholder="Etiqueta (Ej. Por persona)" value={p.label} onChange={e => updatePrice(idx, 'label', e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm font-medium" />
-                                                            <input type="text" placeholder="Descripción (Ej. Grupo 5-10 pax)" value={p.description} onChange={e => updatePrice(idx, 'description', e.target.value)} className="w-full px-2 py-1.5 border rounded text-xs text-gray-500" />
+                                                            <input type="text" placeholder="Descripcion (Ej. Grupo 5-10 pax)" value={p.description} onChange={e => updatePrice(idx, 'description', e.target.value)} className="w-full px-2 py-1.5 border rounded text-xs text-gray-500" />
                                                         </div>
                                                         <div className="w-32">
                                                             <input type="text" placeholder="Monto" value={p.amount} onChange={e => updatePrice(idx, 'amount', e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm text-right font-mono" />
@@ -650,7 +672,7 @@ export default function ToursPage() {
                                                         <div className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-gray-200 group-hover:bg-blue-400 transition-colors"></div>
                                                         <div className="flex gap-3 items-start">
                                                             <input type="text" placeholder="00:00" value={step.time} onChange={e => updateStep(idx, 'time', e.target.value)} className="w-20 px-2 py-1.5 border rounded text-sm font-mono text-center" />
-                                                            <textarea rows={2} placeholder="Descripción de la actividad" value={step.activity} onChange={e => updateStep(idx, 'activity', e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none" />
+                                                            <textarea rows={2} placeholder="Descripcion de la actividad" value={step.activity} onChange={e => updateStep(idx, 'activity', e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none" />
                                                             <button type="button" onClick={() => removeStep(idx)} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16} /></button>
                                                         </div>
                                                     </div>
@@ -660,7 +682,7 @@ export default function ToursPage() {
 
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Incluye</label>
-                                            <textarea rows={3} value={formData.includes || ''} onChange={e => setFormData({ ...formData, includes: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Lista lo que incluye..." />
+                                            <textarea rows={3} value={formData.includes || ''} onChange={e => setFormData(prev => ({ ...prev, includes: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Lista lo que incluye..." />
                                         </div>
 
                                         <div className="space-y-2">
@@ -686,17 +708,17 @@ export default function ToursPage() {
                                 {activeTab === 'features' && (
                                     <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-gray-700">Características Destacadas</label>
+                                            <label className="text-sm font-medium text-gray-700">Caracteristicas Destacadas</label>
                                             <p className="text-xs text-gray-500 mb-2">Escribe y presiona Enter para agregar.</p>
                                             <div className="flex flex-wrap gap-2 mb-2">
                                                 {features.map((feat, idx) => (
                                                     <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
                                                         {feat}
-                                                        <button type="button" onClick={() => setFeatures(features.filter((_, i) => i !== idx))} className="hover:text-green-900"><X size={12} /></button>
+                                                        <button type="button" onClick={() => setFeatures(prev => prev.filter((_, i) => i !== idx))} className="hover:text-green-900"><X size={12} /></button>
                                                     </span>
                                                 ))}
                                             </div>
-                                            <input type="text" onKeyDown={e => handleKeyDown(e, features, setFeatures)} placeholder="Agregar característica..." className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            <input type="text" onKeyDown={e => handleKeyDown(e, features, setFeatures)} placeholder="Agregar caracteristica..." className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                         </div>
                                     </div>
                                 )}
@@ -767,7 +789,7 @@ export default function ToursPage() {
                             {filteredAssets.length === 0 && (
                                 <div className="text-center py-12 text-gray-400">
                                     <ImageIcon size={40} className="mx-auto mb-2 opacity-50" />
-                                    <p className="text-sm">No se encontraron imágenes para "{imageSearch}"</p>
+                                    <p className="text-sm">No se encontraron imagenes para "{imageSearch}"</p>
                                 </div>
                             )}
                         </div>

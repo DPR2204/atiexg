@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Search } from 'lucide-react';
 import CommandPalette from './CommandPalette';
+import ErrorBoundary from '../ErrorBoundary';
 
 const NAV_ITEMS = [
     { path: '/backoffice', label: 'Dashboard', icon: '▣', end: true },
@@ -86,10 +87,15 @@ export default function BackofficeLayout() {
         const t1 = setTimeout(hideElfsight, 500);
         const t2 = setTimeout(hideElfsight, 1500);
         const t3 = setTimeout(hideElfsight, 3000);
-        const observer = new MutationObserver(hideElfsight);
-        observer.observe(document.body, { childList: true, subtree: true });
+        let rafId: number;
+        const observer = new MutationObserver(() => {
+            cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(hideElfsight);
+        });
+        observer.observe(document.body, { childList: true, subtree: false });
         return () => {
             clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+            cancelAnimationFrame(rafId);
             observer.disconnect();
             document.querySelectorAll(SELECTORS).forEach((el) => {
                 (el as HTMLElement).style.removeProperty('display');
@@ -257,7 +263,9 @@ export default function BackofficeLayout() {
                 </header>
 
                 <div className="bo-content">
-                    <Outlet />
+                    <ErrorBoundary>
+                        <Outlet />
+                    </ErrorBoundary>
                 </div>
             </main>
 

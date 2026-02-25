@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { GlassNav, GlassFooter, LoadingSpinner } from '../components/shared';
 import { Calendar, CreditCard, Shield, Clock, Info } from 'lucide-react';
 import { useTours } from '../hooks/useTours';
+import { getCloudinaryUrl } from '../src/utils/cloudinary';
 
 export default function CheckoutPage() {
     const [searchParams] = useSearchParams();
@@ -42,7 +43,6 @@ export default function CheckoutPage() {
 
         try {
             // 1. Create pending reservation in Supabase
-            // We use a specific status 'pending_payment' or just 'offered'
             const { data: reservation, error: resError } = await supabase
                 .from('reservations')
                 .insert([
@@ -52,18 +52,10 @@ export default function CheckoutPage() {
                         tour_date: form.date,
                         start_time: form.time,
                         pax_count: form.pax,
-                        // Note: Defaulting to base price. Logic might need update if we want to handle dynamic pricing here.
-                        // For now, we use tour.price as base. 
                         total_amount: tour.price * form.pax,
-                        deposit_amount: 50, // Hardcoded deposit 
-                        status: 'pending_payment',
-                        customer_name: form.name, // We might need to add these fields to reservations table if not exists, 
-                        // or creates a passenger/contact. 
-                        // Current schema checks: reservations has text fields? 
-                        // Let's assume we store contact info in notes or custom fields for now if columns missing,
-                        // Ideally we should create a 'client' or store in 'notes'.
-                        notes: `Cliente: ${form.name} \nEmail: ${form.email} \nTel: ${form.phone} \nNotas: ${form.notes}`,
-                        created_by: 'web_checkout'
+                        deposit_amount: 50,
+                        status: 'offered',
+                        notes: `Checkout Web | ${form.name} | ${form.email} | Tel: ${form.phone}${form.notes ? ' | ' + form.notes : ''}`,
                     }
                 ])
                 .select()
@@ -81,7 +73,7 @@ export default function CheckoutPage() {
                     tourName: tour.name,
                     customerEmail: form.email,
                     customerName: form.name,
-                    depositAmount: 50, // Fixed deposit 
+                    depositAmount: 50, // Fixed deposit
                     selectedItems: [`Reserva: ${tour.name}`]
                 })
             });
@@ -103,7 +95,7 @@ export default function CheckoutPage() {
 
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Error al procesar la reserva. Intenta de nuevo o contáctanos.');
+            setError(err.message || 'Error al procesar la reserva. Intenta de nuevo o contactanos.');
         } finally {
             setLoading(false);
         }
@@ -116,7 +108,7 @@ export default function CheckoutPage() {
             <GlassNav />
             <div className="max-w-md mx-auto mt-20 p-6 text-center">
                 <h2 className="text-2xl font-bold mb-4">Experiencia no encontrada</h2>
-                <button onClick={() => navigate('/catalogo')} className="text-red-500 hover:underline">Volver al catálogo</button>
+                <button onClick={() => navigate('/catalogo')} className="text-red-500 hover:underline">Volver al catalogo</button>
             </div>
             <GlassFooter />
         </div>
@@ -210,7 +202,7 @@ export default function CheckoutPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">WhatsApp / Teléfono</label>
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">WhatsApp / Telefono</label>
                                         <input
                                             type="tel"
                                             required
@@ -240,7 +232,7 @@ export default function CheckoutPage() {
                         <div className="bg-white rounded-3xl p-6 shadow-xl shadow-gray-200/50 border border-gray-100">
                             <div className="flex gap-4 mb-6">
                                 <img
-                                    src={tour.image}
+                                    src={getCloudinaryUrl(tour.image, { width: 160, height: 160 })}
                                     alt={tour.name}
                                     className="w-20 h-20 rounded-xl object-cover shrink-0"
                                 />
@@ -267,7 +259,7 @@ export default function CheckoutPage() {
                                     <span className="text-xl font-black text-blue-600">$50.00</span>
                                 </div>
                                 <p className="text-xs text-blue-600/80">
-                                    El saldo restante se paga el día del tour o vía transfer.
+                                    El saldo restante se paga el dia del tour o via transfer.
                                 </p>
                             </div>
 

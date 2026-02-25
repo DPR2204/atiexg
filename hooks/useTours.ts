@@ -2,50 +2,62 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tour } from '../types';
 
+let toursCache: Tour[] | null = null;
+let toursFetchPromise: Promise<Tour[]> | null = null;
+
+async function fetchToursFromSupabase(): Promise<Tour[]> {
+    const { data, error } = await supabase
+        .from('tours')
+        .select('*')
+        .eq('active', true)
+        .order('id', { ascending: true });
+
+    if (error) throw error;
+
+    const mapped: Tour[] = (data || []).map((item: any) => ({
+        ...item,
+        isBestSeller: item.is_best_seller ?? false,
+        isNew: item.is_new ?? false,
+        gallery: item.gallery || [],
+        features: item.features || [],
+        meals: item.meals || [],
+        prices: item.prices || [],
+        addons: item.addons || [],
+        itinerary: item.itinerary || [],
+    }));
+
+    toursCache = mapped;
+    toursFetchPromise = null;
+    return mapped;
+}
+
 export function useTours() {
-    const [tours, setTours] = useState<Tour[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [tours, setTours] = useState<Tour[]>(toursCache || []);
+    const [loading, setLoading] = useState(!toursCache);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchTours();
+        if (toursCache) {
+            setTours(toursCache);
+            setLoading(false);
+            return;
+        }
+
+        if (!toursFetchPromise) {
+            toursFetchPromise = fetchToursFromSupabase();
+        }
+
+        toursFetchPromise
+            .then(data => { setTours(data); })
+            .catch(err => { setError(err.message); })
+            .finally(() => { setLoading(false); });
     }, []);
 
-    async function fetchTours() {
-        try {
-            const { data, error } = await supabase
-                .from('tours')
-                .select('*')
-                .eq('active', true)
-                .order('id', { ascending: true });
-
-            if (error) throw error;
-
-            if (data) {
-                // Map Supabase data to Tour type if necessary
-                // Currently, Supabase columns match Tour interface mostly
-                // but we need to ensure JSON fields are parsed correctly if they come as strings
-                // Supabase JS client usually handles JSONB automatically.
-                const mappedTours: Tour[] = data.map((item: any) => ({
-                    ...item,
-                    // Ensure arrays are arrays (Supabase might return null for empty arrays)
-                    gallery: item.gallery || [],
-                    features: item.features || [],
-                    meals: item.meals || [],
-                    // Ensure JSON fields are correct (Supabase returns object/array for JSONB)
-                    prices: item.prices || [],
-                    addons: item.addons || [],
-                    itinerary: item.itinerary || []
-                }));
-                setTours(mappedTours);
-            }
-        } catch (err: any) {
-            console.error('Error fetching tours:', err);
-            setError(err.message || 'Error al cargar experiencias');
-        } finally {
-            setLoading(false);
-        }
+    function refresh() {
+        toursCache = null;
+        toursFetchPromise = null;
+        return fetchToursFromSupabase().then(data => { setTours(data); });
     }
 
-    return { tours, loading, error, refresh: fetchTours };
+    return { tours, loading, error, refresh };
 }

@@ -93,16 +93,8 @@ async function syncAssets() {
         const dir = path.dirname(outputPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-        let existingAssets: any[] = [];
-        if (fs.existsSync(outputPath)) {
-            existingAssets = JSON.parse(fs.readFileSync(outputPath, 'utf-8'));
-        }
-        const existingIds = new Set(existingAssets.map((a: any) => a.public_id));
-
-        const newAssets = assets.filter(a => !existingIds.has(a.public_id));
-        console.log(`Found ${newAssets.length} new assets out of ${assets.length} total in Cloudinary folder.`);
-
-        const finalAssets = existingAssets.length === 0 ? assets : [...existingAssets, ...newAssets];
+        // Always use fresh data from Cloudinary API (full replace, not incremental)
+        const finalAssets = assets;
 
         // Mezclar aleatoriamente las fotos (Fisher-Yates shuffle)
         for (let i = finalAssets.length - 1; i > 0; i--) {

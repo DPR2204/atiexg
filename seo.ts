@@ -1,5 +1,6 @@
 import { TOURS } from './data';
 import { Tour } from './types';
+import { getCloudinaryUrl } from './src/utils/cloudinary';
 
 export const SITE_URL = 'https://atitlanexperience.com';
 export const LOCALE = 'es-419';
@@ -101,7 +102,7 @@ export const getTourMeta = (tour: Tour): PageMeta => {
     title: `${tour.name} | Experiencia en Panajachel, Lago Atitlán`,
     description: `${tour.description} ${categoryKeyword}. Desde $${tour.price} USD. Duración ${tour.duration}. Reserva en Panajachel, Guatemala.`,
     path: getTourPath(tour),
-    ogImage: tour.image,
+    ogImage: tour.image ? getCloudinaryUrl(tour.image, { width: 1200, height: 630 }) : undefined,
   };
 };
 
@@ -250,7 +251,7 @@ export const buildTourSchema = (tour: Tour) => {
     '@id': `${getTourUrl(tour)}#trip`,
     name: tour.name,
     description: tour.description,
-    image: tour.image,
+    image: tour.image ? getCloudinaryUrl(tour.image, { width: 1200, height: 630 }) : undefined,
     url: getTourUrl(tour),
     inLanguage: LOCALE,
     category: tour.category,

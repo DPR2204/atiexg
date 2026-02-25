@@ -260,13 +260,11 @@ export default function ReservasPage() {
         };
 
         if (editingId) {
-            // Check diffs for audit log (simplified)
-            const oldRes = reservations.find(r => r.id === editingId);
-            const { error } = await supabase.from('reservations').update(payload).eq('id', editingId);
-
-            if (!error) {
-                // Log significant changes
-                // REMOVED: Custom audit logging here, handled by updateReservation below
+            // Use unified logic for updates (single update call)
+            const result = await updateReservation(editingId, payload, agent);
+            if (!result.success) {
+                alert('Error al actualizar: ' + JSON.stringify(result.error));
+                return;
             }
         } else {
             const { data, error } = await supabase.from('reservations').insert([payload]).select().single();
@@ -282,15 +280,6 @@ export default function ReservasPage() {
             }
         }
 
-        if (editingId) {
-            // Use unified logic for updates
-            const result = await updateReservation(editingId, payload, agent);
-            if (!result.success) {
-                alert('Error al actualizar: ' + JSON.stringify(result.error));
-                return;
-            }
-        }
-
         resetForm();
         fetchAll();
     }
@@ -301,9 +290,9 @@ export default function ReservasPage() {
         const result = await updateReservation(id, { status: newStatus }, agent);
         if (!result.success) {
             alert('Error al actualizar estado');
+        } else {
+            setReservations(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
         }
-
-        fetchAll();
     }
 
     // Add error state
@@ -461,12 +450,12 @@ export default function ReservasPage() {
             // Load details
             const res = reservations.find(r => r.id === id);
             if (res) {
-                // Load passengers
-                const { data: pax } = await supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', id);
+                // Load passengers and audit in parallel
+                const [{ data: pax }, { data: audits }] = await Promise.all([
+                    supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', id),
+                    supabase.from('reservation_audit_log').select('*').eq('reservation_id', id).order('created_at', { ascending: false }),
+                ]);
                 setPassengers((pax as any[]) || []);
-
-                // Load audit
-                const { data: audits } = await supabase.from('reservation_audit_log').select('*').eq('reservation_id', id).order('created_at', { ascending: false });
                 setAuditLogs((audits as AuditLogEntry[]) || []);
 
                 // Load Menu
@@ -582,7 +571,7 @@ export default function ReservasPage() {
             setPassengers((paxRes as any[]) || []);
         }
 
-        supabase.from('reservation_audit_log').insert([{
+        await supabase.from('reservation_audit_log').insert([{
             reservation_id: resId,
             agent_id: agent!.id,
             agent_name: agent!.name,
@@ -820,25 +809,25 @@ export default function ReservasPage() {
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Estado</label>
-                                        <select className="bo-input" value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })}>
+                                        <select className="bo-input" value={form.status} onChange={e => setForm(prev => ({ ...prev, status: e.target.value as any }))}>
                                             {Object.entries(STATUS_CONFIG).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
                                         </select>
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Fecha Inicio</label>
-                                        <input className="bo-input" type="date" value={form.tour_date} onChange={e => setForm({ ...form, tour_date: e.target.value })} required />
+                                        <input className="bo-input" type="date" value={form.tour_date} onChange={e => setForm(prev => ({ ...prev, tour_date: e.target.value }))} required />
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Fecha Fin (opcional)</label>
-                                        <input className="bo-input" type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} />
+                                        <input className="bo-input" type="date" value={form.end_date} onChange={e => setForm(prev => ({ ...prev, end_date: e.target.value }))} />
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Hora</label>
-                                        <input className="bo-input" type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} />
+                                        <input className="bo-input" type="time" value={form.start_time} onChange={e => setForm(prev => ({ ...prev, start_time: e.target.value }))} />
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Pax</label>
-                                        <input className="bo-input" type="number" min="1" value={form.pax_count} onChange={e => setForm({ ...form, pax_count: Number(e.target.value) })} />
+                                        <input className="bo-input" type="number" min="1" value={form.pax_count} onChange={e => setForm(prev => ({ ...prev, pax_count: Number(e.target.value) }))} />
                                     </div>
                                     <div className="bo-form-group">
                                         <div className="flex justify-between items-center mb-1">
@@ -848,7 +837,7 @@ export default function ReservasPage() {
                                                     type="checkbox"
                                                     className="accent-blue-600"
                                                     checked={form.price_manual}
-                                                    onChange={e => setForm({ ...form, price_manual: e.target.checked })}
+                                                    onChange={e => setForm(prev => ({ ...prev, price_manual: e.target.checked }))}
                                                 />
                                                 Manual
                                             </label>
@@ -858,7 +847,7 @@ export default function ReservasPage() {
                                             type="number"
                                             value={form.total_amount}
                                             readOnly={!form.price_manual}
-                                            onChange={e => setForm({ ...form, total_amount: Number(e.target.value) })}
+                                            onChange={e => setForm(prev => ({ ...prev, total_amount: Number(e.target.value) }))}
                                         />
                                     </div>
                                     <div className="bo-form-group col-span-2">
@@ -868,7 +857,7 @@ export default function ReservasPage() {
                                                 type="checkbox"
                                                 className="w-4 h-4 accent-blue-600"
                                                 checked={form.meal_per_group}
-                                                onChange={e => setForm({ ...form, meal_per_group: e.target.checked })}
+                                                onChange={e => setForm(prev => ({ ...prev, meal_per_group: e.target.checked }))}
                                             />
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-medium text-gray-900">Comida por Grupo (ej. 1 Botella para todos)</span>
@@ -888,7 +877,7 @@ export default function ReservasPage() {
                                                         onChange={e => {
                                                             const newAddons = [...form.selected_addons];
                                                             newAddons[idx].label = e.target.value;
-                                                            setForm({ ...form, selected_addons: newAddons });
+                                                            setForm(prev => ({ ...prev, selected_addons: newAddons }));
                                                         }}
                                                         placeholder="Nombre del servicio"
                                                     />
@@ -1007,35 +996,35 @@ export default function ReservasPage() {
                                             className="bo-input"
                                             placeholder="Nombre"
                                             value={form.emergency_contact_name}
-                                            onChange={e => setForm({ ...form, emergency_contact_name: e.target.value })}
+                                            onChange={e => setForm(prev => ({ ...prev, emergency_contact_name: e.target.value }))}
                                         />
                                         <input
                                             className="bo-input mt-1"
                                             placeholder="Teléfono"
                                             value={form.emergency_contact_phone}
-                                            onChange={e => setForm({ ...form, emergency_contact_phone: e.target.value })}
+                                            onChange={e => setForm(prev => ({ ...prev, emergency_contact_phone: e.target.value }))}
                                         />
                                     </div>
                                     {/* Staff assignment fields */}
                                     <div className="bo-form-group">
                                         <label className="bo-label">Lancha</label>
-                                        <select className="bo-input" value={form.boat_id} onChange={e => setForm({ ...form, boat_id: e.target.value })}>
+                                        <select className="bo-input" value={form.boat_id} onChange={e => setForm(prev => ({ ...prev, boat_id: e.target.value }))}>
                                             <option value="">Sin asignar</option>
                                             {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Capitán</label>
-                                        <select className="bo-input" value={form.driver_id} onChange={e => setForm({ ...form, driver_id: e.target.value })}>
+                                        <select className="bo-input" value={form.driver_id} onChange={e => setForm(prev => ({ ...prev, driver_id: e.target.value }))}>
                                             <option value="">Sin asignar</option>
                                             {staffList.filter(s => s.role === 'lanchero').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Guía</label>
-                                        <select className="bo-input" value={form.guide_id} onChange={e => setForm({ ...form, guide_id: e.target.value })}>
+                                        <select className="bo-input" value={form.guide_id} onChange={e => setForm(prev => ({ ...prev, guide_id: e.target.value }))}>
                                             <option value="">Sin asignar</option>
-                                            {staffList.filter(s => s.role === 'guia').map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                            {staffList.filter(s => s.role === 'guia').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>
                                     </div>
                                 </div>

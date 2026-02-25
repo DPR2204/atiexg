@@ -22,7 +22,8 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const scrolled = window.scrollY > 20;
+      setIsScrolled(prev => prev === scrolled ? prev : scrolled);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);

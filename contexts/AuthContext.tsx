@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import type { Agent } from '../types/backoffice';
 
+const isDev = import.meta.env.DEV;
+
 interface AuthContextType {
     user: User | null;
     agent: Agent | null;
@@ -23,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     const fetchAgentProfile = useCallback(async (userId: string) => {
-        console.log('[Auth] Fetching agent profile for:', userId);
+        if (isDev) console.log('[Auth] Fetching agent profile for:', userId);
         try {
             const { data, error } = await supabase
                 .from('agents')
@@ -32,9 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .single();
 
             if (error) {
-                console.warn('[Auth] Agent profile error:', error.message);
+                if (isDev) console.warn('[Auth] Agent profile error:', error.message);
             } else if (data) {
-                console.log('[Auth] Agent profile loaded:', data.role);
+                if (isDev) console.log('[Auth] Agent profile loaded:', data.role);
                 setAgent(data as Agent);
             }
         } catch (err) {
@@ -43,21 +45,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
-        console.log('[Auth] Initializing authentication...');
+        if (isDev) console.log('[Auth] Initializing authentication...');
 
         let mounted = true;
 
         // Fallback: Ensure loading state clears eventually
         const timeout = setTimeout(() => {
             if (mounted && loading) {
-                console.warn('[Auth] Loading timed out, forcing clear');
+                if (isDev) console.warn('[Auth] Loading timed out, forcing clear');
                 setLoading(false);
             }
         }, 5000);
 
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!mounted) return;
-            console.log('[Auth] Session loaded:', session ? 'Yes' : 'No');
+            if (isDev) console.log('[Auth] Session loaded:', session ? 'Yes' : 'No');
             setSession(session);
             setUser(session?.user ?? null);
 
@@ -76,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (_event, session) => {
                 if (!mounted) return;
-                console.log('[Auth] State changed:', _event, session?.user?.email);
+                if (isDev) console.log('[Auth] State changed:', _event, session?.user?.email);
                 setSession(session);
                 setUser(session?.user ?? null);
 

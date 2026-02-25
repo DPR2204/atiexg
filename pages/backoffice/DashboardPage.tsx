@@ -148,35 +148,33 @@ export default function DashboardPage() {
         const today = now.toISOString().split('T')[0];
         const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
-        // 1. Today's reservations (always today, independent of filter)
-        const { data: todayData } = await supabase
-            .from('reservations')
-            .select('*, agent:agents(name), boat:boats(name), driver:staff!reservations_driver_id_fkey(name), guide:staff!reservations_guide_id_fkey(name)')
-            .eq('tour_date', today)
-            .neq('status', 'cancelled')
-            .order('start_time', { ascending: true });
+        const prev = getPreviousPeriod(rangeFrom, rangeTo);
+
+        // Run all 4 queries in parallel instead of sequentially
+        const [
+            { data: todayData },
+            { data: upcomingData },
+            { data: periodData },
+            { data: prevData },
+        ] = await Promise.all([
+            supabase.from('reservations')
+                .select('*, agent:agents(name), boat:boats(name), driver:staff!reservations_driver_id_fkey(name), guide:staff!reservations_guide_id_fkey(name)')
+                .eq('tour_date', today).neq('status', 'cancelled').order('start_time', { ascending: true }),
+            supabase.from('reservations')
+                .select('*, agent:agents(name)')
+                .gt('tour_date', today).lte('tour_date', nextWeek).neq('status', 'cancelled')
+                .order('tour_date', { ascending: true }).limit(10),
+            supabase.from('reservations')
+                .select('id, status, total_amount, paid_amount, tour_name, tour_date, start_time, pax_count, agent:agents(name)')
+                .gte('tour_date', rangeFrom).lte('tour_date', rangeTo).neq('status', 'cancelled')
+                .order('tour_date', { ascending: true }),
+            supabase.from('reservations')
+                .select('total_amount, paid_amount')
+                .gte('tour_date', prev.from).lte('tour_date', prev.to).neq('status', 'cancelled'),
+        ]);
 
         const missing = (todayData || []).filter((r: any) => !r.boat_id && r.status !== 'cancelled').length;
         setMissingBoats(missing);
-
-        // 2. Upcoming (always next 7 days, independent of filter)
-        const { data: upcomingData } = await supabase
-            .from('reservations')
-            .select('*, agent:agents(name)')
-            .gt('tour_date', today)
-            .lte('tour_date', nextWeek)
-            .neq('status', 'cancelled')
-            .order('tour_date', { ascending: true })
-            .limit(10);
-
-        // 3. Period Stats (filtered by date range)
-        const { data: periodData } = await supabase
-            .from('reservations')
-            .select('id, status, total_amount, paid_amount, tour_name, tour_date, start_time, pax_count, agent:agents(name)')
-            .gte('tour_date', rangeFrom)
-            .lte('tour_date', rangeTo)
-            .neq('status', 'cancelled')
-            .order('tour_date', { ascending: true });
 
         const rows = periodData || [];
         setPeriodReservations(rows);
@@ -208,15 +206,6 @@ export default function DashboardPage() {
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .map(([name, count]) => ({ name, count }));
-
-        // 4. Previous Period Stats (for comparison)
-        const prev = getPreviousPeriod(rangeFrom, rangeTo);
-        const { data: prevData } = await supabase
-            .from('reservations')
-            .select('total_amount, paid_amount')
-            .gte('tour_date', prev.from)
-            .lte('tour_date', prev.to)
-            .neq('status', 'cancelled');
 
         const prevTotal = prevData?.length || 0;
         const prevRevenue = prevData?.reduce((sum, r) => sum + (r.paid_amount || 0), 0) || 0;
