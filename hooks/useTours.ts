@@ -4,6 +4,7 @@ import { Tour } from '../types';
 
 let toursCache: Tour[] | null = null;
 let toursFetchPromise: Promise<Tour[]> | null = null;
+const listeners = new Set<(tours: Tour[]) => void>();
 
 async function fetchToursFromSupabase(): Promise<Tour[]> {
     const { data, error } = await supabase
@@ -31,10 +32,25 @@ async function fetchToursFromSupabase(): Promise<Tour[]> {
     return mapped;
 }
 
+/** Invalidate global tours cache and notify all mounted useTours consumers */
+export function invalidateToursCache() {
+    toursCache = null;
+    toursFetchPromise = null;
+    fetchToursFromSupabase().then(data => {
+        listeners.forEach(fn => fn(data));
+    });
+}
+
 export function useTours() {
     const [tours, setTours] = useState<Tour[]>(toursCache || []);
     const [loading, setLoading] = useState(!toursCache);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Subscribe to global updates
+        listeners.add(setTours);
+        return () => { listeners.delete(setTours); };
+    }, []);
 
     useEffect(() => {
         if (toursCache) {
@@ -56,7 +72,10 @@ export function useTours() {
     function refresh() {
         toursCache = null;
         toursFetchPromise = null;
-        return fetchToursFromSupabase().then(data => { setTours(data); });
+        return fetchToursFromSupabase().then(data => {
+            setTours(data);
+            listeners.forEach(fn => { if (fn !== setTours) fn(data); });
+        });
     }
 
     return { tours, loading, error, refresh };

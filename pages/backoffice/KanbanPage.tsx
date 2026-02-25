@@ -256,22 +256,33 @@ export default function KanbanPage() {
         if (!over) return;
 
         const resId = active.id as number;
-        const res = reservations.find(r => r.id === resId);
-        const newStatus = res?.status; // This seems wrong in original code, it should be the status of the column we dropped in, but logic was:
-        // logic was: "handleDragOver" already updated local state "reservations". So "res" here has the NEW status. 
-        // So we just need to persist "res.status".
+        // handleDragOver already updated local state, so read the new status from current state
+        // Use functional read to get the latest value and avoid stale closure
+        let newStatus: ReservationStatus | undefined;
+        setReservations(prev => {
+            const found = prev.find(r => r.id === resId);
+            newStatus = found?.status;
+            return prev; // no-op, just reading
+        });
 
         if (newStatus && agent) {
+            // Save previous state for granular rollback
+            const previousReservations = [...reservations];
             try {
-                // Use unified update logic
                 const result = await updateReservation(resId, { status: newStatus }, agent);
                 if (!result.success) {
                     console.error('Error updating status:', result.error);
-                    fetchReservations(); // Rollback
+                    // Granular rollback: restore only the affected item
+                    const oldRes = previousReservations.find(r => r.id === resId);
+                    if (oldRes) {
+                        setReservations(prev => prev.map(r => r.id === resId ? oldRes : r));
+                    } else {
+                        await fetchReservations();
+                    }
                 }
             } catch (err) {
                 console.error('Error updating status:', err);
-                fetchReservations(); // Rollback
+                setReservations(previousReservations);
             }
         }
     };

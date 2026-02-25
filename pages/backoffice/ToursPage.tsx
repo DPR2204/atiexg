@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { invalidateToursCache } from '../../hooks/useTours';
 import { Tour, ItineraryStep, TourPrice, Addon } from '../../types/shared';
 import { Plus, Pencil, Trash2, X, Check, ArrowLeft, Image as ImageIcon, DollarSign, Clock, MapPin, List, Settings, Save, Search } from 'lucide-react';
 import { getCloudinaryUrl } from '../../src/utils/cloudinary';
@@ -106,13 +107,18 @@ export default function ToursPage() {
 
     async function fetchTours() {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('tours')
-            .select('*')
-            .order('id', { ascending: true });
-
-        if (data) setTours(data);
-        setLoading(false);
+        try {
+            const { data, error } = await supabase
+                .from('tours')
+                .select('*')
+                .order('id', { ascending: true });
+            if (error) throw error;
+            if (data) setTours(data);
+        } catch (err) {
+            console.error('Error fetching tours:', err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     function handleEdit(tour: Tour) {
@@ -164,7 +170,10 @@ export default function ToursPage() {
 
         const { error } = await supabase.from('tours').delete().eq('id', id);
         if (error) alert('Error deleting tour');
-        else fetchTours();
+        else {
+            await fetchTours();
+            invalidateToursCache();
+        }
     }
 
     // Refs to always read the latest values (avoids stale closures)
@@ -284,7 +293,8 @@ export default function ToursPage() {
                 } else {
                     console.log('[Tours] Saved successfully');
                     setShowModal(false);
-                    fetchTours();
+                    await fetchTours();
+                    invalidateToursCache();
                 }
             } catch (err) {
                 clearTimeout(timeoutId!);

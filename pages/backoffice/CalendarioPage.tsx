@@ -90,44 +90,50 @@ export default function CalendarioPage() {
 
     useEffect(() => {
         fetchReservations();
-    }, [year, month, viewMode, currentDate.toISOString()]);
+    }, [year, month, viewMode]);
 
     async function fetchReservations() {
         setLoading(true);
-        let startStr, endStr;
+        try {
+            let startStr, endStr;
 
-        if (viewMode === 'month') {
-            startStr = new Date(year, month, 1).toISOString().split('T')[0];
-            endStr = new Date(year, month + 1, 0).toISOString().split('T')[0];
-        } else {
-            // Week view: start of current week (Sunday)
-            const curr = new Date(currentDate);
-            const dayOfWeek = curr.getDay();
-            const sunday = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() - dayOfWeek);
-            const saturday = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + 6);
-            startStr = sunday.toISOString().split('T')[0];
-            endStr = saturday.toISOString().split('T')[0];
+            if (viewMode === 'month') {
+                startStr = new Date(year, month, 1).toISOString().split('T')[0];
+                endStr = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            } else {
+                // Week view: start of current week (Sunday)
+                const curr = new Date(currentDate);
+                const dayOfWeek = curr.getDay();
+                const sunday = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() - dayOfWeek);
+                const saturday = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + 6);
+                startStr = sunday.toISOString().split('T')[0];
+                endStr = saturday.toISOString().split('T')[0];
+            }
+
+            const { data, error } = await supabase
+                .from('reservations')
+                .select('*, agent:agents(name), boat:boats(name)')
+                .gte('tour_date', startStr)
+                .lte('tour_date', endStr)
+                .neq('status', 'cancelled')
+                .order('start_time', { ascending: true });
+
+            if (error) throw error;
+
+            // Normalize tour_date to YYYY-MM-DD to avoid timezone comparison issues
+            const normalized = (data || []).map((r: any) => ({
+                ...r,
+                tour_date: toDateStr(r.tour_date),
+                end_date: toDateStr(r.end_date),
+            }));
+            setReservations(normalized as Reservation[]);
+        } catch (err) {
+            console.error('Error fetching reservations:', err);
+        } finally {
+            setLoading(false);
         }
-
-        const { data } = await supabase
-            .from('reservations')
-            .select('*, agent:agents(name), boat:boats(name)')
-            .gte('tour_date', startStr)
-            .lte('tour_date', endStr)
-            .neq('status', 'cancelled')
-            .order('start_time', { ascending: true });
-
-        // Normalize tour_date to YYYY-MM-DD to avoid timezone comparison issues
-        const normalized = (data || []).map((r: any) => ({
-            ...r,
-            tour_date: toDateStr(r.tour_date),
-            end_date: toDateStr(r.end_date),
-        }));
-        setReservations(normalized as Reservation[]);
-        setLoading(false);
     }
 
-    // Drag End Handler
     // Drag End Handler
     async function handleDragEnd(event: any) {
         const { active, over } = event;
@@ -138,12 +144,7 @@ export default function CalendarioPage() {
         const resId = Number(active.id.replace('res-', ''));
         const newDate = over.id; // The droppable id is the date string
 
-        // 1. Optimistic Update
-        setReservations(prev => prev.map(r =>
-            r.id === resId ? { ...r, tour_date: newDate } : r
-        ));
-
-        // 2. Prepare Update Payload
+        // Read BEFORE optimistic update to avoid stale state
         const res = reservations.find(r => r.id === resId);
         if (!res) return;
 
@@ -158,12 +159,17 @@ export default function CalendarioPage() {
             updatePayload.end_date = newEnd.toISOString().split('T')[0];
         }
 
-        // 3. Persist to DB
+        // Optimistic Update (after reading old values)
+        setReservations(prev => prev.map(r =>
+            r.id === resId ? { ...r, tour_date: newDate, ...(updatePayload.end_date ? { end_date: updatePayload.end_date } : {}) } : r
+        ));
+
+        // Persist to DB
         if (agent) {
             const result = await updateReservation(resId, updatePayload, agent);
             if (!result.success) {
                 alert('Error update: ' + JSON.stringify(result.error));
-                fetchReservations(); // Revert
+                await fetchReservations(); // Revert
             }
         }
     }
@@ -230,7 +236,7 @@ export default function CalendarioPage() {
                                         const dayRes = day ? reservations.filter(r => r.tour_date === day.dateStr) : [];
                                         return (                                                // @ts-ignore
                                             <DroppableDay
-                                                key={i}
+                                                key={day?.dateStr || `empty-${i}`}
                                                 dateStr={day?.dateStr || `empty-${i}`}
                                                 dayNumber={day?.date}
                                                 isToday={day?.dateStr === new Date().toISOString().split('T')[0]}
@@ -252,8 +258,9 @@ export default function CalendarioPage() {
                                         const base = new Date(currentDate);
                                         const dayOfWeek = base.getDay();
                                         const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - dayOfWeek + i);
+                                        const weekDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                                         return (
-                                            <div key={i} className="bo-week-col-header">
+                                            <div key={weekDateStr} className="bo-week-col-header">
                                                 <span>{DAYS_ES[i]}</span>
                                                 <strong>{d.getDate()}</strong>
                                             </div>
@@ -271,7 +278,7 @@ export default function CalendarioPage() {
 
                                         return (
                                             // @ts-ignore
-                                            <DroppableDay key={i} dateStr={dateStr} dayNumber={null} isToday={dateStr === todayStr}>
+                                            <DroppableDay key={dateStr} dateStr={dateStr} dayNumber={null} isToday={dateStr === todayStr}>
                                                 {/* @ts-ignore */}
                                                 {dayRes.map(res => (
                                                     <div key={res.id} className="bo-week-card" style={{

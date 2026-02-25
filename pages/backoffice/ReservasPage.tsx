@@ -155,64 +155,69 @@ export default function ReservasPage() {
 
     async function fetchAll(silent = false) {
         if (!silent) setLoading(true);
-        let query = supabase
-            .from('reservations')
-            .select(`
-                *,
-                custom_tour_data,
-                tour:tours(
-                    name,
-                    includes,
-                    itinerary
-                ),
-                public_token,
-                agent:agents(name),
-                boat:boats(name),
-                driver:staff!reservations_driver_id_fkey(name),
-                guide:staff!reservations_guide_id_fkey(name)
-            `)
-            .order('tour_date', { ascending: false });
+        try {
+            let query = supabase
+                .from('reservations')
+                .select(`
+                    *,
+                    custom_tour_data,
+                    tour:tours(
+                        name,
+                        includes,
+                        itinerary
+                    ),
+                    public_token,
+                    agent:agents(name),
+                    boat:boats(name),
+                    driver:staff!reservations_driver_id_fkey(name),
+                    guide:staff!reservations_guide_id_fkey(name)
+                `)
+                .order('tour_date', { ascending: false });
 
-        if (filterStatus !== 'all') {
-            query = query.eq('status', filterStatus);
-        }
-
-        const { data } = await query;
-
-        setReservations((data as Reservation[]) || []);
-
-        // Handle deep link editing
-        const editId = searchParams.get('editId');
-        if (editId && data) {
-            const res = (data as Reservation[]).find(r => r.id === Number(editId));
-            if (res) {
-                startEdit(res);
-                // Clear param so it doesn't reopen on refresh/navigation
-                setSearchParams({}, { replace: true });
+            if (filterStatus !== 'all') {
+                query = query.eq('status', filterStatus);
             }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            setReservations((data as Reservation[]) || []);
+
+            // Handle deep link editing
+            const editId = searchParams.get('editId');
+            if (editId && data) {
+                const res = (data as Reservation[]).find(r => r.id === Number(editId));
+                if (res) {
+                    startEdit(res);
+                    setSearchParams({}, { replace: true });
+                }
+            }
+
+            // Load resources
+            const [boatsRes, staffRes, toursRes] = await Promise.all([
+                supabase.from('boats').select('*').eq('status', 'active'),
+                supabase.from('staff').select('*').eq('active', true),
+                supabase.from('tours').select('*').eq('active', true).order('id')
+            ]);
+
+            setBoats(boatsRes.data || []);
+            setStaffList(staffRes.data || []);
+
+            const mappedTours = (toursRes.data || []).map((t: any) => ({
+                ...t,
+                gallery: t.gallery || [],
+                features: t.features || [],
+                meals: t.meals || [],
+                prices: t.prices || [],
+                addons: t.addons || [],
+                itinerary: t.itinerary || []
+            }));
+            setToursList(mappedTours);
+        } catch (err) {
+            console.error('Error fetching reservations data:', err);
+        } finally {
+            setLoading(false);
         }
-
-        // Load resources
-        const [boatsRes, staffRes, toursRes] = await Promise.all([
-            supabase.from('boats').select('*').eq('status', 'active'),
-            supabase.from('staff').select('*').eq('active', true),
-            supabase.from('tours').select('*').eq('active', true).order('id')
-        ]);
-
-        setBoats(boatsRes.data || []);
-        setStaffList(staffRes.data || []);
-
-        const mappedTours = (toursRes.data || []).map((t: any) => ({
-            ...t,
-            gallery: t.gallery || [],
-            features: t.features || [],
-            meals: t.meals || [],
-            prices: t.prices || [],
-            addons: t.addons || [],
-            itinerary: t.itinerary || []
-        }));
-        setToursList(mappedTours);
-        setLoading(false);
     }
 
     // ==========================================
@@ -281,7 +286,7 @@ export default function ReservasPage() {
         }
 
         resetForm();
-        fetchAll();
+        await fetchAll();
     }
 
     async function updateStatus(id: number, newStatus: ReservationStatus) {
@@ -366,7 +371,7 @@ export default function ReservasPage() {
                     }
 
                     setShowPaymentModal(null);
-                    fetchAll();
+                    await fetchAll();
                 }
             } else {
                 setPaymentError(data.error || 'Error desconocido al generar el link.');
@@ -397,7 +402,7 @@ export default function ReservasPage() {
                 new_value: 'Link manual agregado'
             });
             setShowPaymentModal(null);
-            fetchAll();
+            await fetchAll();
         }
     }
 
@@ -503,7 +508,7 @@ export default function ReservasPage() {
         if (error) alert('Error al guardar menú');
         else {
             alert('Menú actualizado correctamente');
-            fetchAll();
+            await fetchAll();
         }
     }
 
@@ -529,7 +534,7 @@ export default function ReservasPage() {
             setCustomTourForm({ ...data });
 
             alert('Info del tour actualizada correctamente');
-            fetchAll(true); // Silent refresh — no loading spinner flash
+            await fetchAll(true); // Silent refresh — no loading spinner flash
         } catch (e) {
             alert('Error inesperado al guardar: ' + (e as Error).message);
         }
@@ -538,57 +543,65 @@ export default function ReservasPage() {
     async function addPassenger(resId: number) {
         if (!passengerForm.full_name.trim()) return;
 
-        // 1. Create passenger
-        const { data: pax, error } = await supabase.from('passengers').insert([{
-            reservation_id: resId,
-            full_name: passengerForm.full_name,
-            age: passengerForm.age ? Number(passengerForm.age) : null,
-            id_document: passengerForm.id_document || null,
-            email: passengerForm.email || null,
-            phone: passengerForm.phone || null,
-        }]).select().single();
+        try {
+            // 1. Create passenger
+            const { data: pax, error } = await supabase.from('passengers').insert([{
+                reservation_id: resId,
+                full_name: passengerForm.full_name,
+                age: passengerForm.age ? Number(passengerForm.age) : null,
+                id_document: passengerForm.id_document || null,
+                email: passengerForm.email || null,
+                phone: passengerForm.phone || null,
+            }]).select().single();
 
-        if (error || !pax) return;
+            if (error || !pax) {
+                alert('Error al agregar pasajero: ' + (error?.message || 'Sin datos'));
+                return;
+            }
 
-        // 2. Create meals
-        const mealInserts = Object.entries(passengerForm.meals).map(([type, data]) => ({
-            passenger_id: pax.id,
-            meal_type: type,
-            food_order: (data as any).food || '',
-            dietary_notes: (data as any).notes || ''
-        })).filter(m => m.food_order || m.dietary_notes); // Only insert if has data
+            // 2. Create meals
+            const mealInserts = Object.entries(passengerForm.meals).map(([type, data]) => ({
+                passenger_id: pax.id,
+                meal_type: type,
+                food_order: (data as any).food || '',
+                dietary_notes: (data as any).notes || ''
+            })).filter(m => m.food_order || m.dietary_notes);
 
-        if (mealInserts.length > 0) {
-            await supabase.from('passenger_meals').insert(mealInserts);
-        }
+            if (mealInserts.length > 0) {
+                const { error: mealError } = await supabase.from('passenger_meals').insert(mealInserts);
+                if (mealError) console.error('Error creating meals:', mealError);
+            }
 
-        // Reset and refresh
-        setPassengerForm({ full_name: '', age: '', id_document: '', email: '', phone: '', meals: {} as any });
-        // Re-fetch expanded data to include new passenger and meals
-        const res = reservations.find(r => r.id === resId);
-        if (res) {
+            // Reset form
+            setPassengerForm({ full_name: '', age: '', id_document: '', email: '', phone: '', meals: {} as any });
+
+            // Re-fetch passengers directly (no stale closure dependency)
             const { data: paxRes } = await supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', resId).order('created_at');
             setPassengers((paxRes as any[]) || []);
-        }
 
-        await supabase.from('reservation_audit_log').insert([{
-            reservation_id: resId,
-            agent_id: agent!.id,
-            agent_name: agent!.name,
-            action: 'updated',
-            field_changed: 'passenger_added',
-            new_value: pax.full_name
-        }]);
+            // Audit log (fire-and-forget is OK for audit)
+            await supabase.from('reservation_audit_log').insert([{
+                reservation_id: resId,
+                agent_id: agent!.id,
+                agent_name: agent!.name,
+                action: 'updated',
+                field_changed: 'passenger_added',
+                new_value: pax.full_name
+            }]);
+        } catch (err) {
+            alert('Error inesperado: ' + (err as Error).message);
+        }
     }
 
     async function removePassenger(passId: number, resId: number) {
-        await supabase.from('passengers').delete().eq('id', passId);
-        // Re-fetch expanded data to reflect removal
-        const res = reservations.find(r => r.id === resId);
-        if (res) {
-            const { data: paxRes } = await supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', resId).order('created_at');
-            setPassengers((paxRes as any[]) || []);
+        const { error } = await supabase.from('passengers').delete().eq('id', passId);
+        if (error) {
+            alert('Error al eliminar pasajero: ' + error.message);
+            return;
         }
+        // Re-fetch passengers directly
+        const { data: paxRes } = await supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', resId).order('created_at');
+        setPassengers((paxRes as any[]) || []);
     }
 
     async function deleteReservation(id: number) {
@@ -598,7 +611,7 @@ export default function ReservasPage() {
         if (error) {
             alert('Error al eliminar: ' + error.message);
         } else {
-            fetchAll();
+            await fetchAll();
         }
     }
 

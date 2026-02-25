@@ -48,12 +48,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isDev) console.log('[Auth] Initializing authentication...');
 
         let mounted = true;
+        let hasResolved = false;
 
         // Fallback: Ensure loading state clears eventually
         const timeout = setTimeout(() => {
-            if (mounted && loading) {
+            if (mounted && !hasResolved) {
                 if (isDev) console.warn('[Auth] Loading timed out, forcing clear');
                 setLoading(false);
+                hasResolved = true;
             }
         }, 5000);
 
@@ -65,14 +67,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (session?.user) {
                 fetchAgentProfile(session.user.id).finally(() => {
-                    if (mounted) setLoading(false);
+                    if (mounted && !hasResolved) {
+                        hasResolved = true;
+                        setLoading(false);
+                    }
                 });
             } else {
+                hasResolved = true;
                 setLoading(false);
             }
         }).catch(err => {
             console.error('[Auth] getSession failed:', err);
-            if (mounted) setLoading(false);
+            if (mounted && !hasResolved) {
+                hasResolved = true;
+                setLoading(false);
+            }
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(

@@ -19,27 +19,39 @@ export default function RecursosPage() {
     useEffect(() => { fetchAll(); }, []);
 
     async function fetchAll() {
-        const [{ data: boatData }, { data: staffData }] = await Promise.all([
-            supabase.from('boats').select('*').order('id'),
-            supabase.from('staff').select('*').order('name'),
-        ]);
-        setBoats((boatData as Boat[]) || []);
-        setStaffList((staffData as Staff[]) || []);
-        setLoading(false);
+        try {
+            const [{ data: boatData }, { data: staffData }] = await Promise.all([
+                supabase.from('boats').select('*').order('id'),
+                supabase.from('staff').select('*').order('name'),
+            ]);
+            setBoats((boatData as Boat[]) || []);
+            setStaffList((staffData as Staff[]) || []);
+        } catch (err) {
+            console.error('Error fetching resources:', err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     // Boat CRUD
     async function saveBoat(e: React.FormEvent) {
         e.preventDefault();
-        if (editingBoat) {
-            await supabase.from('boats').update(boatForm).eq('id', editingBoat.id);
-        } else {
-            await supabase.from('boats').insert([boatForm]);
+        try {
+            const { error } = editingBoat
+                ? await supabase.from('boats').update(boatForm).eq('id', editingBoat.id)
+                : await supabase.from('boats').insert([boatForm]);
+
+            if (error) {
+                alert('Error al guardar lancha: ' + error.message);
+                return;
+            }
+            setShowBoatForm(false);
+            setEditingBoat(null);
+            setBoatForm({ name: '', capacity: 10, status: 'active', notes: '' });
+            await fetchAll();
+        } catch (err) {
+            alert('Error inesperado: ' + (err as Error).message);
         }
-        setShowBoatForm(false);
-        setEditingBoat(null);
-        setBoatForm({ name: '', capacity: 10, status: 'active', notes: '' });
-        fetchAll();
     }
 
     function startEditBoat(boat: Boat) {
@@ -51,15 +63,22 @@ export default function RecursosPage() {
     // Staff CRUD
     async function saveStaff(e: React.FormEvent) {
         e.preventDefault();
-        if (editingStaff) {
-            await supabase.from('staff').update(staffForm).eq('id', editingStaff.id);
-        } else {
-            await supabase.from('staff').insert([staffForm]);
+        try {
+            const { error } = editingStaff
+                ? await supabase.from('staff').update(staffForm).eq('id', editingStaff.id)
+                : await supabase.from('staff').insert([staffForm]);
+
+            if (error) {
+                alert('Error al guardar personal: ' + error.message);
+                return;
+            }
+            setShowStaffForm(false);
+            setEditingStaff(null);
+            setStaffForm({ name: '', role: 'lanchero', phone: '', notes: '' });
+            await fetchAll();
+        } catch (err) {
+            alert('Error inesperado: ' + (err as Error).message);
         }
-        setShowStaffForm(false);
-        setEditingStaff(null);
-        setStaffForm({ name: '', role: 'lanchero', phone: '', notes: '' });
-        fetchAll();
     }
 
     function startEditStaff(member: Staff) {
@@ -69,8 +88,12 @@ export default function RecursosPage() {
     }
 
     async function toggleStaffActive(member: Staff) {
-        await supabase.from('staff').update({ active: !member.active }).eq('id', member.id);
-        fetchAll();
+        const { error } = await supabase.from('staff').update({ active: !member.active }).eq('id', member.id);
+        if (error) {
+            alert('Error al cambiar estado: ' + error.message);
+            return;
+        }
+        await fetchAll();
     }
 
     if (loading) return <div className="bo-loading"><div className="bo-loading-spinner" /></div>;
