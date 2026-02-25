@@ -264,8 +264,10 @@ export default function ToursPage() {
 
             // We use native fetch() instead of supabase.from().insert() because supabase-js occasionally 
             // hangs indefinitely on large JSON payloads over spotty connections due to websocket sync issues.
-            const url = (import.meta as any).env.VITE_SUPABASE_URL;
-            const key = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
+            // @ts-ignore
+            const url = import.meta.env.VITE_SUPABASE_URL;
+            // @ts-ignore
+            const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
             const session = (await supabase.auth.getSession()).data.session;
 
             if (!url || !key) throw new Error("Missing Supabase env credentials");
