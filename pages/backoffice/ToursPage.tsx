@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Tour, ItineraryStep, TourPrice, Addon } from '../../types/shared';
 import { Plus, Pencil, Trash2, X, Check, ArrowLeft, Image as ImageIcon, DollarSign, Clock, MapPin, List, Settings, Save, Search } from 'lucide-react';
@@ -65,8 +65,9 @@ export default function ToursPage() {
     const [showNewCategory, setShowNewCategory] = useState(false);
     const [newCategoryInput, setNewCategoryInput] = useState('');
 
-    // Saving state
+    // Saving state – ref avoids stale-closure issues across re-renders
     const [saving, setSaving] = useState(false);
+    const savingRef = useRef(false);
 
     // Image picker
     const [showImagePicker, setShowImagePicker] = useState(false);
@@ -166,47 +167,103 @@ export default function ToursPage() {
         else fetchTours();
     }
 
-    async function handleSubmit(e?: React.FormEvent) {
-        if (e) e.preventDefault();
+    // Refs to always read the latest values (avoids stale closures)
+    const formDataRef = useRef(formData);
+    formDataRef.current = formData;
+    const editingTourRef = useRef(editingTour);
+    editingTourRef.current = editingTour;
+    const galleryRef = useRef(gallery);
+    galleryRef.current = gallery;
+    const itineraryRef = useRef(itinerarySteps);
+    itineraryRef.current = itinerarySteps;
+    const pricesRef = useRef(prices);
+    pricesRef.current = prices;
+    const addonsRef = useRef(addons);
+    addonsRef.current = addons;
+    const mealsRef = useRef(selectedMeals);
+    mealsRef.current = selectedMeals;
+    const featuresRef = useRef(features);
+    featuresRef.current = features;
 
-        if (!formData.name?.trim()) {
+    const handleSubmit = useCallback(async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        console.log('[Tours] handleSubmit called, savingRef:', savingRef.current);
+
+        if (savingRef.current) {
+            console.log('[Tours] Blocked: already saving');
+            return;
+        }
+
+        const fd = formDataRef.current;
+        if (!fd.name?.trim()) {
             setActiveTab('general');
             alert('El nombre del tour es requerido.');
             return;
         }
 
-        // Verify auth session before saving
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (!currentSession) {
-            alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
-            window.location.href = '/backoffice/login';
-            return;
-        }
-
-        const payload = {
-            name: formData.name,
-            category: formData.category,
-            concept: formData.concept,
-            description: formData.description,
-            price: Number(formData.price) || 0,
-            duration: formData.duration,
-            image: formData.image,
-            format: formData.format,
-            includes: formData.includes,
-            is_best_seller: formData.isBestSeller ?? false,
-            is_new: formData.isNew ?? false,
-            itinerary: itinerarySteps,
-            prices: prices,
-            addons: addons,
-            gallery: gallery,
-            meals: selectedMeals as any,
-            features: features,
-        };
-
+        // Show feedback IMMEDIATELY, before any async work
+        savingRef.current = true;
         setSaving(true);
+        console.log('[Tours] Saving started');
+
         try {
-            const saveQuery = editingTour?.id
-                ? supabase.from('tours').update(payload).eq('id', editingTour.id)
+            // Verify auth session (with 5s timeout so it never hangs)
+            let currentSession;
+            try {
+                const sessionResult = await Promise.race([
+                    supabase.auth.getSession(),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('SESSION_TIMEOUT')), 5000)
+                    ),
+                ]);
+                currentSession = sessionResult.data.session;
+            } catch {
+                alert('No se pudo verificar tu sesión. Intenta recargar la página.');
+                return;
+            }
+
+            if (!currentSession) {
+                alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+                window.location.href = '/backoffice/login';
+                return;
+            }
+
+            // Read latest values from refs (never stale)
+            const curGallery = galleryRef.current;
+            const curItinerary = itineraryRef.current;
+            const curPrices = pricesRef.current;
+            const curAddons = addonsRef.current;
+            const curMeals = mealsRef.current;
+            const curFeatures = featuresRef.current;
+            const curEditing = editingTourRef.current;
+
+            // Clean gallery: remove empty slots the user never filled
+            const cleanGallery = curGallery.filter(g => g.trim() !== '');
+
+            const payload = {
+                name: fd.name,
+                category: fd.category || null,
+                concept: fd.concept || null,
+                description: fd.description || null,
+                price: Number(fd.price) || 0,
+                duration: fd.duration || null,
+                image: fd.image || null,
+                format: fd.format || null,
+                includes: fd.includes || null,
+                is_best_seller: fd.isBestSeller ?? false,
+                is_new: fd.isNew ?? false,
+                itinerary: curItinerary.length > 0 ? curItinerary : null,
+                prices: curPrices.length > 0 ? curPrices : null,
+                addons: curAddons.length > 0 ? curAddons : null,
+                gallery: cleanGallery.length > 0 ? cleanGallery : null,
+                meals: curMeals.length > 0 ? (curMeals as any) : null,
+                features: curFeatures.length > 0 ? curFeatures : null,
+            };
+
+            console.log('[Tours] Payload ready:', JSON.stringify(payload).length, 'bytes, editing:', curEditing?.id ?? 'new');
+
+            const saveQuery = curEditing?.id
+                ? supabase.from('tours').update(payload).eq('id', curEditing.id)
                 : supabase.from('tours').insert([payload]);
 
             // Race against a 15s timeout so the UI never hangs
@@ -218,23 +275,26 @@ export default function ToursPage() {
             ]);
 
             if (res.error) {
-                console.error('Supabase save error:', res.error);
+                console.error('[Tours] Save error:', res.error);
                 alert('Error guardando tour: ' + res.error.message + (res.error.code ? ` (código: ${res.error.code})` : ''));
             } else {
+                console.log('[Tours] Saved successfully');
                 setShowModal(false);
                 fetchTours();
             }
         } catch (err) {
-            console.error('Unexpected error saving tour:', err);
+            console.error('[Tours] Unexpected error:', err);
             if (err instanceof Error && err.message === 'TIMEOUT') {
                 alert('El servidor no respondió en 15 segundos. Verifica tu conexión e intenta de nuevo.');
             } else {
                 alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
             }
         } finally {
+            savingRef.current = false;
             setSaving(false);
+            console.log('[Tours] Saving finished');
         }
-    }
+    }, []);
 
     // Image picker handlers
     function openImagePicker(target: 'main' | number) {
@@ -413,7 +473,7 @@ export default function ToursPage() {
                             </div>
 
                             {/* Content */}
-                            <form id="tour-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} noValidate className="flex-1 overflow-y-auto p-8">
+                            <form id="tour-form" onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto p-8">
 
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 max-w-2xl">
@@ -649,7 +709,7 @@ export default function ToursPage() {
                             </span>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
-                                <button type="button" disabled={saving} onClick={() => handleSubmit()} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <button type="button" disabled={saving} onClick={() => { console.log('[Tours] Button click!'); handleSubmit(); }} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                     <Save size={18} /> {saving ? 'Guardando...' : 'Guardar Tour'}
                                 </button>
                             </div>
