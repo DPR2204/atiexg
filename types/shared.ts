@@ -28,6 +28,7 @@ export interface Tour {
     gallery: string[]; // Array of Cloudinary public_ids
     isBestSeller?: boolean;
     isNew?: boolean;
+    active?: boolean;
     rating: number;
     reviews: number;
     features: string[];

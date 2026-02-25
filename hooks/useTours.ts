@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tour } from '../types';
+import { dbRowToTour } from '../lib/tour-mapper';
 
 let toursCache: Tour[] | null = null;
 let toursFetchPromise: Promise<Tour[]> | null = null;
@@ -15,17 +16,7 @@ async function fetchToursFromSupabase(): Promise<Tour[]> {
 
     if (error) throw error;
 
-    const mapped: Tour[] = (data || []).map((item: any) => ({
-        ...item,
-        isBestSeller: item.is_best_seller ?? false,
-        isNew: item.is_new ?? false,
-        gallery: item.gallery || [],
-        features: item.features || [],
-        meals: item.meals || [],
-        prices: item.prices || [],
-        addons: item.addons || [],
-        itinerary: item.itinerary || [],
-    }));
+    const mapped: Tour[] = (data || []).map(dbRowToTour);
 
     toursCache = mapped;
     toursFetchPromise = null;

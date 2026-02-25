@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { invalidateToursCache } from '../../hooks/useTours';
 import { Tour, ItineraryStep, TourPrice, Addon } from '../../types/shared';
-import { Plus, Pencil, Trash2, X, Check, ArrowLeft, Image as ImageIcon, DollarSign, Clock, MapPin, List, Settings, Save, Search } from 'lucide-react';
+import { tourFormToDbPayload, validateTourPayload, dbRowToTour } from '../../lib/tour-mapper';
+import { Plus, Pencil, Trash2, X, Check, Image as ImageIcon, DollarSign, MapPin, List, Settings, Save, Search } from 'lucide-react';
 import { getCloudinaryUrl } from '../../src/utils/cloudinary';
 import cloudinaryAssets from '../../src/data/cloudinary-assets.json';
 
@@ -46,52 +47,168 @@ function getGalleryItemThumbnailUrl(publicId: string, width: number, height: num
 const DEFAULT_CATEGORIES = ['Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'];
 const MEAL_TYPES = ['desayuno', 'almuerzo', 'cena', 'snacks', 'coffee_break', 'picnic'] as const;
 
+// ==========================================
+// Form Reducer
+// ==========================================
+
+interface TourFormState {
+    general: Partial<Tour>;
+    itinerary: ItineraryStep[];
+    prices: TourPrice[];
+    addons: Addon[];
+    gallery: string[];
+    meals: string[];
+    features: string[];
+    meta: { isDirty: boolean; saving: boolean };
+}
+
+type FormAction =
+    | { type: 'LOAD_TOUR'; tour: any }
+    | { type: 'RESET_NEW' }
+    | { type: 'UPDATE_GENERAL'; updates: Partial<Tour> }
+    | { type: 'ADD_STEP' }
+    | { type: 'REMOVE_STEP'; index: number }
+    | { type: 'UPDATE_STEP'; index: number; field: keyof ItineraryStep; value: string }
+    | { type: 'ADD_PRICE' }
+    | { type: 'REMOVE_PRICE'; index: number }
+    | { type: 'UPDATE_PRICE'; index: number; field: keyof TourPrice; value: string }
+    | { type: 'ADD_ADDON' }
+    | { type: 'REMOVE_ADDON'; index: number }
+    | { type: 'UPDATE_ADDON'; index: number; field: keyof Addon; value: string }
+    | { type: 'ADD_GALLERY' }
+    | { type: 'REMOVE_GALLERY'; index: number }
+    | { type: 'UPDATE_GALLERY'; index: number; value: string }
+    | { type: 'TOGGLE_MEAL'; meal: string }
+    | { type: 'ADD_FEATURE'; feature: string }
+    | { type: 'REMOVE_FEATURE'; index: number }
+    | { type: 'SET_SAVING'; saving: boolean };
+
+const INITIAL_FORM: TourFormState = {
+    general: {},
+    itinerary: [],
+    prices: [],
+    addons: [],
+    gallery: [],
+    meals: [],
+    features: [],
+    meta: { isDirty: false, saving: false },
+};
+
+function formReducer(state: TourFormState, action: FormAction): TourFormState {
+    const dirty = (s: TourFormState): TourFormState => ({ ...s, meta: { ...s.meta, isDirty: true } });
+
+    switch (action.type) {
+        case 'LOAD_TOUR': {
+            const t = dbRowToTour(action.tour);
+            return {
+                general: t,
+                itinerary: t.itinerary,
+                prices: t.prices,
+                addons: t.addons,
+                gallery: t.gallery,
+                meals: (t.meals as string[]) || [],
+                features: t.features,
+                meta: { isDirty: false, saving: false },
+            };
+        }
+        case 'RESET_NEW':
+            return {
+                ...INITIAL_FORM,
+                general: { category: 'Signature', rating: 5.0, reviews: 0, isNew: false, isBestSeller: false, active: true, format: 'Grupo pequeño', duration: '4-6 h' },
+            };
+        case 'UPDATE_GENERAL':
+            return dirty({ ...state, general: { ...state.general, ...action.updates } });
+        case 'ADD_STEP':
+            return dirty({ ...state, itinerary: [...state.itinerary, { time: '', activity: '' }] });
+        case 'REMOVE_STEP':
+            return dirty({ ...state, itinerary: state.itinerary.filter((_, i) => i !== action.index) });
+        case 'UPDATE_STEP': {
+            const steps = [...state.itinerary];
+            steps[action.index] = { ...steps[action.index], [action.field]: action.value };
+            return dirty({ ...state, itinerary: steps });
+        }
+        case 'ADD_PRICE': {
+            const id = `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            return dirty({ ...state, prices: [...state.prices, { id, label: 'Por persona', amount: '$0 USD', description: '' }] });
+        }
+        case 'REMOVE_PRICE':
+            return dirty({ ...state, prices: state.prices.filter((_, i) => i !== action.index) });
+        case 'UPDATE_PRICE': {
+            const prices = [...state.prices];
+            prices[action.index] = { ...prices[action.index], [action.field]: action.value };
+            return dirty({ ...state, prices });
+        }
+        case 'ADD_ADDON': {
+            const id = `a_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            return dirty({ ...state, addons: [...state.addons, { id, label: '', price: '$0' }] });
+        }
+        case 'REMOVE_ADDON':
+            return dirty({ ...state, addons: state.addons.filter((_, i) => i !== action.index) });
+        case 'UPDATE_ADDON': {
+            const addons = [...state.addons];
+            addons[action.index] = { ...addons[action.index], [action.field]: action.value };
+            return dirty({ ...state, addons });
+        }
+        case 'ADD_GALLERY':
+            return dirty({ ...state, gallery: [...state.gallery, ''] });
+        case 'REMOVE_GALLERY':
+            return dirty({ ...state, gallery: state.gallery.filter((_, i) => i !== action.index) });
+        case 'UPDATE_GALLERY': {
+            const gallery = [...state.gallery];
+            gallery[action.index] = action.value;
+            return dirty({ ...state, gallery });
+        }
+        case 'TOGGLE_MEAL':
+            return dirty({
+                ...state,
+                meals: state.meals.includes(action.meal)
+                    ? state.meals.filter(m => m !== action.meal)
+                    : [...state.meals, action.meal],
+            });
+        case 'ADD_FEATURE':
+            return dirty({ ...state, features: [...state.features, action.feature] });
+        case 'REMOVE_FEATURE':
+            return dirty({ ...state, features: state.features.filter((_, i) => i !== action.index) });
+        case 'SET_SAVING':
+            return { ...state, meta: { ...state.meta, saving: action.saving } };
+        default:
+            return state;
+    }
+}
+
+// ==========================================
+// Component
+// ==========================================
+
 export default function ToursPage() {
     const [tours, setTours] = useState<Tour[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [editingTour, setEditingTour] = useState<Partial<Tour> | null>(null);
     const [activeTab, setActiveTab] = useState<Tab>('general');
 
-    // Form states
-    const [formData, setFormData] = useState<Partial<Tour>>({});
-    const [itinerarySteps, setItinerarySteps] = useState<ItineraryStep[]>([]);
-    const [prices, setPrices] = useState<TourPrice[]>([]);
-    const [addons, setAddons] = useState<Addon[]>([]);
-    const [gallery, setGallery] = useState<string[]>([]);
-    const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
-    const [features, setFeatures] = useState<string[]>([]);
+    const [form, dispatch] = useReducer(formReducer, INITIAL_FORM);
+    const savingGuardRef = useRef(false);
 
-    // Category management
     const [showNewCategory, setShowNewCategory] = useState(false);
     const [newCategoryInput, setNewCategoryInput] = useState('');
+    const [customCategories, setCustomCategories] = useState<string[]>([]);
 
-    // Saving state – ref avoids stale-closure issues across re-renders
-    type SavingState = 'idle' | 'session' | 'saving' | 'reloading';
-    const [savingState, setSavingState] = useState<SavingState>('idle');
-    const savingRef = useRef<SavingState>('idle');
-
-    // Image picker
     const [showImagePicker, setShowImagePicker] = useState(false);
     const [imagePickerTarget, setImagePickerTarget] = useState<'main' | number>('main');
     const [imageSearch, setImageSearch] = useState('');
 
-    // Derive unique categories from existing tours + defaults + custom
-    const [customCategories, setCustomCategories] = useState<string[]>([]);
     const categories = useMemo(() => {
         const fromTours = tours.map(t => t.category).filter(Boolean);
         const all = new Set([...DEFAULT_CATEGORIES, ...fromTours, ...customCategories]);
         return Array.from(all).sort();
     }, [tours, customCategories]);
 
-    // Build lookup map for asset type detection
     const assetsMap = useMemo(() => {
         const map = new Map<string, CloudinaryAsset>();
         (cloudinaryAssets as CloudinaryAsset[]).forEach(a => map.set(a.public_id, a));
         return map;
     }, []);
 
-    // Filter cloudinary assets by search
     const filteredAssets = useMemo(() => {
         const assets = cloudinaryAssets as CloudinaryAsset[];
         if (!imageSearch.trim()) return assets;
@@ -102,41 +219,23 @@ export default function ToursPage() {
         );
     }, [imageSearch]);
 
-    useEffect(() => {
-        fetchTours();
-    }, []);
+    useEffect(() => { fetchTours(); }, []);
 
     async function fetchTours() {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('tours')
-                .select('*')
-                .order('id', { ascending: true });
+            const { data, error } = await supabase.from('tours').select('*').order('id', { ascending: true });
             if (error) throw error;
             if (data) setTours(data);
         } catch (err) {
-            console.error('Error fetching tours:', err);
+            console.error('[Tours] Error fetching tours:', err);
         } finally {
             setLoading(false);
         }
     }
 
     function handleEdit(tour: Tour) {
-        setEditingTour(tour);
-        // Map snake_case DB columns to camelCase form fields
-        const dbTour = tour as any;
-        setFormData({
-            ...tour,
-            isBestSeller: dbTour.is_best_seller ?? tour.isBestSeller ?? false,
-            isNew: dbTour.is_new ?? tour.isNew ?? false,
-        });
-        setItinerarySteps(tour.itinerary || []);
-        setPrices(tour.prices || []);
-        setAddons(tour.addons || []);
-        setGallery(tour.gallery || []);
-        setSelectedMeals((dbTour.meals as string[]) || []);
-        setFeatures(tour.features || []);
+        dispatch({ type: 'LOAD_TOUR', tour });
         setShowNewCategory(false);
         setNewCategoryInput('');
         setActiveTab('general');
@@ -144,31 +243,22 @@ export default function ToursPage() {
     }
 
     function handleCreate() {
-        setEditingTour(null);
-        setFormData({
-            category: 'Signature',
-            rating: 5.0,
-            reviews: 0,
-            isNew: false,
-            isBestSeller: false,
-            format: 'Grupo pequeño',
-            duration: '4-6 h'
-        });
-        setItinerarySteps([]);
-        setPrices([]);
-        setAddons([]);
-        setGallery([]);
-        setSelectedMeals([]);
-        setFeatures([]);
+        dispatch({ type: 'RESET_NEW' });
         setShowNewCategory(false);
         setNewCategoryInput('');
         setActiveTab('general');
         setShowModal(true);
     }
 
+    function handleCloseModal() {
+        if (form.meta.isDirty && !form.meta.saving) {
+            if (!confirm('Tienes cambios sin guardar. ¿Descartar?')) return;
+        }
+        setShowModal(false);
+    }
+
     async function handleDelete(id: number) {
         if (!confirm('Are you sure you want to delete this tour?')) return;
-
         const { error } = await supabase.from('tours').delete().eq('id', id);
         if (error) alert('Error deleting tour');
         else {
@@ -177,158 +267,146 @@ export default function ToursPage() {
         }
     }
 
-    // Refs to always read the latest values (avoids stale closures)
-    const formDataRef = useRef(formData);
-    formDataRef.current = formData;
-    const editingTourRef = useRef(editingTour);
-    editingTourRef.current = editingTour;
-    const galleryRef = useRef(gallery);
-    galleryRef.current = gallery;
-    const itineraryRef = useRef(itinerarySteps);
-    itineraryRef.current = itinerarySteps;
-    const pricesRef = useRef(prices);
-    pricesRef.current = prices;
-    const addonsRef = useRef(addons);
-    addonsRef.current = addons;
-    const mealsRef = useRef(selectedMeals);
-    mealsRef.current = selectedMeals;
-    const featuresRef = useRef(features);
-    featuresRef.current = features;
+    // ==========================================
+    // handleSubmit — indestructible save with AbortController + fallback
+    // ==========================================
 
-    const handleSubmit = useCallback(async (e?: React.FormEvent) => {
+    async function handleSubmit(e?: React.FormEvent) {
         if (e) e.preventDefault();
-        console.log('[Tours] handleSubmit called, savingRef:', savingRef.current);
+        console.log('[Tours] Step 1: handleSubmit called');
 
-        if (savingRef.current !== 'idle') {
-            console.log('[Tours] Blocked: already saving in state', savingRef.current);
+        if (savingGuardRef.current) {
+            console.log('[Tours] Blocked: already saving');
             return;
         }
 
-        const fd = formDataRef.current;
-        if (!fd.name?.trim()) {
+        const payload = tourFormToDbPayload(
+            form.general, form.itinerary, form.prices,
+            form.addons, form.gallery, form.meals, form.features
+        );
+        const validation = validateTourPayload(payload);
+        if (!validation.valid) {
             setActiveTab('general');
-            alert('El nombre del tour es requerido.');
+            alert(validation.errors.join('\n'));
             return;
         }
 
-        const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string) => {
-            return Promise.race([
-                promise,
-                new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Timeout: ${label} took longer than ${ms / 1000}s`)), ms))
-            ]);
-        };
+        const isEdit = !!form.general.id;
+        const tourId = form.general.id;
+        console.log('[Tours] Step 2: Payload validated,', JSON.stringify(payload).length, 'bytes, mode:', isEdit ? `edit #${tourId}` : 'new');
+
+        savingGuardRef.current = true;
+        dispatch({ type: 'SET_SAVING', saving: true });
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.log('[Tours] Step X: 15s timeout — aborting');
+            controller.abort();
+        }, 15000);
 
         try {
-            savingRef.current = 'saving';
-            setSavingState('saving');
-            console.log('[Tours] Saving data to DB...');
-
-            // Read latest values from refs
-            const curGallery = galleryRef.current;
-            const curItinerary = itineraryRef.current;
-            const curPrices = pricesRef.current;
-            const curAddons = addonsRef.current;
-            const curMeals = mealsRef.current;
-            const curFeatures = featuresRef.current;
-            const curEditing = editingTourRef.current;
-
-            const cleanGallery = curGallery.filter(g => g.trim() !== '');
-
-            const payload = {
-                name: fd.name,
-                category: fd.category || null,
-                concept: fd.concept || null,
-                description: fd.description || null,
-                price: fd.price != null ? Number(fd.price) : 0,
-                duration: fd.duration || null,
-                image: fd.image || null,
-                format: fd.format || null,
-                includes: fd.includes || null,
-                is_best_seller: fd.isBestSeller ?? false,
-                is_new: fd.isNew ?? false,
-                rating: Number(fd.rating) || 5.0,
-                reviews: Number(fd.reviews) || 0,
-                active: fd.active ?? true,
-                itinerary: curItinerary.length > 0 ? curItinerary : null,
-                prices: curPrices.length > 0 ? curPrices : null,
-                addons: curAddons.length > 0 ? curAddons : null,
-                gallery: cleanGallery.length > 0 ? cleanGallery : null,
-                meals: curMeals.length > 0 ? (curMeals as any) : null,
-                features: curFeatures.length > 0 ? curFeatures : null,
-            };
-
-            // Force deep serialization to strip any implicit `undefined` fields or non-serializable proxies
-            // that might cause supabase-js's internal serializer to hang indefinitely.
-            const safePayload = JSON.parse(JSON.stringify(payload));
-            console.log('[Tours] Payload read:', JSON.stringify(safePayload).length, 'bytes');
-
-            // We use native fetch() instead of supabase.from().insert() because supabase-js occasionally 
-            // hangs indefinitely on large JSON payloads over spotty connections due to websocket sync issues.
-            // @ts-ignore
-            const url = import.meta.env.VITE_SUPABASE_URL;
-            // @ts-ignore
-            const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-            const session = (await supabase.auth.getSession()).data.session;
-
-            if (!url || !key) throw new Error("Missing Supabase env credentials");
-
-            let fetchUrl = `${url}/rest/v1/tours`;
-            let method = 'POST';
-
-            if (curEditing?.id) {
-                fetchUrl = `${fetchUrl}?id=eq.${curEditing.id}`;
-                method = 'PATCH';
-            }
-
-            const fetchQuery = fetch(fetchUrl, {
-                method,
-                headers: {
-                    'apikey': key,
-                    'Authorization': session ? `Bearer ${session.access_token}` : `Bearer ${key}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(safePayload)
-            }).then(async res => {
-                if (!res.ok) {
-                    const errorJson = await res.json().catch(() => ({}));
-                    return { error: { message: errorJson.message || `HTTP ${res.status}`, details: errorJson.details, hint: errorJson.hint, code: errorJson.code } };
-                }
-                return { error: null };
-            });
-
+            // Step 3: Verify session
+            console.log('[Tours] Step 3: Checking session...');
+            let session;
             try {
-                const res = await withTimeout<any>(fetchQuery, 30000, 'Guardado en base de datos (REST Protocol)');
-
-                if (res.error) {
-                    // Log the precise details for debugging
-                    console.error('[Tours] DB Error details:', JSON.stringify(res.error, null, 2));
-                    console.error('[Tours] Failed Payload Gallery:', JSON.stringify(payload.gallery));
-
-                    alert(`Error de Base de Datos guardando tour:\n\nMensaje: ${res.error.message}\nDetalle: ${res.error.details || 'N/A'}\nHint: ${res.error.hint || 'N/A'}\nCódigo: ${res.error.code}`);
-                } else {
-                    console.log('[Tours] Saved successfully, reloading data...');
-                    savingRef.current = 'reloading';
-                    setSavingState('reloading');
-                    setShowModal(false);
-                    await withTimeout(fetchTours(), 15000, 'Recarga de tabla');
-                    invalidateToursCache();
+                const sessionResult = await Promise.race([
+                    supabase.auth.getSession(),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('SESSION_CHECK_TIMEOUT')), 5000)
+                    ),
+                ]);
+                session = sessionResult.data.session;
+            } catch {
+                console.warn('[Tours] Step 3b: Session check failed, refreshing...');
+                try {
+                    const { data: refreshData } = await supabase.auth.refreshSession();
+                    session = refreshData.session;
+                } catch {
+                    throw new Error('SESSION_EXPIRED');
                 }
-            } catch (err) {
-                console.error('[Tours] Query execution error:', err);
-                alert('La petición tardó demasiado o falló la conexión: ' + (err instanceof Error ? err.message : String(err)));
             }
-        } catch (err) {
-            console.error('[Tours] Unexpected global error:', err);
-            alert('Error inesperado al guardar: ' + (err instanceof Error ? err.message : String(err)));
-        } finally {
-            savingRef.current = 'idle';
-            setSavingState('idle');
-            console.log('[Tours] Saving finished, resetting state');
-        }
-    }, []);
 
-    // Image picker handlers
+            if (!session) throw new Error('SESSION_EXPIRED');
+            console.log('[Tours] Step 3: Session OK');
+
+            // Step 4: Try supabase-js
+            console.log('[Tours] Step 4: Saving via supabase-js...');
+            let saved = false;
+            try {
+                const query = isEdit
+                    ? supabase.from('tours').update(payload).eq('id', tourId!)
+                    : supabase.from('tours').insert([payload]);
+
+                const result = await Promise.race([
+                    query,
+                    new Promise<never>((_, reject) => {
+                        controller.signal.addEventListener('abort', () => reject(new Error('TIMEOUT')));
+                    }),
+                ]);
+
+                if (result.error) throw result.error;
+                saved = true;
+                console.log('[Tours] Step 4: Success via supabase-js');
+            } catch (sbErr: any) {
+                if (sbErr.message === 'TIMEOUT' || sbErr.name === 'AbortError') throw sbErr;
+                if (sbErr.message === 'SESSION_EXPIRED') throw sbErr;
+
+                // Step 5: Fallback to native fetch
+                console.warn('[Tours] Step 5: supabase-js failed:', sbErr.message, '— fallback to native fetch');
+                const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/tours${isEdit ? `?id=eq.${tourId}` : ''}`;
+                const res = await fetch(url, {
+                    method: isEdit ? 'PATCH' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Prefer': 'return=minimal',
+                    },
+                    body: JSON.stringify(isEdit ? payload : [payload]),
+                    signal: controller.signal,
+                });
+
+                if (!res.ok) {
+                    const text = await res.text().catch(() => 'No response body');
+                    throw new Error(`HTTP ${res.status}: ${text}`);
+                }
+                saved = true;
+                console.log('[Tours] Step 5: Success via native fetch');
+            }
+
+            if (saved) {
+                clearTimeout(timeoutId);
+                console.log('[Tours] Step 6: Refreshing list...');
+                setShowModal(false);
+                await fetchTours();
+                invalidateToursCache();
+            }
+
+        } catch (err: any) {
+            clearTimeout(timeoutId);
+            console.error('[Tours] Error:', err);
+
+            let msg: string;
+            if (err.message === 'TIMEOUT' || err.name === 'AbortError') {
+                msg = 'El servidor no respondió en 15 segundos. Verifica tu conexión e intenta de nuevo.';
+            } else if (err.message === 'SESSION_EXPIRED') {
+                msg = 'Tu sesión expiró. Recarga la página e inicia sesión de nuevo.';
+            } else {
+                msg = 'Error al guardar: ' + (err.message || String(err));
+            }
+            alert(msg);
+        } finally {
+            clearTimeout(timeoutId);
+            savingGuardRef.current = false;
+            dispatch({ type: 'SET_SAVING', saving: false });
+            console.log('[Tours] Step FINAL: Saving state reset to idle');
+        }
+    }
+
+    // ==========================================
+    // Image Picker
+    // ==========================================
+
     function openImagePicker(target: 'main' | number) {
         setImagePickerTarget(target);
         setImageSearch('');
@@ -339,24 +417,19 @@ export default function ToursPage() {
         const asset = assetsMap.get(publicId);
         const taggedId = asset && isVideoAsset(asset) ? `video:${publicId}` : publicId;
         if (imagePickerTarget === 'main') {
-            setFormData(prev => ({ ...prev, image: publicId }));
+            dispatch({ type: 'UPDATE_GENERAL', updates: { image: publicId } });
         } else {
-            setGallery(prev => {
-                const newGallery = [...prev];
-                newGallery[imagePickerTarget] = taggedId;
-                return newGallery;
-            });
+            dispatch({ type: 'UPDATE_GALLERY', index: imagePickerTarget as number, value: taggedId });
         }
         setShowImagePicker(false);
     }
 
-    // Category handlers
     function handleCategoryChange(value: string) {
         if (value === '__new__') {
             setShowNewCategory(true);
             setNewCategoryInput('');
         } else {
-            setFormData(prev => ({ ...prev, category: value as any }));
+            dispatch({ type: 'UPDATE_GENERAL', updates: { category: value } });
             setShowNewCategory(false);
         }
     }
@@ -365,80 +438,26 @@ export default function ToursPage() {
         const trimmed = newCategoryInput.trim();
         if (trimmed) {
             setCustomCategories(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
-            setFormData(prev => ({ ...prev, category: trimmed as any }));
+            dispatch({ type: 'UPDATE_GENERAL', updates: { category: trimmed } });
             setShowNewCategory(false);
             setNewCategoryInput('');
         }
     }
 
-    // Helper Functions
-    // Itinerary
-    function updateStep(index: number, field: keyof ItineraryStep, value: string) {
-        setItinerarySteps(prev => {
-            const newSteps = [...prev];
-            newSteps[index] = { ...newSteps[index], [field]: value };
-            return newSteps;
-        });
-    }
-    function addStep() { setItinerarySteps(prev => [...prev, { time: '', activity: '' }]); }
-    function removeStep(index: number) { setItinerarySteps(prev => prev.filter((_, i) => i !== index)); }
-
-    // Prices
-    function updatePrice(index: number, field: keyof TourPrice, value: string) {
-        setPrices(prev => {
-            const newPrices = [...prev];
-            newPrices[index] = { ...newPrices[index], [field]: value };
-            return newPrices;
-        });
-    }
-    function addPrice() {
-        setPrices(prev => {
-            const id = (prev.length + 1).toString();
-            return [...prev, { id, label: 'Por persona', amount: '$0 USD', description: '' }];
-        });
-    }
-    function removePrice(index: number) { setPrices(prev => prev.filter((_, i) => i !== index)); }
-
-    // Addons
-    function updateAddon(index: number, field: keyof Addon, value: string) {
-        setAddons(prev => {
-            const newAddons = [...prev];
-            newAddons[index] = { ...newAddons[index], [field]: value };
-            return newAddons;
-        });
-    }
-    function addAddon() {
-        setAddons(prev => {
-            const id = `a${prev.length + 1}`;
-            return [...prev, { id, label: '', price: '$0' }];
-        });
-    }
-    function removeAddon(index: number) { setAddons(prev => prev.filter((_, i) => i !== index)); }
-
-    // Gallery
-    function addGalleryImage() { setGallery(prev => [...prev, '']); }
-    function updateGalleryImage(index: number, value: string) {
-        setGallery(prev => {
-            const newGallery = [...prev];
-            newGallery[index] = value;
-            return newGallery;
-        });
-    }
-    function removeGalleryImage(index: number) { setGallery(prev => prev.filter((_, i) => i !== index)); }
-
-    // Array Inputs (Features)
-    function handleKeyDown(e: React.KeyboardEvent, list: string[], setList: (l: string[]) => void) {
+    function handleFeatureKeyDown(e: React.KeyboardEvent) {
         if (e.key === 'Enter') {
             e.preventDefault();
             const val = (e.currentTarget as HTMLInputElement).value.trim();
             if (val) {
-                setList([...list, val]);
+                dispatch({ type: 'ADD_FEATURE', feature: val });
                 (e.currentTarget as HTMLInputElement).value = '';
             }
         }
     }
 
     if (loading) return <div className="p-8 text-center text-gray-500">Cargando tours...</div>;
+
+    const isEditing = !!form.general.id;
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
@@ -485,67 +504,54 @@ export default function ToursPage() {
                 </table>
             </div>
 
-            {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between p-6 border-b border-gray-100">
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900">{editingTour ? 'Editar Tour' : 'Nuevo Tour'}</h2>
+                                <h2 className="text-xl font-bold text-gray-900">{isEditing ? 'Editar Tour' : 'Nuevo Tour'}</h2>
                                 <p className="text-xs text-gray-500">Completa todos los campos requeridos</p>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                            <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                         </div>
 
                         <div className="flex flex-1 overflow-hidden">
-                            {/* Sidebar Tabs */}
                             <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 space-y-2 overflow-y-auto">
-                                {[
+                                {([
                                     { id: 'general', label: 'General', icon: Settings },
                                     { id: 'media', label: 'Multimedia', icon: ImageIcon },
                                     { id: 'prices', label: 'Precios y Add-ons', icon: DollarSign },
                                     { id: 'logistics', label: 'Logistica', icon: MapPin },
                                     { id: 'features', label: 'Caracteristicas', icon: List },
-                                ].map((tab) => (
+                                ] as const).map((tab) => (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id as Tab)}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200' : 'text-gray-600 hover:bg-gray-100'
-                                            }`}
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200' : 'text-gray-600 hover:bg-gray-100'}`}
                                     >
                                         <tab.icon size={18} /> {tab.label}
                                     </button>
                                 ))}
                             </div>
 
-                            {/* Content */}
                             <form id="tour-form" onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto p-8">
-
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 max-w-2xl">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Nombre del Tour</label>
-                                                <input type="text" required value={formData.name || ''} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" required value={form.general.name || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { name: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Categoria</label>
                                                 {showNewCategory ? (
                                                     <div className="flex gap-2">
-                                                        <input
-                                                            type="text"
-                                                            autoFocus
-                                                            value={newCategoryInput}
-                                                            onChange={e => setNewCategoryInput(e.target.value)}
-                                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(); } }}
-                                                            placeholder="Nombre de la nueva categoria"
-                                                            className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                                        />
+                                                        <input type="text" autoFocus value={newCategoryInput} onChange={e => setNewCategoryInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(); } }} placeholder="Nombre de la nueva categoria" className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
                                                         <button type="button" onClick={confirmNewCategory} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={18} /></button>
                                                         <button type="button" onClick={() => setShowNewCategory(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
                                                     </div>
                                                 ) : (
-                                                    <select value={formData.category || 'Signature'} onChange={e => handleCategoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                                    <select value={form.general.category || 'Signature'} onChange={e => handleCategoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                                                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                                         <option value="__new__">+ Nueva categoria...</option>
                                                     </select>
@@ -554,30 +560,34 @@ export default function ToursPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Concepto (Subtitulo corto)</label>
-                                            <input type="text" required value={formData.concept || ''} onChange={e => setFormData(prev => ({ ...prev, concept: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            <input type="text" required value={form.general.concept || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { concept: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Descripcion detallada</label>
-                                            <textarea rows={4} value={formData.description || ''} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
+                                            <textarea rows={4} value={form.general.description || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { description: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Duracion</label>
-                                                <input type="text" placeholder="Ej. 6-8 h" value={formData.duration || ''} onChange={e => setFormData(prev => ({ ...prev, duration: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" placeholder="Ej. 6-8 h" value={form.general.duration || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { duration: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Formato</label>
-                                                <input type="text" placeholder="Ej. Privado - Todo incluido" value={formData.format || ''} onChange={e => setFormData(prev => ({ ...prev, format: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" placeholder="Ej. Privado - Todo incluido" value={form.general.format || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { format: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                             </div>
                                         </div>
                                         <div className="flex gap-6 pt-4">
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" checked={formData.isBestSeller || false} onChange={e => setFormData(prev => ({ ...prev, isBestSeller: e.target.checked }))} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                                                <input type="checkbox" checked={form.general.isBestSeller || false} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { isBestSeller: e.target.checked } })} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
                                                 <span className="text-sm text-gray-700">Best Seller</span>
                                             </label>
                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" checked={formData.isNew || false} onChange={e => setFormData(prev => ({ ...prev, isNew: e.target.checked }))} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+                                                <input type="checkbox" checked={form.general.isNew || false} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { isNew: e.target.checked } })} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
                                                 <span className="text-sm text-gray-700">Nuevo Tour</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" checked={form.general.active !== false} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { active: e.target.checked } })} className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500" />
+                                                <span className="text-sm text-gray-700">Activo (visible en catálogo)</span>
                                             </label>
                                         </div>
                                     </div>
@@ -588,24 +598,23 @@ export default function ToursPage() {
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Imagen Principal</label>
                                             <div className="flex gap-3 items-center">
-                                                <input type="text" value={formData.image || ''} onChange={e => setFormData(prev => ({ ...prev, image: e.target.value }))} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. DSC04496_noiz4x" />
+                                                <input type="text" value={form.general.image || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { image: e.target.value } })} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. DSC04496_noiz4x" />
                                                 <button type="button" onClick={() => openImagePicker('main')} className="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
                                                     <ImageIcon size={16} /> Seleccionar
                                                 </button>
-                                                {formData.image && <img src={getCloudinaryUrl(formData.image, { width: 80, height: 80, crop: 'fill' })} alt="Preview" className="w-10 h-10 rounded object-cover border border-gray-200" />}
+                                                {form.general.image && <img src={getCloudinaryUrl(form.general.image, { width: 80, height: 80, crop: 'fill' })} alt="Preview" className="w-10 h-10 rounded object-cover border border-gray-200" />}
                                             </div>
                                         </div>
-
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-gray-700">Galeria (Imagenes y Videos)</label>
                                                 <div className="flex gap-2">
-                                                    <button type="button" onClick={() => { addGalleryImage(); setTimeout(() => openImagePicker(gallery.length), 50); }} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Seleccionar Imagen</button>
-                                                    <button type="button" onClick={addGalleryImage} className="text-xs text-gray-500 font-medium hover:text-gray-700">+ ID Manual</button>
+                                                    <button type="button" onClick={() => { const idx = form.gallery.length; dispatch({ type: 'ADD_GALLERY' }); setTimeout(() => openImagePicker(idx), 50); }} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Seleccionar Imagen</button>
+                                                    <button type="button" onClick={() => dispatch({ type: 'ADD_GALLERY' })} className="text-xs text-gray-500 font-medium hover:text-gray-700">+ ID Manual</button>
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                {gallery.map((img, idx) => (
+                                                {form.gallery.map((img, idx) => (
                                                     <div key={idx} className="flex gap-2 items-center">
                                                         {img && (
                                                             <div className="relative flex-shrink-0">
@@ -619,12 +628,12 @@ export default function ToursPage() {
                                                                 )}
                                                             </div>
                                                         )}
-                                                        <input type="text" value={img} onChange={e => updateGalleryImage(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID o video:ID" />
+                                                        <input type="text" value={img} onChange={e => dispatch({ type: 'UPDATE_GALLERY', index: idx, value: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID o video:ID" />
                                                         <button type="button" onClick={() => openImagePicker(idx)} className="text-blue-500 hover:text-blue-700 p-1.5" title="Seleccionar imagen o video"><ImageIcon size={16} /></button>
-                                                        <button type="button" onClick={() => removeGalleryImage(idx)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_GALLERY', index: idx })} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
-                                                {gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imagenes o videos en la galeria.</p>}
+                                                {form.gallery.length === 0 && <p className="text-sm text-gray-400 italic">No hay imagenes o videos en la galeria.</p>}
                                             </div>
                                         </div>
                                     </div>
@@ -636,46 +645,44 @@ export default function ToursPage() {
                                             <label className="text-sm font-medium text-blue-900">Precio Base (Referencia)</label>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-gray-500">$</span>
-                                                <input type="number" value={formData.price ?? ''} onChange={e => setFormData(prev => ({ ...prev, price: Number(e.target.value) }))} className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" min="0" />
+                                                <input type="number" value={form.general.price ?? ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { price: Number(e.target.value) } })} className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" min="0" />
                                                 <span className="text-sm text-gray-500">USD</span>
                                             </div>
                                             <p className="text-xs text-blue-700">Este es el precio que se muestra en las tarjetas de la lista.</p>
                                         </div>
-
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-gray-900">Opciones de Precio</label>
-                                                <button type="button" onClick={addPrice} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Opcion</button>
+                                                <button type="button" onClick={() => dispatch({ type: 'ADD_PRICE' })} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Opcion</button>
                                             </div>
                                             <div className="grid grid-cols-1 gap-4">
-                                                {prices.map((p, idx) => (
-                                                    <div key={idx} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                {form.prices.map((p, idx) => (
+                                                    <div key={p.id} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                         <div className="flex-1 space-y-2">
-                                                            <input type="text" placeholder="Etiqueta (Ej. Por persona)" value={p.label} onChange={e => updatePrice(idx, 'label', e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm font-medium" />
-                                                            <input type="text" placeholder="Descripcion (Ej. Grupo 5-10 pax)" value={p.description} onChange={e => updatePrice(idx, 'description', e.target.value)} className="w-full px-2 py-1.5 border rounded text-xs text-gray-500" />
+                                                            <input type="text" placeholder="Etiqueta (Ej. Por persona)" value={p.label} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'label', value: e.target.value })} className="w-full px-2 py-1.5 border rounded text-sm font-medium" />
+                                                            <input type="text" placeholder="Descripcion (Ej. Grupo 5-10 pax)" value={p.description} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'description', value: e.target.value })} className="w-full px-2 py-1.5 border rounded text-xs text-gray-500" />
                                                         </div>
                                                         <div className="w-32">
-                                                            <input type="text" placeholder="Monto" value={p.amount} onChange={e => updatePrice(idx, 'amount', e.target.value)} className="w-full px-2 py-1.5 border rounded text-sm text-right font-mono" />
+                                                            <input type="text" placeholder="Monto" value={p.amount} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'amount', value: e.target.value })} className="w-full px-2 py-1.5 border rounded text-sm text-right font-mono" />
                                                         </div>
-                                                        <button type="button" onClick={() => removePrice(idx)} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_PRICE', index: idx })} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
-
                                         <div className="space-y-4 pt-6 border-t border-gray-200">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-gray-900">Add-ons Disponibles</label>
-                                                <button type="button" onClick={addAddon} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Add-on</button>
+                                                <button type="button" onClick={() => dispatch({ type: 'ADD_ADDON' })} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Add-on</button>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {addons.map((addon, idx) => (
-                                                    <div key={idx} className="flex gap-2 items-center p-2 border rounded-lg hover:bg-gray-50">
+                                                {form.addons.map((addon, idx) => (
+                                                    <div key={addon.id} className="flex gap-2 items-center p-2 border rounded-lg hover:bg-gray-50">
                                                         <div className="flex-1 space-y-1">
-                                                            <input type="text" placeholder="Nombre Add-on" value={addon.label} onChange={e => updateAddon(idx, 'label', e.target.value)} className="w-full px-2 py-1 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm" />
-                                                            <input type="text" placeholder="Precio" value={addon.price} onChange={e => updateAddon(idx, 'price', e.target.value)} className="w-full px-2 py-0.5 text-xs text-gray-500 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none" />
+                                                            <input type="text" placeholder="Nombre Add-on" value={addon.label} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'label', value: e.target.value })} className="w-full px-2 py-1 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm" />
+                                                            <input type="text" placeholder="Precio" value={addon.price} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'price', value: e.target.value })} className="w-full px-2 py-0.5 text-xs text-gray-500 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none" />
                                                         </div>
-                                                        <button type="button" onClick={() => removeAddon(idx)} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={14} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_ADDON', index: idx })} className="text-gray-400 hover:text-red-500 p-2"><Trash2 size={14} /></button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -688,39 +695,30 @@ export default function ToursPage() {
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-gray-700">Itinerario</label>
-                                                <button type="button" onClick={addStep} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Paso</button>
+                                                <button type="button" onClick={() => dispatch({ type: 'ADD_STEP' })} className="text-xs text-blue-600 font-medium hover:text-blue-800">+ Agregar Paso</button>
                                             </div>
                                             <div className="relative border-l-2 border-gray-100 pl-4 space-y-4">
-                                                {itinerarySteps.map((step, idx) => (
+                                                {form.itinerary.map((step, idx) => (
                                                     <div key={idx} className="relative group">
                                                         <div className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-gray-200 group-hover:bg-blue-400 transition-colors"></div>
                                                         <div className="flex gap-3 items-start">
-                                                            <input type="text" placeholder="00:00" value={step.time} onChange={e => updateStep(idx, 'time', e.target.value)} className="w-20 px-2 py-1.5 border rounded text-sm font-mono text-center" />
-                                                            <textarea rows={2} placeholder="Descripcion de la actividad" value={step.activity} onChange={e => updateStep(idx, 'activity', e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none" />
-                                                            <button type="button" onClick={() => removeStep(idx)} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16} /></button>
+                                                            <input type="text" placeholder="00:00" value={step.time} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'time', value: e.target.value })} className="w-20 px-2 py-1.5 border rounded text-sm font-mono text-center" />
+                                                            <textarea rows={2} placeholder="Descripcion de la actividad" value={step.activity} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'activity', value: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none" />
+                                                            <button type="button" onClick={() => dispatch({ type: 'REMOVE_STEP', index: idx })} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16} /></button>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
-
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Incluye</label>
-                                            <textarea rows={3} value={formData.includes || ''} onChange={e => setFormData(prev => ({ ...prev, includes: e.target.value }))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Lista lo que incluye..." />
+                                            <textarea rows={3} value={form.general.includes || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { includes: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Lista lo que incluye..." />
                                         </div>
-
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Comidas Incluidas</label>
                                             <div className="flex flex-wrap gap-2">
                                                 {MEAL_TYPES.map(meal => (
-                                                    <button
-                                                        key={meal}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSelectedMeals(prev => prev.includes(meal) ? prev.filter(m => m !== meal) : [...prev, meal]);
-                                                        }}
-                                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${selectedMeals.includes(meal) ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                                                    >
+                                                    <button key={meal} type="button" onClick={() => dispatch({ type: 'TOGGLE_MEAL', meal })} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${form.meals.includes(meal) ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                                                         {meal.replace('_', ' ')}
                                                     </button>
                                                 ))}
@@ -735,14 +733,14 @@ export default function ToursPage() {
                                             <label className="text-sm font-medium text-gray-700">Caracteristicas Destacadas</label>
                                             <p className="text-xs text-gray-500 mb-2">Escribe y presiona Enter para agregar.</p>
                                             <div className="flex flex-wrap gap-2 mb-2">
-                                                {features.map((feat, idx) => (
+                                                {form.features.map((feat, idx) => (
                                                     <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
                                                         {feat}
-                                                        <button type="button" onClick={() => setFeatures(prev => prev.filter((_, i) => i !== idx))} className="hover:text-green-900"><X size={12} /></button>
+                                                        <button type="button" onClick={() => dispatch({ type: 'REMOVE_FEATURE', index: idx })} className="hover:text-green-900"><X size={12} /></button>
                                                     </span>
                                                 ))}
                                             </div>
-                                            <input type="text" onKeyDown={e => handleKeyDown(e, features, setFeatures)} placeholder="Agregar caracteristica..." className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            <input type="text" onKeyDown={handleFeatureKeyDown} placeholder="Agregar caracteristica..." className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                         </div>
                                     </div>
                                 )}
@@ -751,17 +749,12 @@ export default function ToursPage() {
 
                         <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-xl">
                             <span className="text-xs text-gray-400 italic">
-                                {editingTour ? `Editando ID: ${editingTour.id}` : 'Creando nuevo tour'}
+                                {isEditing ? `Editando ID: ${form.general.id}` : 'Creando nuevo tour'}
                             </span>
                             <div className="flex gap-3">
-                                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
-                                <button type="button" disabled={savingState !== 'idle'} onClick={() => { console.log('[Tours] Button click!'); handleSubmit(); }} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <Save size={18} /> {
-                                        savingState === 'session' ? 'Verificando...' :
-                                            savingState === 'saving' ? 'Guardando...' :
-                                                savingState === 'reloading' ? 'Cargando...' :
-                                                    'Guardar Tour'
-                                    }
+                                <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
+                                <button type="button" disabled={form.meta.saving} onClick={() => { console.log('[Tours] Button click!'); handleSubmit(); }} className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <Save size={18} /> {form.meta.saving ? 'Guardando...' : 'Guardar Tour'}
                                 </button>
                             </div>
                         </div>
@@ -769,7 +762,6 @@ export default function ToursPage() {
                 </div>
             )}
 
-            {/* Image Picker Modal */}
             {showImagePicker && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
@@ -780,32 +772,15 @@ export default function ToursPage() {
                         <div className="px-4 py-3 border-b border-gray-100">
                             <div className="relative">
                                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    value={imageSearch}
-                                    onChange={e => setImageSearch(e.target.value)}
-                                    placeholder="Buscar por nombre o ID..."
-                                    className="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                />
+                                <input type="text" autoFocus value={imageSearch} onChange={e => setImageSearch(e.target.value)} placeholder="Buscar por nombre o ID..." className="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
                             </div>
                             <p className="text-xs text-gray-400 mt-1.5">{filteredAssets.length} imagen{filteredAssets.length !== 1 ? 'es' : ''} disponible{filteredAssets.length !== 1 ? 's' : ''}</p>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4">
                             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
                                 {filteredAssets.map(asset => (
-                                    <button
-                                        key={asset.public_id}
-                                        type="button"
-                                        onClick={() => selectImage(asset.public_id)}
-                                        className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 focus:border-blue-500 focus:outline-none transition-all"
-                                    >
-                                        <img
-                                            src={getAssetThumbnailUrl(asset, 200, 200)}
-                                            alt={asset.display_name}
-                                            className="w-full h-full object-cover"
-                                            loading="lazy"
-                                        />
+                                    <button key={asset.public_id} type="button" onClick={() => selectImage(asset.public_id)} className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 focus:border-blue-500 focus:outline-none transition-all">
+                                        <img src={getAssetThumbnailUrl(asset, 200, 200)} alt={asset.display_name} className="w-full h-full object-cover" loading="lazy" />
                                         {isVideoAsset(asset) && (
                                             <div className="absolute top-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">Video</div>
                                         )}
