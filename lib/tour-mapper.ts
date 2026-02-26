@@ -5,9 +5,12 @@ export function dbRowToTour(row: any): Tour {
     return {
         id: row.id,
         name: row.name,
+        name_en: row.name_en,
         category: row.category,
         concept: row.concept,
+        concept_en: row.concept_en,
         description: row.description,
+        description_en: row.description_en,
         price: row.price ?? 0,
         duration: row.duration,
         image: row.image,
@@ -18,11 +21,15 @@ export function dbRowToTour(row: any): Tour {
         rating: row.rating ?? 5.0,
         reviews: row.reviews ?? 0,
         features: row.features || [],
+        features_en: row.features_en,
         includes: row.includes,
+        includes_en: row.includes_en,
         itinerary: row.itinerary || [],
+        itinerary_en: row.itinerary_en,
         prices: row.prices || [],
         addons: row.addons || [],
         format: row.format,
+        format_en: row.format_en,
         meals: row.meals || [],
     };
 }
