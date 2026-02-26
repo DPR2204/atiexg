@@ -51,10 +51,11 @@ export default function LoginPage() {
                 }
                 const result = await signUp(email, password, name);
                 if (result.error) {
-                    setError(result.error);
+                    setError(typeof result.error === 'string' ? result.error : 'Error al crear cuenta. Intenta de nuevo.');
                 } else {
-                    setSuccess('Cuenta creada. Revisa tu correo para confirmar o inicia sesión.');
+                    setSuccess('¡Cuenta creada! Ya puedes iniciar sesión.');
                     setMode('login');
+                    setPassword('');
                 }
             } else if (mode === 'forgot') {
                 const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {

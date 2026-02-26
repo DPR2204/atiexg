@@ -129,12 +129,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const signUp = async (email: string, password: string, name: string) => {
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { name } },
-        });
-        return { error: error?.message ?? null };
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: { data: { name } },
+            });
+
+            if (error) return { error: error.message || JSON.stringify(error) };
+
+            // Supabase returns a user with fake id and no session when email already exists
+            // (to prevent user enumeration). Detect this case.
+            if (data?.user && !data.session && data.user.identities?.length === 0) {
+                return { error: 'Ya existe una cuenta con este correo.' };
+            }
+
+            return { error: null };
+        } catch (err: any) {
+            return { error: err?.message || 'Error inesperado al crear cuenta' };
+        }
     };
 
     const signOut = async () => {
