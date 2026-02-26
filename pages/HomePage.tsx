@@ -7,7 +7,7 @@ import {
   FeaturesSection,
   FeaturedTours,
   CategoryExplorer,
-  TestimonialsSection,
+  SocialProofGallery,
   FaqPreview,
   CTASection,
 } from '../components/home';
@@ -36,7 +36,7 @@ const InicioPage = () => {
         <FeaturesSection />
         <FeaturedTours />
         <CategoryExplorer />
-        <TestimonialsSection />
+        <SocialProofGallery />
         <FaqPreview />
         <CTASection />
       </main>

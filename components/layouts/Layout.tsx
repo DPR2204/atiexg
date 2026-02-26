@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import WhatsAppButton from '../shared/WhatsAppButton';
+import ScrollToTop from '../ScrollToTop';
 
 const Layout = () => {
   const location = useLocation();
@@ -12,6 +13,7 @@ const Layout = () => {
   return (
     <>
       <Outlet />
+      <ScrollToTop />
       <WhatsAppButton />
     </>
   );
