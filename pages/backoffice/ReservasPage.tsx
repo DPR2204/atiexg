@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import ItineraryEditor from '../../components/backoffice/ItineraryEditor';
+import QuickMenuEditor from '../../components/backoffice/QuickMenuEditor';
 import { toast } from 'sonner';
 import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
 import type { CustomTourData, Tour } from '../../types/shared';
@@ -545,15 +546,15 @@ export default function ReservasPage() {
         }
     }
 
-    async function saveQuickMenu(id: number) {
-        // Trim option names on save (not during typing, to allow spaces)
-        const cleanedMenu = quickMenu.map(meal => ({
+    async function saveQuickMenu(id: number, cleanedMenu?: { type: string; options: string[] }[]) {
+        // If called from QuickMenuEditor, menu is already cleaned
+        const menuToSave = cleanedMenu || quickMenu.map(meal => ({
             ...meal,
             options: meal.options.map(s => s.trim()).filter(Boolean)
         }));
         const { error } = await supabase
             .from('reservations')
-            .update({ meal_options: { available_meals: cleanedMenu } })
+            .update({ meal_options: { available_meals: menuToSave } })
             .eq('id', id);
 
         if (error) toast.error('Error al guardar menú');
@@ -1429,59 +1430,11 @@ export default function ReservasPage() {
                                                             )}
 
                                                             {expandedTab === 'menu' && (
-                                                                <div className="bg-white max-w-3xl">
-                                                                    <h4 className="font-bold mb-1 text-gray-900">Configuración de Menú</h4>
-                                                                    <p className="text-sm text-gray-500 mb-6">Define las opciones que verán los invitados al hacer check-in.</p>
-
-                                                                    <div className="space-y-3 mb-6">
-                                                                        {quickMenu.map((meal, idx) => (
-                                                                            <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200 flex items-start gap-3">
-                                                                                <div className="flex-1 space-y-2">
-                                                                                    <input
-                                                                                        className="w-1/3 px-2 py-1 border-b border-gray-300 font-medium text-sm focus:border-blue-500 outline-none placeholder-gray-400"
-                                                                                        placeholder="Tipo de Comida (ej. Almuerzo)"
-                                                                                        value={meal.type}
-                                                                                        onChange={e => {
-                                                                                            const newMenu = [...quickMenu];
-                                                                                            newMenu[idx].type = e.target.value;
-                                                                                            setQuickMenu(newMenu);
-                                                                                        }}
-                                                                                    />
-                                                                                    <input
-                                                                                        className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded text-sm focus:bg-white focus:border-blue-500 outline-none transition-colors"
-                                                                                        placeholder="Opciones (ej. Pollo, Carne, Vegetariano)"
-                                                                                        value={meal.options?.join(', ')}
-                                                                                        onChange={e => {
-                                                                                            const newMenu = [...quickMenu];
-                                                                                            newMenu[idx].options = e.target.value.split(',');
-                                                                                            setQuickMenu(newMenu);
-                                                                                        }}
-                                                                                    />
-                                                                                </div>
-                                                                                <button className="text-gray-400 hover:text-red-500 p-1" onClick={() => {
-                                                                                    const newMenu = quickMenu.filter((_, i) => i !== idx);
-                                                                                    setQuickMenu(newMenu);
-                                                                                }}>✕</button>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-
-                                                                    <button
-                                                                        className="px-4 py-2 text-sm border border-dashed border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors w-full text-center mb-6"
-                                                                        onClick={() => setQuickMenu([...quickMenu, { type: '', options: [] }])}
-                                                                    >
-                                                                        + Agregar Tiempo de Comida
-                                                                    </button>
-
-                                                                    <div className="flex justify-end pt-4 border-t border-gray-100">
-                                                                        <button
-                                                                            className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors"
-                                                                            onClick={() => saveQuickMenu(res.id)}
-                                                                        >
-                                                                            Guardar Configuración
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
+                                                                <QuickMenuEditor
+                                                                    key={res.id}
+                                                                    initialMenu={res.meal_options?.available_meals || []}
+                                                                    onSave={(cleaned) => saveQuickMenu(res.id, cleaned)}
+                                                                />
                                                             )}
 
                                                             {expandedTab === 'tour' && (
