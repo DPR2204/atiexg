@@ -938,7 +938,16 @@ export default function ReservasPage() {
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Pax</label>
-                                        <input className="bo-input" type="number" min="1" value={form.pax_count || ''} onFocus={e => e.target.select()} onChange={e => setForm(prev => ({ ...prev, pax_count: Number(e.target.value) }))} />
+                                        <input className="bo-input" type="number" min="1" value={form.pax_count || ''} onFocus={e => e.target.select()} onChange={e => {
+                                            const newPax = Number(e.target.value) || 0;
+                                            setForm(prev => {
+                                                if (prev.price_manual) return { ...prev, pax_count: newPax };
+                                                const tour = toursList.find(t => t.id === prev.tour_id);
+                                                const basePrice = (tour?.price || 0) * newPax;
+                                                const addonsTotal = prev.selected_addons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+                                                return { ...prev, pax_count: newPax, total_amount: basePrice + addonsTotal };
+                                            });
+                                        }} />
                                     </div>
                                     <div className="bo-form-group">
                                         <div className="flex justify-between items-center mb-1">
