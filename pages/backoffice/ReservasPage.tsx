@@ -813,13 +813,13 @@ export default function ReservasPage() {
 
             {/* Search Bar */}
             <div className="bo-section-card" style={{ marginBottom: 0, paddingBottom: '0.75rem', paddingTop: '0.75rem' }}>
-                <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-                        🔍
-                    </span>
+                <div className="relative flex items-center flex-1">
+                    <svg className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                     <input
                         type="text"
-                        className="bo-input w-full pl-9"
+                        className="bo-input pl-10 w-full"
                         placeholder="Buscar por ID, cliente, tour, email o teléfono..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
@@ -854,7 +854,8 @@ export default function ReservasPage() {
                                     <input
                                         className="bo-input"
                                         type="number"
-                                        value={paymentAmount}
+                                        value={paymentAmount || ''}
+                                        onFocus={e => e.target.select()}
                                         onChange={(e) => setPaymentAmount(Number(e.target.value))}
                                     />
                                     <p className="bo-hint">Sugerido: 50% anticipo (${(showPaymentModal.total_amount / 2).toFixed(2)})</p>
@@ -910,14 +911,14 @@ export default function ReservasPage() {
                                 <div className="bo-form-grid">
                                     <div className="bo-form-group">
                                         <label className="bo-label">Tour</label>
-                                        <select className="bo-input" value={form.tour_id} onChange={e => handleTourChange(Number(e.target.value))}>
+                                        <select className="bo-select" value={form.tour_id} onChange={e => handleTourChange(Number(e.target.value))}>
                                             <option value={0}>Seleccionar Tour...</option>
                                             {toursList.map(t => <option key={t.id} value={t.id}>{t.name} — ${t.price}</option>)}
                                         </select>
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Estado</label>
-                                        <select className="bo-input" value={form.status} onChange={e => setForm(prev => ({ ...prev, status: e.target.value as any }))}>
+                                        <select className="bo-select" value={form.status} onChange={e => setForm(prev => ({ ...prev, status: e.target.value as any }))}>
                                             {Object.entries(STATUS_CONFIG).map(([k, c]) => <option key={k} value={k}>{c.label}</option>)}
                                         </select>
                                     </div>
@@ -935,7 +936,7 @@ export default function ReservasPage() {
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Pax</label>
-                                        <input className="bo-input" type="number" min="1" value={form.pax_count} onChange={e => setForm(prev => ({ ...prev, pax_count: Number(e.target.value) }))} />
+                                        <input className="bo-input" type="number" min="1" value={form.pax_count || ''} onFocus={e => e.target.select()} onChange={e => setForm(prev => ({ ...prev, pax_count: Number(e.target.value) }))} />
                                     </div>
                                     <div className="bo-form-group">
                                         <div className="flex justify-between items-center mb-1">
@@ -953,8 +954,9 @@ export default function ReservasPage() {
                                         <input
                                             className={`bo-input ${form.price_manual ? 'border-blue-500 bg-blue-50/10' : 'bg-gray-50 text-gray-500'}`}
                                             type="number"
-                                            value={form.total_amount}
+                                            value={form.total_amount || ''}
                                             readOnly={!form.price_manual}
+                                            onFocus={e => e.target.select()}
                                             onChange={e => setForm(prev => ({ ...prev, total_amount: Number(e.target.value) }))}
                                         />
                                     </div>
@@ -994,7 +996,8 @@ export default function ReservasPage() {
                                                         <input
                                                             type="number"
                                                             className="bo-input h-8 pl-5 text-xs font-bold text-right"
-                                                            value={addon.price}
+                                                            value={addon.price || ''}
+                                                            onFocus={e => e.target.select()}
                                                             onChange={e => {
                                                                 const val = Number(e.target.value);
                                                                 const newAddons = [...form.selected_addons];
@@ -1056,7 +1059,7 @@ export default function ReservasPage() {
                                             {/* Master List & Custom Add */}
                                             <div className="flex gap-2">
                                                 <select
-                                                    className="bo-input text-xs"
+                                                    className="bo-select text-xs"
                                                     onChange={e => {
                                                         if (!e.target.value) return;
                                                         const [label, priceStr] = e.target.value.split('|');
@@ -1116,21 +1119,21 @@ export default function ReservasPage() {
                                     {/* Staff assignment fields */}
                                     <div className="bo-form-group">
                                         <label className="bo-label">Lancha</label>
-                                        <select className="bo-input" value={form.boat_id} onChange={e => setForm(prev => ({ ...prev, boat_id: e.target.value }))}>
+                                        <select className="bo-select" value={form.boat_id} onChange={e => setForm(prev => ({ ...prev, boat_id: e.target.value }))}>
                                             <option value="">Sin asignar</option>
                                             {boats.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Capitán</label>
-                                        <select className="bo-input" value={form.driver_id} onChange={e => setForm(prev => ({ ...prev, driver_id: e.target.value }))}>
+                                        <select className="bo-select" value={form.driver_id} onChange={e => setForm(prev => ({ ...prev, driver_id: e.target.value }))}>
                                             <option value="">Sin asignar</option>
                                             {staffList.filter(s => s.role === 'lanchero').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="bo-form-group">
                                         <label className="bo-label">Guía</label>
-                                        <select className="bo-input" value={form.guide_id} onChange={e => setForm(prev => ({ ...prev, guide_id: e.target.value }))}>
+                                        <select className="bo-select" value={form.guide_id} onChange={e => setForm(prev => ({ ...prev, guide_id: e.target.value }))}>
                                             <option value="">Sin asignar</option>
                                             {staffList.filter(s => s.role === 'guia').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>

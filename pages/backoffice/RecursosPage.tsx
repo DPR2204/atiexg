@@ -395,11 +395,11 @@ export default function RecursosPage() {
                             </div>
                             <div className="bo-form-group">
                                 <label className="bo-label">Capacidad</label>
-                                <input className="bo-input" type="number" min="1" value={boatForm.capacity} onChange={(e) => setBoatForm(p => ({ ...p, capacity: Number(e.target.value) }))} />
+                                <input className="bo-input" type="number" min="1" value={boatForm.capacity || ''} onFocus={e => e.target.select()} onChange={(e) => setBoatForm(p => ({ ...p, capacity: Number(e.target.value) }))} />
                             </div>
                             <div className="bo-form-group">
                                 <label className="bo-label">Estado</label>
-                                <select className="bo-input" value={boatForm.status} onChange={(e) => setBoatForm(p => ({ ...p, status: e.target.value as Boat['status'] }))}>
+                                <select className="bo-select" value={boatForm.status} onChange={(e) => setBoatForm(p => ({ ...p, status: e.target.value as Boat['status'] }))}>
                                     <option value="active">Activa</option>
                                     <option value="maintenance">Mantenimiento</option>
                                     <option value="inactive">Inactiva</option>
@@ -429,7 +429,7 @@ export default function RecursosPage() {
                             </div>
                             <div className="bo-form-group">
                                 <label className="bo-label">Rol</label>
-                                <select className="bo-input" value={staffForm.role} onChange={(e) => setStaffForm(p => ({ ...p, role: e.target.value as Staff['role'] }))}>
+                                <select className="bo-select" value={staffForm.role} onChange={(e) => setStaffForm(p => ({ ...p, role: e.target.value as Staff['role'] }))}>
                                     <option value="lanchero">Lanchero</option>
                                     <option value="guia">Guia</option>
                                 </select>

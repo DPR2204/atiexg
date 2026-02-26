@@ -518,16 +518,20 @@ export default function ToursPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                <input
-                    type="text"
-                    placeholder="Buscar por nombre, categoria o concepto..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    aria-label="Buscar tours"
-                    className="bo-input"
-                    style={{ flex: 1, minWidth: '200px' }}
-                />
-                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="bo-input" style={{ minWidth: '150px' }}>
+                <div className="relative flex items-center flex-1" style={{ minWidth: '200px' }}>
+                    <svg className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre, categoria o concepto..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        aria-label="Buscar tours"
+                        className="bo-input pl-10 w-full"
+                    />
+                </div>
+                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="bo-select" style={{ minWidth: '150px' }}>
                     <option value="">Todas las categorias</option>
                     {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -615,18 +619,18 @@ export default function ToursPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Nombre del Tour <span style={{ color: 'var(--bo-danger, #D32F2F)' }}>*</span></label>
-                                                <input type="text" required value={form.general.name || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { name: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" required value={form.general.name || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { name: e.target.value } })} className="bo-input w-full" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Categoria <span style={{ color: 'var(--bo-danger, #D32F2F)' }}>*</span></label>
                                                 {showNewCategory ? (
                                                     <div className="flex gap-2">
-                                                        <input type="text" autoFocus value={newCategoryInput} onChange={e => setNewCategoryInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(); } }} placeholder="Nombre de la nueva categoria" className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
+                                                        <input type="text" autoFocus value={newCategoryInput} onChange={e => setNewCategoryInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory(); } }} placeholder="Nombre de la nueva categoria" className="bo-input flex-1" />
                                                         <button type="button" onClick={confirmNewCategory} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" aria-label="Confirmar categoria"><Check size={18} /></button>
                                                         <button type="button" onClick={() => setShowNewCategory(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg" aria-label="Cancelar"><X size={18} /></button>
                                                     </div>
                                                 ) : (
-                                                    <select value={form.general.category || 'Signature'} onChange={e => handleCategoryChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                                    <select value={form.general.category || 'Signature'} onChange={e => handleCategoryChange(e.target.value)} className="bo-select w-full">
                                                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                                         <option value="__new__">+ Nueva categoria...</option>
                                                     </select>
@@ -635,20 +639,20 @@ export default function ToursPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Concepto (Subtitulo corto)</label>
-                                            <input type="text" required value={form.general.concept || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { concept: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            <input type="text" required value={form.general.concept || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { concept: e.target.value } })} className="bo-input w-full" />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Descripcion detallada</label>
-                                            <textarea rows={4} value={form.general.description || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { description: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
+                                            <textarea rows={4} value={form.general.description || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { description: e.target.value } })} className="bo-input w-full resize-none" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Duracion</label>
-                                                <input type="text" placeholder="Ej. 6-8 h" value={form.general.duration || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { duration: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" placeholder="Ej. 6-8 h" value={form.general.duration || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { duration: e.target.value } })} className="bo-input w-full" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-gray-700">Formato</label>
-                                                <input type="text" placeholder="Ej. Privado - Todo incluido" value={form.general.format || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { format: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                                <input type="text" placeholder="Ej. Privado - Todo incluido" value={form.general.format || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { format: e.target.value } })} className="bo-input w-full" />
                                             </div>
                                         </div>
                                         <div className="flex gap-6 pt-4">
@@ -673,7 +677,7 @@ export default function ToursPage() {
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Imagen Principal</label>
                                             <div className="flex gap-3 items-center">
-                                                <input type="text" value={form.general.image || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { image: e.target.value } })} className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. DSC04496_noiz4x" />
+                                                <input type="text" value={form.general.image || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { image: e.target.value } })} className="bo-input flex-1" placeholder="Ej. DSC04496_noiz4x" />
                                                 <button type="button" onClick={() => openImagePicker('main')} className="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-1.5">
                                                     <ImageIcon size={16} /> Seleccionar
                                                 </button>
@@ -703,7 +707,7 @@ export default function ToursPage() {
                                                                 )}
                                                             </div>
                                                         )}
-                                                        <input type="text" value={img} onChange={e => dispatch({ type: 'UPDATE_GALLERY', index: idx, value: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg text-sm" placeholder="Cloudinary ID o video:ID" />
+                                                        <input type="text" value={img} onChange={e => dispatch({ type: 'UPDATE_GALLERY', index: idx, value: e.target.value })} className="bo-input flex-1" placeholder="Cloudinary ID o video:ID" />
                                                         <button type="button" onClick={() => openImagePicker(idx)} className="text-blue-500 hover:text-blue-700 p-1.5" title="Seleccionar imagen o video" aria-label="Seleccionar imagen o video"><ImageIcon size={16} /></button>
                                                         <button type="button" onClick={() => dispatch({ type: 'REMOVE_GALLERY', index: idx })} className="text-gray-400 hover:text-red-500 p-1.5" aria-label="Eliminar imagen de galeria"><Trash2 size={16} /></button>
                                                     </div>
@@ -720,7 +724,7 @@ export default function ToursPage() {
                                             <label className="text-sm font-medium text-blue-900">Precio Base (Referencia)</label>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-gray-500">$</span>
-                                                <input type="number" value={form.general.price ?? ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { price: Number(e.target.value) } })} className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" min="0" />
+                                                <input type="number" value={form.general.price || ''} onFocus={e => e.target.select()} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { price: Number(e.target.value) } })} className="bo-input w-32" min="0" />
                                                 <span className="text-sm text-gray-500">USD</span>
                                             </div>
                                             <p className="text-xs text-blue-700">Este es el precio que se muestra en las tarjetas de la lista.</p>
@@ -734,11 +738,11 @@ export default function ToursPage() {
                                                 {form.prices.map((p, idx) => (
                                                     <div key={p.id} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                         <div className="flex-1 space-y-2">
-                                                            <input type="text" placeholder="Etiqueta (Ej. Por persona)" value={p.label} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'label', value: e.target.value })} className="w-full px-2 py-1.5 border rounded text-sm font-medium" />
-                                                            <input type="text" placeholder="Descripcion (Ej. Grupo 5-10 pax)" value={p.description} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'description', value: e.target.value })} className="w-full px-2 py-1.5 border rounded text-xs text-gray-500" />
+                                                            <input type="text" placeholder="Etiqueta (Ej. Por persona)" value={p.label} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'label', value: e.target.value })} className="bo-input w-full" />
+                                                            <input type="text" placeholder="Descripcion (Ej. Grupo 5-10 pax)" value={p.description} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'description', value: e.target.value })} className="bo-input w-full" />
                                                         </div>
                                                         <div className="w-32">
-                                                            <input type="text" placeholder="Monto" value={p.amount} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'amount', value: e.target.value })} className="w-full px-2 py-1.5 border rounded text-sm text-right font-mono" />
+                                                            <input type="text" placeholder="Monto" value={p.amount} onChange={e => dispatch({ type: 'UPDATE_PRICE', index: idx, field: 'amount', value: e.target.value })} className="bo-input w-full" />
                                                         </div>
                                                         <button type="button" onClick={() => dispatch({ type: 'REMOVE_PRICE', index: idx })} className="text-gray-400 hover:text-red-500 p-2" aria-label="Eliminar precio"><Trash2 size={16} /></button>
                                                     </div>
@@ -754,8 +758,8 @@ export default function ToursPage() {
                                                 {form.addons.map((addon, idx) => (
                                                     <div key={addon.id} className="flex gap-2 items-center p-2 border rounded-lg hover:bg-gray-50">
                                                         <div className="flex-1 space-y-1">
-                                                            <input type="text" placeholder="Nombre Add-on" value={addon.label} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'label', value: e.target.value })} className="w-full px-2 py-1 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none text-sm" />
-                                                            <input type="text" placeholder="Precio" value={addon.price} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'price', value: e.target.value })} className="w-full px-2 py-0.5 text-xs text-gray-500 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none" />
+                                                            <input type="text" placeholder="Nombre Add-on" value={addon.label} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'label', value: e.target.value })} className="bo-input w-full" />
+                                                            <input type="text" placeholder="Precio" value={addon.price} onChange={e => dispatch({ type: 'UPDATE_ADDON', index: idx, field: 'price', value: e.target.value })} className="bo-input w-full" />
                                                         </div>
                                                         <button type="button" onClick={() => dispatch({ type: 'REMOVE_ADDON', index: idx })} className="text-gray-400 hover:text-red-500 p-2" aria-label="Eliminar add-on"><Trash2 size={14} /></button>
                                                     </div>
@@ -777,8 +781,8 @@ export default function ToursPage() {
                                                     <div key={idx} className="relative group">
                                                         <div className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-gray-200 group-hover:bg-blue-400 transition-colors"></div>
                                                         <div className="flex gap-3 items-start">
-                                                            <input type="text" placeholder="00:00" value={step.time} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'time', value: e.target.value })} className="w-20 px-2 py-1.5 border rounded text-sm font-mono text-center" />
-                                                            <textarea rows={2} placeholder="Descripcion de la actividad" value={step.activity} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'activity', value: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg text-sm resize-none" />
+                                                            <input type="text" placeholder="00:00" value={step.time} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'time', value: e.target.value })} className="bo-input w-20 text-center" />
+                                                            <textarea rows={2} placeholder="Descripcion de la actividad" value={step.activity} onChange={e => dispatch({ type: 'UPDATE_STEP', index: idx, field: 'activity', value: e.target.value })} className="bo-input flex-1 resize-none" />
                                                             <button type="button" onClick={() => dispatch({ type: 'REMOVE_STEP', index: idx })} className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Eliminar paso"><X size={16} /></button>
                                                         </div>
                                                     </div>
@@ -787,7 +791,7 @@ export default function ToursPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Incluye</label>
-                                            <textarea rows={3} value={form.general.includes || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { includes: e.target.value } })} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Lista lo que incluye..." />
+                                            <textarea rows={3} value={form.general.includes || ''} onChange={e => dispatch({ type: 'UPDATE_GENERAL', updates: { includes: e.target.value } })} className="bo-input w-full resize-none" placeholder="Lista lo que incluye..." />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-gray-700">Comidas Incluidas</label>
@@ -815,7 +819,7 @@ export default function ToursPage() {
                                                     </span>
                                                 ))}
                                             </div>
-                                            <input type="text" onKeyDown={handleFeatureKeyDown} placeholder="Agregar caracteristica..." className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                            <input type="text" onKeyDown={handleFeatureKeyDown} placeholder="Agregar caracteristica..." className="bo-input w-full" />
                                         </div>
                                     </div>
                                 )}
@@ -847,7 +851,7 @@ export default function ToursPage() {
                         <div className="px-4 py-3 border-b border-gray-100">
                             <div className="relative">
                                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input type="text" autoFocus value={imageSearch} onChange={e => setImageSearch(e.target.value)} placeholder="Buscar por nombre o ID..." className="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
+                                <input type="text" autoFocus value={imageSearch} onChange={e => setImageSearch(e.target.value)} placeholder="Buscar por nombre o ID..." className="bo-input w-full pl-10" />
                             </div>
                             <p className="text-xs text-gray-400 mt-1.5">{filteredAssets.length} imagen{filteredAssets.length !== 1 ? 'es' : ''} disponible{filteredAssets.length !== 1 ? 's' : ''}</p>
                         </div>
