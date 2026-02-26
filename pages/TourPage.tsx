@@ -20,6 +20,49 @@ const getGalleryPublicId = (item: string) => isVideoGalleryItem(item) ? item.sli
 
 const TourRouteMap = lazy(() => import('../components/TourRouteMap'));
 
+const NOT_INCLUDED: Record<string, string[]> = {
+  'Signature': ['Propinas para guías y lancheros', 'Gastos personales en pueblos', 'Souvenirs y artesanías'],
+  'Lago & Momentos': ['Alimentos y bebidas (salvo que se indique)', 'Propinas', 'Transporte terrestre desde tu hotel'],
+  'Cultura & Pueblos': ['Entradas a museos opcionales', 'Propinas', 'Compras personales'],
+  'Sabores del Lago': ['Bebidas alcohólicas adicionales', 'Propinas', 'Transporte terrestre'],
+  'Días de Campo': ['Bebidas alcohólicas premium', 'Propinas', 'Actividades no especificadas'],
+};
+const DEFAULT_NOT_INCLUDED = ['Propinas para guías y lancheros', 'Gastos personales', 'Transporte desde tu hotel al punto de encuentro'];
+
+const TOUR_FAQ: Record<string, Array<{ q: string; a: string }>> = {
+  'Signature': [
+    { q: '¿Cuánto dura el tour completo?', a: 'El tour Signature dura entre 8 y 9 horas, es una experiencia de día completo que incluye visitas a 3 pueblos, almuerzo y coffee break.' },
+    { q: '¿Está incluido el almuerzo?', a: 'Sí, el almuerzo está incluido en nuestro restaurante partner en Santiago Atitlán con opciones de comida local y menú internacional.' },
+    { q: '¿Puedo personalizar el itinerario?', a: 'Absolutamente. Contáctanos por WhatsApp y diseñaremos una ruta a tu medida manteniendo los highlights del tour.' },
+    { q: '¿Es apto para niños?', a: 'Sí, el tour es familiar. Los niños menores de 5 años viajan gratis y los menores de 12 tienen descuento.' },
+  ],
+  'Lago & Momentos': [
+    { q: '¿A qué hora sale la lancha?', a: 'Las salidas dependen del tour elegido, pero generalmente partimos entre 8:00 y 9:00 AM desde el muelle de Panajachel.' },
+    { q: '¿Qué pasa si llueve?', a: 'Monitoreamos las condiciones climáticas. En caso de lluvia fuerte, reprogramamos sin costo adicional o ajustamos la ruta.' },
+    { q: '¿Necesito saber nadar?', a: 'No es necesario. Todos los pasajeros llevan chaleco salvavidas y las actividades acuáticas son opcionales.' },
+  ],
+  'Cultura & Pueblos': [
+    { q: '¿Se visitan comunidades indígenas?', a: 'Sí, visitamos pueblos tz\'utujil y kaqchikel con respeto a sus tradiciones. Nuestros guías son locales y facilitan el intercambio cultural.' },
+    { q: '¿Puedo comprar artesanías?', a: 'Por supuesto. Haremos paradas en mercados y talleres donde podrás comprar directamente a los artesanos locales.' },
+    { q: '¿Es necesario hablar español?', a: 'No, nuestros guías son bilingües (español/inglés) y pueden comunicarse en ambos idiomas durante todo el recorrido.' },
+  ],
+  'Sabores del Lago': [
+    { q: '¿Hay opciones vegetarianas?', a: 'Sí, todos nuestros tours gastronómicos incluyen opciones vegetarianas y podemos adaptarnos a restricciones alimentarias con aviso previo.' },
+    { q: '¿Incluye bebidas alcohólicas?', a: 'El tour incluye una degustación de bebidas locales. Bebidas alcohólicas adicionales se pueden comprar por cuenta propia.' },
+    { q: '¿Cuántas degustaciones incluye?', a: 'Dependiendo del tour, incluimos entre 4 y 6 paradas gastronómicas con degustaciones de platillos típicos de la región.' },
+  ],
+  'Días de Campo': [
+    { q: '¿Qué actividades están incluidas?', a: 'Incluimos actividades como kayak, senderismo, natación y juegos al aire libre según el paquete elegido.' },
+    { q: '¿Es apto para grupos grandes?', a: 'Sí, podemos acomodar grupos de hasta 25 personas. Para grupos más grandes, contáctanos para un presupuesto personalizado.' },
+    { q: '¿Qué comida se incluye?', a: 'Incluimos un picnic o almuerzo tipo barbacoa con ingredientes frescos y locales, además de snacks y bebidas no alcohólicas.' },
+  ],
+};
+const DEFAULT_FAQ: Array<{ q: string; a: string }> = [
+  { q: '¿Cuánto tiempo de anticipación necesito para reservar?', a: 'Recomendamos reservar con al menos 24-48 horas de anticipación para garantizar disponibilidad.' },
+  { q: '¿Qué pasa si necesito cancelar?', a: 'Ofrecemos cancelación gratuita hasta 48 horas antes de la fecha del tour. Después de ese plazo, aplican cargos.' },
+  { q: '¿El tour es apto para todas las edades?', a: 'Sí, nuestros tours están diseñados para ser disfrutados por personas de todas las edades en un ambiente seguro y familiar.' },
+];
+
 const formatWhatsApp = (tourName: string, priceLabel?: string, priceAmount?: string, addons?: string[]) => {
   const base = 'https://wa.me/50222681264?text=';
   let message = `¡Hola Atitlán Experiences! 🌊\n\nMe interesa la experiencia: *${tourName}*.`;
@@ -46,6 +89,7 @@ const TourPage = () => {
   const [selectedPriceId, setSelectedPriceId] = useState('');
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
     if (!tour) return;
@@ -106,6 +150,23 @@ const TourPage = () => {
   const selectedAddonLabels = selectedAddons.map((addon) => `${addon.label} ($${addon.price})`);
   const galleryImages = tour.gallery && tour.gallery.length > 0 ? tour.gallery : [tour.image];
   const currentImage = galleryImages[selectedImageIndex] || tour.image;
+  const notIncludedItems = NOT_INCLUDED[tour.category] ?? DEFAULT_NOT_INCLUDED;
+  const faqItems = TOUR_FAQ[tour.category] ?? DEFAULT_FAQ;
+  const hasMeals = tour.meals && tour.meals.length > 0;
+  const hasLancha = tour.features.some((f) => /lancha/i.test(f));
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    })),
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -118,6 +179,7 @@ const TourPage = () => {
           buildOrganizationSchema(),
           buildWebSiteSchema(),
           buildTourSchema(tour),
+          faqSchema,
         ]}
       />
       <GlassNav />
@@ -175,6 +237,16 @@ const TourPage = () => {
                 <span className="px-3 py-1.5 glass-card text-[10px] font-bold uppercase tracking-wider rounded-full">
                   {tour.category}
                 </span>
+                {hasMeals && (
+                  <span className="px-3 py-1.5 bg-orange-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
+                    Comidas incluidas
+                  </span>
+                )}
+                {hasLancha && (
+                  <span className="px-3 py-1.5 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
+                    Lancha privada
+                  </span>
+                )}
               </div>
             </div>
 
@@ -288,6 +360,24 @@ const TourPage = () => {
                 Pagar $50 de anticipo
               </Link>
             </div>
+
+            {/* Cancellation Notice Banner */}
+            <div className="flex items-center gap-3 glass-card rounded-xl px-4 py-3">
+              <span className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-700">Cancelación gratuita hasta 48h antes</p>
+              </div>
+              <Link
+                to="/politica-cancelacion"
+                className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors shrink-0"
+              >
+                Ver política
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -349,6 +439,95 @@ const TourPage = () => {
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* No Incluye */}
+          <div className="glass-card rounded-3xl p-6 sm:p-8 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+            <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </span>
+              No incluye
+            </h3>
+            <ul className="space-y-3">
+              {notIncludedItems.map((item) => (
+                <li key={item} className="flex items-start gap-3 text-gray-600">
+                  <svg className="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Qué Llevar / Qué Esperar */}
+        <section className="mt-8 animate-fade-in-up" style={{ animationDelay: '280ms' }}>
+          <div className="glass-card rounded-3xl p-6 sm:p-8">
+            <div className="grid gap-8 md:grid-cols-2">
+              {/* Qué Llevar */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                  </span>
+                  Qué llevar
+                </h3>
+                <ul className="space-y-3">
+                  {[
+                    { icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z', text: 'Protector solar y sombrero' },
+                    { icon: 'M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z', text: 'Ropa cómoda y zapatos cerrados' },
+                    { icon: 'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z', text: 'Cámara o smartphone' },
+                    { icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', text: 'Efectivo para compras personales' },
+                    { icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', text: 'Botella de agua reutilizable' },
+                  ].map((item) => (
+                    <li key={item.text} className="flex items-center gap-3 text-gray-600">
+                      <span className="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center shrink-0">
+                        <svg className="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                        </svg>
+                      </span>
+                      <span className="text-sm">{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Qué Esperar */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
+                  Qué esperar
+                </h3>
+                <ul className="space-y-3">
+                  {[
+                    { icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z', text: 'Punto de encuentro en muelle de Panajachel' },
+                    { icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', text: 'Grupos pequeños para experiencia personalizada' },
+                    { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', text: 'Guía bilingüe (español/inglés) durante todo el recorrido' },
+                    { icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z', text: 'Posibles cambios por condiciones climáticas' },
+                    { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', text: 'Ambiente familiar y seguro' },
+                  ].map((item) => (
+                    <li key={item.text} className="flex items-center gap-3 text-gray-600">
+                      <span className="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center shrink-0">
+                        <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                        </svg>
+                      </span>
+                      <span className="text-sm">{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -466,6 +645,46 @@ const TourPage = () => {
             </div>
           </section>
         )}
+
+        {/* FAQ Section */}
+        <section className="mt-12 animate-fade-in-up" style={{ animationDelay: '550ms' }}>
+          <div className="glass-card rounded-3xl p-6 sm:p-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              Preguntas frecuentes
+            </h3>
+            <div className="space-y-3">
+              {faqItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-2xl overflow-hidden border border-gray-100"
+                >
+                  <button
+                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                    aria-expanded={openFaq === index}
+                    className="w-full flex items-center justify-between p-4 sm:p-5 text-left"
+                  >
+                    <span className="text-sm font-bold text-gray-900 pr-4">{item.q}</span>
+                    <span className={`w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0 transition-transform duration-300 ${openFaq === index ? 'rotate-180 bg-red-100' : ''}`}>
+                      <svg className={`w-3.5 h-3.5 ${openFaq === index ? 'text-red-600' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div className={`overflow-hidden transition-all duration-300 ${openFaq === index ? 'max-h-48' : 'max-h-0'}`}>
+                    <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                      <p className="text-gray-500 text-sm leading-relaxed">{item.a}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* Related Tours */}
         {relatedTours.length > 0 && (

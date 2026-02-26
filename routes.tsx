@@ -13,6 +13,13 @@ const TourPage = lazy(() => import('./pages/TourPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const FaqPage = lazy(() => import('./pages/FaqPage'));
+const PoliticaCancelacionPage = lazy(() => import('./pages/PoliticaCancelacionPage'));
+const TerminosPage = lazy(() => import('./pages/TerminosPage'));
+const PrivacidadPage = lazy(() => import('./pages/PrivacidadPage'));
+const DestinoPage = lazy(() => import('./pages/DestinoPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 
 // Lazy load back-office pages
 const BackofficeLayout = lazy(() => import('./components/backoffice/BackofficeLayout'));
@@ -75,6 +82,34 @@ export const routes: RouteObject[] = [
       {
         path: 'pago-exitoso',
         element: <SuspenseWrapper><PaymentSuccessPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'faq',
+        element: <SuspenseWrapper><FaqPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'politica-cancelacion',
+        element: <SuspenseWrapper><PoliticaCancelacionPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'terminos',
+        element: <SuspenseWrapper><TerminosPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'privacidad',
+        element: <SuspenseWrapper><PrivacidadPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'destinos/:slug',
+        element: <SuspenseWrapper><DestinoPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'blog',
+        element: <SuspenseWrapper><BlogPage /></SuspenseWrapper>,
+      },
+      {
+        path: 'blog/:slug',
+        element: <SuspenseWrapper><BlogPostPage /></SuspenseWrapper>,
       },
       {
         path: '*',

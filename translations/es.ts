@@ -172,7 +172,12 @@ export const es = {
         contact: 'Contacto',
         hours: 'Lun - Dom: 8:00 - 20:00',
         rights: 'Todos los derechos reservados.',
-        madeWith: 'Hecho con'
+        madeWith: 'Hecho con',
+        legal: 'Legal',
+        faq: 'FAQ',
+        terms: 'Términos',
+        privacy: 'Privacidad',
+        cancellation: 'Cancelación'
     },
     tour: {
         notFoundTitle: 'Experiencia no encontrada',

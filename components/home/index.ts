@@ -3,3 +3,7 @@ export { default as FeaturesSection } from './FeaturesSection';
 export { default as FeaturedTours } from './FeaturedTours';
 export { default as CTASection } from './CTASection';
 export { default as SocialProofGallery } from './SocialProofGallery';
+export { default as TrustBar } from './TrustBar';
+export { default as CategoryExplorer } from './CategoryExplorer';
+export { default as TestimonialsSection } from './TestimonialsSection';
+export { default as FaqPreview } from './FaqPreview';

@@ -172,7 +172,12 @@ export const en = {
         contact: 'Contact',
         hours: 'Mon - Sun: 8:00 - 20:00',
         rights: 'All rights reserved.',
-        madeWith: 'Made with'
+        madeWith: 'Made with',
+        legal: 'Legal',
+        faq: 'FAQ',
+        terms: 'Terms',
+        privacy: 'Privacy',
+        cancellation: 'Cancellation'
     },
     tour: {
         notFoundTitle: 'Experience not found',

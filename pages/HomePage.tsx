@@ -3,9 +3,12 @@ import Seo from '../components/Seo';
 import { GlassNav, GlassFooter } from '../components/shared';
 import {
   HeroSection,
+  TrustBar,
   FeaturesSection,
   FeaturedTours,
-  SocialProofGallery,
+  CategoryExplorer,
+  TestimonialsSection,
+  FaqPreview,
   CTASection,
 } from '../components/home';
 import {
@@ -29,9 +32,12 @@ const InicioPage = () => {
 
       <main id="main-content">
         <HeroSection />
+        <TrustBar />
         <FeaturesSection />
         <FeaturedTours />
-        <SocialProofGallery />
+        <CategoryExplorer />
+        <TestimonialsSection />
+        <FaqPreview />
         <CTASection />
       </main>
 
