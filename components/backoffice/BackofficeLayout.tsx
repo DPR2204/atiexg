@@ -71,6 +71,17 @@ export default function BackofficeLayout() {
         });
     }
 
+    // Refresh badges when tab regains visibility (stale-tab fix)
+    useEffect(() => {
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                fetchBadges();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, []);
+
     // Keyboard shortcut for palette
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

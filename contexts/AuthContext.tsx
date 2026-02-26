@@ -107,6 +107,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, [fetchAgentProfile]);
 
+    // Refresh session when tab regains visibility (stale-tab fix)
+    useEffect(() => {
+        const handleVisibility = async () => {
+            if (document.visibilityState === 'visible' && session) {
+                const { error } = await supabase.auth.refreshSession();
+                if (error) {
+                    setSession(null);
+                    setUser(null);
+                    setAgent(null);
+                }
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [session]);
+
     const signIn = async (email: string, password: string) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         return { error: error?.message ?? null };

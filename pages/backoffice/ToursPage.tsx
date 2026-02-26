@@ -528,7 +528,8 @@ export default function ToursPage() {
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         aria-label="Buscar tours"
-                        className="bo-input pl-10 w-full"
+                        className="bo-input w-full"
+                        style={{ paddingLeft: '2.5rem' }}
                     />
                 </div>
                 <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="bo-select" style={{ minWidth: '150px' }}>

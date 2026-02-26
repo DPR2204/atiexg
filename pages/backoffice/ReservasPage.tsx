@@ -819,7 +819,8 @@ export default function ReservasPage() {
                     </svg>
                     <input
                         type="text"
-                        className="bo-input pl-10 w-full"
+                        className="bo-input w-full"
+                        style={{ paddingLeft: '2.5rem' }}
                         placeholder="Buscar por ID, cliente, tour, email o teléfono..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
@@ -1398,7 +1399,7 @@ export default function ReservasPage() {
                                                                                                     ...passengerForm,
                                                                                                     meals: {
                                                                                                         ...passengerForm.meals,
-                                                                                                        [mealType]: { ...passengerForm.meals[mealType], food: e.target.value }
+                                                                                                        [mealType]: { ...(passengerForm.meals[mealType] || { food: '', notes: '' }), food: e.target.value }
                                                                                                     }
                                                                                                 })}
                                                                                             />
@@ -1410,7 +1411,7 @@ export default function ReservasPage() {
                                                                                                     ...passengerForm,
                                                                                                     meals: {
                                                                                                         ...passengerForm.meals,
-                                                                                                        [mealType]: { ...passengerForm.meals[mealType], notes: e.target.value }
+                                                                                                        [mealType]: { ...(passengerForm.meals[mealType] || { food: '', notes: '' }), notes: e.target.value }
                                                                                                     }
                                                                                                 })}
                                                                                             />
