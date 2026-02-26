@@ -9,6 +9,7 @@ import {
   buildWebSiteSchema,
 } from '../seo';
 import { useLanguage } from '../contexts/LanguageContext';
+import { L } from '../lib/localize';
 
 const VALUES = [
   {
@@ -61,13 +62,6 @@ const VALUES = [
 
 const ConocenosPage = () => {
   const { t, language } = useLanguage();
-  const L = (obj: Record<string, any>, field: string) => {
-    if (language === 'en') {
-      const enKey = `${field}_en`;
-      if (enKey in obj && obj[enKey]) return obj[enKey] as string;
-    }
-    return (obj[field] ?? '') as string;
-  };
   const meta = PAGE_META.conocenos;
 
   return (
@@ -186,8 +180,8 @@ const ConocenosPage = () => {
                   <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center text-white mb-5 shadow-lg shadow-red-500/25 group-hover:scale-110 transition-transform duration-300">
                     {value.icon}
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{L(value, 'title')}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{L(value, 'description')}</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{L(value, 'title', language)}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{L(value, 'description', language)}</p>
                 </div>
               ))}
             </div>
@@ -210,13 +204,19 @@ const ConocenosPage = () => {
                     {t('about.partnersDesc')}
                   </p>
                   <ul className="space-y-4">
-                    {[
+                    {(language === 'en' ? [
+                      'AtitlánRestaurantes.com - Premium dining network',
+                      'Certified captains with 15+ years of experience',
+                      'Local artisans in San Juan and Santiago',
+                      'Activity operators (kayak, yoga, zipline)',
+                      'Selected boutique hotels',
+                    ] : [
                       'AtitlánRestaurantes.com - Red gastronómica premium',
                       'Capitanes certificados con 15+ años de experiencia',
                       'Artesanos locales en San Juan y Santiago',
                       'Operadores de actividades (kayak, yoga, zipline)',
                       'Hoteles boutique seleccionados',
-                    ].map((item, index) => (
+                    ]).map((item, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
                           <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

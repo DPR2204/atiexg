@@ -51,26 +51,26 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900">Standard</h3>
-                            <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">Compartido</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">{language === 'en' ? 'Shared' : 'Compartido'}</span>
                         </div>
                     </div>
                     <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-xs text-gray-600">
                             <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
-                            <span>8-12 personas</span>
+                            <span>{language === 'en' ? '8-12 people' : '8-12 personas'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-600">
                             <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                            <span>Timing clásico</span>
+                            <span>{language === 'en' ? 'Classic timing' : 'Timing clásico'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-600">
                             <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.466 3.429A1 1 0 012 14.502a17.09 17.09 0 003.037-2.936 18.93 18.93 0 01-1.065-2.572 1 1 0 111.898-.633c.217.65.473 1.276.766 1.875a17.09 17.09 0 001.39-3.536H4a1 1 0 110-2h3V3a1 1 0 011-1z" clipRule="evenodd" /></svg>
-                            <span>Guía EN/ES</span>
+                            <span>{language === 'en' ? 'Guide EN/ES' : 'Guía EN/ES'}</span>
                         </div>
                     </div>
                     <div className="pt-3 border-t border-gray-50">
                         <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t('tour.from')}</span>
-                        <p className="text-lg font-bold text-gray-900">Precio base</p>
+                        <p className="text-lg font-bold text-gray-900">{language === 'en' ? 'Base price' : 'Precio base'}</p>
                     </div>
                 </div>
 
@@ -92,15 +92,15 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                     <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-xs text-gray-700">
                             <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
-                            <span>4-8 personas</span>
+                            <span>{language === 'en' ? '4-8 people' : '4-8 personas'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-700">
                             <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                            <span>Ritmo flexible</span>
+                            <span>{language === 'en' ? 'Flexible pace' : 'Ritmo flexible'}</span>
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Mesa reservada</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">{language === 'en' ? 'Reserved table' : 'Mesa reservada'}</span>
                         <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Premium perk</span>
                     </div>
                     <div className="pt-3 border-t border-blue-100">
@@ -119,10 +119,10 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900">All-in</h3>
-                            <span className="text-[9px] font-medium uppercase tracking-wider text-emerald-500">Todo incluido</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wider text-emerald-500">{language === 'en' ? 'All inclusive' : 'Todo incluido'}</span>
                         </div>
                     </div>
-                    <p className="text-xs text-gray-600 mb-3">Premium + actividades incluidas</p>
+                    <p className="text-xs text-gray-600 mb-3">{language === 'en' ? 'Premium + activities included' : 'Premium + actividades incluidas'}</p>
                     <div className="flex flex-wrap gap-1.5 mb-4">
                         <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Zipline</span>
                         <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Kayak</span>
@@ -144,19 +144,19 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900">Private</h3>
-                            <span className="text-[9px] font-medium uppercase tracking-wider text-amber-500">Exclusivo</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wider text-amber-500">{language === 'en' ? 'Exclusive' : 'Exclusivo'}</span>
                         </div>
                     </div>
                     <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-xs text-gray-700">
                             <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
-                            <span>Hasta 6 pax (+$35 p/p extra)</span>
+                            <span>{language === 'en' ? 'Up to 6 pax (+$35 p/p extra)' : 'Hasta 6 pax (+$35 p/p extra)'}</span>
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Lancha dedicada</span>
-                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Host privado</span>
-                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Ruta flexible</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">{language === 'en' ? 'Dedicated boat' : 'Lancha dedicada'}</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">{language === 'en' ? 'Private host' : 'Host privado'}</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">{language === 'en' ? 'Flexible route' : 'Ruta flexible'}</span>
                     </div>
                     <div className="pt-3 border-t border-amber-100">
                         <span className="text-[10px] font-medium uppercase tracking-wider text-amber-400">{t('tour.from')}</span>

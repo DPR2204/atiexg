@@ -17,93 +17,115 @@ import {
   buildWebSiteSchema,
 } from '../seo';
 import { useLanguage } from '../contexts/LanguageContext';
-import { L } from '../lib/localize';
+import { L, LArray } from '../lib/localize';
 
 const FILTER_CATEGORIES = ['Todos', 'Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'];
 
-const GENERAL_ADDONS = [
+interface AddonItem {
+  name: string;
+  name_en: string;
+}
+
+interface AddonCategory {
+  id: string;
+  title: string;
+  title_en: string;
+  items: AddonItem[];
+}
+
+const GENERAL_ADDONS: AddonCategory[] = [
   {
     id: 'transporte',
     title: 'Transporte (a/desde Ciudad de Guatemala)',
+    title_en: 'Transportation (to/from Guatemala City)',
     items: [
-      'Shared shuttle Guatemala City/Airport ↔ Panajachel: USD 32–40 p/p',
-      'Private transfer Guatemala City ↔ Panajachel: 1–3 pax USD 165–195 por vehículo',
-      'Private transfer Guatemala City ↔ Panajachel: 4–6 pax USD 195–225 por vehículo',
-      'Private transfer Guatemala City ↔ Panajachel: 7–10 pax USD 225–255 por vehículo',
-      'Surcharge madrugada/tarde (si aplica): +USD 25–60',
+      { name: 'Shared shuttle Guatemala City/Airport ↔ Panajachel: USD 32–40 p/p', name_en: 'Shared shuttle Guatemala City/Airport ↔ Panajachel: USD 32–40 p/p' },
+      { name: 'Private transfer Guatemala City ↔ Panajachel: 1–3 pax USD 165–195 por vehículo', name_en: 'Private transfer Guatemala City ↔ Panajachel: 1–3 pax USD 165–195 per vehicle' },
+      { name: 'Private transfer Guatemala City ↔ Panajachel: 4–6 pax USD 195–225 por vehículo', name_en: 'Private transfer Guatemala City ↔ Panajachel: 4–6 pax USD 195–225 per vehicle' },
+      { name: 'Private transfer Guatemala City ↔ Panajachel: 7–10 pax USD 225–255 por vehículo', name_en: 'Private transfer Guatemala City ↔ Panajachel: 7–10 pax USD 225–255 per vehicle' },
+      { name: 'Surcharge madrugada/tarde (si aplica): +USD 25–60', name_en: 'Early morning/late surcharge (if applicable): +USD 25–60' },
     ],
   },
   {
     id: 'tiempo-extra',
     title: 'Tiempo extra / flexibilidad',
+    title_en: 'Extra time / flexibility',
     items: [
-      'Hora extra lancha privada (navegación + espera): USD 65–95 por hora',
-      'Hora extra con host/guía (si excede jornada): USD 25–45 por hora',
-      'Parada extra planificada (buffer + coordinación): USD 15–35 por grupo',
+      { name: 'Hora extra lancha privada (navegación + espera): USD 65–95 por hora', name_en: 'Extra hour private boat (navigation + wait): USD 65–95 per hour' },
+      { name: 'Hora extra con host/guía (si excede jornada): USD 25–45 por hora', name_en: 'Extra hour with host/guide (if exceeds schedule): USD 25–45 per hour' },
+      { name: 'Parada extra planificada (buffer + coordinación): USD 15–35 por grupo', name_en: 'Extra planned stop (buffer + coordination): USD 15–35 per group' },
     ],
   },
   {
     id: 'guias-concierge',
     title: 'Guías y concierge',
+    title_en: 'Guides & concierge',
     items: [
-      'Guía premium upgrade: Half day USD 40–80 por grupo',
-      'Guía premium upgrade: Full day USD 80–150 por grupo',
-      'Intérprete 3er idioma (FR/DE/IT): Half day USD 120–220 por grupo',
-      'Intérprete 3er idioma (FR/DE/IT): Full day USD 220–350 por grupo',
-      'Concierge WhatsApp (pre-trip + durante tour): USD 15–35 por reserva',
+      { name: 'Guía premium upgrade: Half day USD 40–80 por grupo', name_en: 'Premium guide upgrade: Half day USD 40–80 per group' },
+      { name: 'Guía premium upgrade: Full day USD 80–150 por grupo', name_en: 'Premium guide upgrade: Full day USD 80–150 per group' },
+      { name: 'Intérprete 3er idioma (FR/DE/IT): Half day USD 120–220 por grupo', name_en: '3rd language interpreter (FR/DE/IT): Half day USD 120–220 per group' },
+      { name: 'Intérprete 3er idioma (FR/DE/IT): Full day USD 220–350 por grupo', name_en: '3rd language interpreter (FR/DE/IT): Full day USD 220–350 per group' },
+      { name: 'Concierge WhatsApp (pre-trip + durante tour): USD 15–35 por reserva', name_en: 'WhatsApp concierge (pre-trip + during tour): USD 15–35 per booking' },
     ],
   },
   {
     id: 'foto-video',
     title: 'Foto / video / contenido',
+    title_en: 'Photo / video / content',
     items: [
-      'Foto Mini (30–45 min, 15–25 fotos): USD 80–120',
-      'Foto Standard (60–90 min, 30–50 fotos): USD 150–230',
-      'Media jornada (3–4h): USD 350–550',
-      'Jornada completa (6–8h): USD 550–900',
-      'Drone add-on (clips + 5 fotos): USD 80–150',
-      'Reel vertical (30–60s editado): USD 250–450',
+      { name: 'Foto Mini (30–45 min, 15–25 fotos): USD 80–120', name_en: 'Mini photo (30–45 min, 15–25 photos): USD 80–120' },
+      { name: 'Foto Standard (60–90 min, 30–50 fotos): USD 150–230', name_en: 'Standard photo (60–90 min, 30–50 photos): USD 150–230' },
+      { name: 'Media jornada (3–4h): USD 350–550', name_en: 'Half day (3–4h): USD 350–550' },
+      { name: 'Jornada completa (6–8h): USD 550–900', name_en: 'Full day (6–8h): USD 550–900' },
+      { name: 'Drone add-on (clips + 5 fotos): USD 80–150', name_en: 'Drone add-on (clips + 5 photos): USD 80–150' },
+      { name: 'Reel vertical (30–60s editado): USD 250–450', name_en: 'Vertical reel (30–60s edited): USD 250–450' },
     ],
   },
   {
     id: 'fnb',
     title: 'F&B (upgrade universal)',
+    title_en: 'F&B (universal upgrade)',
     items: [
-      'Coffee flight/tasting (3–4 muestras): USD 12–20 p/p',
-      'Upgrade bebida premium (vino/cóctel/beer): USD 8–15 p/p',
-      'Charcutería/tapas upgrade: USD 12–30 p/p',
-      'Botella extra (vino): USD 35–70 | Espumante: USD 45–120',
-      'Menú fijo 2–3 tiempos: USD 45–75 p/p',
-      'Maridaje 2–3 bebidas: +USD 18–35 p/p',
+      { name: 'Coffee flight/tasting (3–4 muestras): USD 12–20 p/p', name_en: 'Coffee flight/tasting (3–4 samples): USD 12–20 p/p' },
+      { name: 'Upgrade bebida premium (vino/cóctel/beer): USD 8–15 p/p', name_en: 'Premium drink upgrade (wine/cocktail/beer): USD 8–15 p/p' },
+      { name: 'Charcutería/tapas upgrade: USD 12–30 p/p', name_en: 'Charcuterie/tapas upgrade: USD 12–30 p/p' },
+      { name: 'Botella extra (vino): USD 35–70 | Espumante: USD 45–120', name_en: 'Extra bottle (wine): USD 35–70 | Sparkling: USD 45–120' },
+      { name: 'Menú fijo 2–3 tiempos: USD 45–75 p/p', name_en: 'Fixed menu 2–3 courses: USD 45–75 p/p' },
+      { name: 'Maridaje 2–3 bebidas: +USD 18–35 p/p', name_en: 'Pairing 2–3 drinks: +USD 18–35 p/p' },
     ],
   },
   {
     id: 'terceros',
     title: 'Actividades de terceros (si las integran como All-in)',
+    title_en: 'Third-party activities (if integrated as All-in)',
     items: [
-      'Yoga drop-in: USD 8–13 p/p',
-      'Temazcal: USD 19–39 p/p',
-      'Masaje 60 min: USD 26–52 p/p',
-      'Cacao ceremony: USD 13–33 p/p',
-      'Kayak/SUP (medio día): USD 10–16 p/p',
-      'Zipline: USD 52–78 p/p',
-      'Parapente tandem: USD 65–104 p/p',
+      { name: 'Yoga drop-in: USD 8–13 p/p', name_en: 'Yoga drop-in: USD 8–13 p/p' },
+      { name: 'Temazcal: USD 19–39 p/p', name_en: 'Temazcal: USD 19–39 p/p' },
+      { name: 'Masaje 60 min: USD 26–52 p/p', name_en: 'Massage 60 min: USD 26–52 p/p' },
+      { name: 'Cacao ceremony: USD 13–33 p/p', name_en: 'Cacao ceremony: USD 13–33 p/p' },
+      { name: 'Kayak/SUP (medio día): USD 10–16 p/p', name_en: 'Kayak/SUP (half day): USD 10–16 p/p' },
+      { name: 'Zipline: USD 52–78 p/p', name_en: 'Zipline: USD 52–78 p/p' },
+      { name: 'Parapente tandem: USD 65–104 p/p', name_en: 'Tandem paragliding: USD 65–104 p/p' },
     ],
   },
   {
     id: 'momentos',
     title: 'Momentos especiales',
+    title_en: 'Special moments',
     items: [
-      'Proposal kit (sin foto): USD 120–220',
-      'Proposal + foto mini: USD 220–380',
-      'Cumpleaños a bordo (mini cake + decoración + foto mini opcional): USD 90–160',
+      { name: 'Proposal kit (sin foto): USD 120–220', name_en: 'Proposal kit (no photo): USD 120–220' },
+      { name: 'Proposal + foto mini: USD 220–380', name_en: 'Proposal + mini photo: USD 220–380' },
+      { name: 'Cumpleaños a bordo (mini cake + decoración + foto mini opcional): USD 90–160', name_en: 'Birthday on board (mini cake + decoration + optional mini photo): USD 90–160' },
     ],
   },
 ];
 
 const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: string[], allTours: Tour[], lang: 'es' | 'en' = 'es') => {
   const base = 'https://wa.me/50222681264?text=';
-  let message = '¡Hola Atitlán Experiences! 🌊\n\nSolicitud de Reserva Premium:\n\n';
+  const isEn = lang === 'en';
+  let message = isEn
+    ? 'Hello Atitlan Experiences! 🌊\n\nPremium Booking Request:\n\n'
+    : '¡Hola Atitlán Experiences! 🌊\n\nSolicitud de Reserva Premium:\n\n';
 
   selections.forEach((selection) => {
     const tour = allTours.find((t) => t.id === selection.tourId);
@@ -111,15 +133,15 @@ const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: 
     const priceOption = tour.prices.find((p) => p.id === selection.selectedPriceId);
     const addons = tour.addons.filter((a) => selection.selectedAddonIds.includes(a.id));
 
-    message += `🔹 *${tour.name}*\n`;
-    message += `Opción: ${priceOption?.label} ($${priceOption?.amount})\n`;
+    message += `🔹 *${L(tour, 'name', lang)}*\n`;
+    message += `${isEn ? 'Option' : 'Opción'}: ${priceOption ? L(priceOption, 'label', lang) : ''} ($${priceOption?.amount})\n`;
 
     if (addons.length > 0) {
-      message += `Add-ons: ${addons.map((a) => `${a.label} ($${a.price})`).join(', ')}\n`;
+      message += `Add-ons: ${addons.map((a) => `${L(a, 'label', lang)} ($${a.price})`).join(', ')}\n`;
     }
 
     if (selection.customItinerary.length > 0) {
-      message += '_Itinerario Ajustado:_\n';
+      message += isEn ? '_Adjusted Itinerary:_\n' : '_Itinerario Ajustado:_\n';
       selection.customItinerary.forEach((step) => {
         message += `• ${step.time}: ${step.activity}\n`;
       });
@@ -128,13 +150,17 @@ const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: 
   });
 
   if (generalAddons.length > 0) {
-    message += '\n🧩 *Add-ons generales seleccionados*\n';
+    message += isEn
+      ? '\n🧩 *Selected general add-ons*\n'
+      : '\n🧩 *Add-ons generales seleccionados*\n';
     generalAddons.forEach((addon) => {
       message += `• ${addon}\n`;
     });
   }
 
-  message += '\n¿Me podrían confirmar disponibilidad para estas experiencias? ¡Gracias!';
+  message += isEn
+    ? '\nCould you confirm availability for these experiences? Thank you!'
+    : '\n¿Me podrían confirmar disponibilidad para estas experiencias? ¡Gracias!';
   return base + encodeURIComponent(message);
 };
 
@@ -152,9 +178,19 @@ const CatalogoPage = () => {
   const [expandedAddonCategories, setExpandedAddonCategories] = useState<Set<string>>(new Set(GENERAL_ADDONS.map(c => c.id)));
   const meta = PAGE_META.catalogo;
 
-  // Build display labels for filters — 'Todos' gets translated, categories keep their data names
+  // Build display labels for filters — 'Todos' gets translated, categories get localized labels
   const FILTERS = FILTER_CATEGORIES;
-  const filterDisplayLabel = (filter: string) => filter === 'Todos' ? t('catalog.filterAll') : filter;
+  const categoryLabels: Record<string, string> = language === 'en' ? {
+    'Todos': 'All',
+    'Lago & Momentos': 'Lake & Moments',
+    'Cultura & Pueblos': 'Culture & Villages',
+    'Sabores del Lago': 'Flavors of the Lake',
+    'Días de Campo': 'Field Days',
+  } : {};
+  const filterDisplayLabel = (filter: string) => {
+    if (filter === 'Todos') return t('catalog.filterAll');
+    return categoryLabels[filter] || filter;
+  };
 
   const filteredTours = useMemo(() => {
     if (!tours) return [];
@@ -163,12 +199,12 @@ const CatalogoPage = () => {
       const matchesFilter = activeFilter === 'Todos' || tour.category === activeFilter;
       if (!matchesFilter) return false;
       if (!normalizedQuery) return true;
-      const haystack = [tour.name, tour.category, tour.concept, tour.description]
+      const haystack = [L(tour, 'name', language), tour.category, L(tour, 'concept', language), L(tour, 'description', language)]
         .join(' ')
         .toLowerCase();
       return haystack.includes(normalizedQuery);
     });
-  }, [activeFilter, searchQuery, tours]);
+  }, [activeFilter, searchQuery, tours, language]);
 
   const toggleSelection = (tour: Tour) => {
     const exists = selectedConfigs.some((config) => config.tourId === tour.id);
@@ -295,7 +331,7 @@ const CatalogoPage = () => {
           filters={FILTERS}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
-          labelMap={{ 'Todos': t('catalog.filterAll') }}
+          labelMap={{ 'Todos': t('catalog.filterAll'), ...categoryLabels }}
         />
 
         {/* Results Count */}
@@ -401,7 +437,7 @@ const CatalogoPage = () => {
           <div className={`grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 transition-all duration-500 overflow-hidden ${isAddonsExpanded ? 'opacity-100 max-h-[4000px]' : 'opacity-0 max-h-0'}`}>
             {GENERAL_ADDONS.map((category, catIndex) => {
               const style = categoryStyles[category.id] || categoryStyles['transporte'];
-              const selectedInCategory = category.items.filter(item => selectedGeneralAddons.includes(item)).length;
+              const selectedInCategory = category.items.filter(item => selectedGeneralAddons.includes(item.name)).length;
               const isExpanded = expandedAddonCategories.has(category.id);
 
               const toggleCategory = () => {
@@ -432,7 +468,7 @@ const CatalogoPage = () => {
                         {categoryIcons[category.id]}
                       </div>
                       <div className="text-left">
-                        <h3 className="font-semibold text-gray-900 text-sm">{category.title.split(' (')[0]}</h3>
+                        <h3 className="font-semibold text-gray-900 text-sm">{L(category, 'title', language).split(' (')[0]}</h3>
                         <p className="text-[10px] text-gray-400">{category.items.length} {language === 'en' ? 'options' : 'opciones'}</p>
                       </div>
                     </div>
@@ -451,16 +487,17 @@ const CatalogoPage = () => {
                   {/* Items */}
                   <div className={`space-y-1.5 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[180px] opacity-100 mt-3 overflow-y-auto scrollbar-hide' : 'max-h-0 opacity-0'}`}>
                     {category.items.map((item) => {
-                      const isSelected = selectedGeneralAddons.includes(item);
-                      const priceMatch = item.match(/USD\s*[\d,–-]+(?:\s*(?:p\/p|por\s+(?:vehículo|grupo|hora|reserva)))?/i);
+                      const itemLabel = L(item, 'name', language);
+                      const isSelected = selectedGeneralAddons.includes(item.name);
+                      const priceMatch = itemLabel.match(/USD\s*[\d,–-]+(?:\s*(?:p\/p|per\s+(?:vehicle|group|hour|booking)|por\s+(?:vehículo|grupo|hora|reserva)))?/i);
                       const price = priceMatch ? priceMatch[0] : null;
-                      const itemText = price ? item.replace(price, '').replace(/:\s*$/, '').trim() : item;
+                      const itemText = price ? itemLabel.replace(price, '').replace(/:\s*$/, '').trim() : itemLabel;
 
                       return (
                         <button
-                          key={item}
+                          key={item.name}
                           type="button"
-                          onClick={() => toggleGeneralAddon(item)}
+                          onClick={() => toggleGeneralAddon(item.name)}
                           className={`w-full flex items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-all duration-200 ${isSelected
                             ? 'bg-white shadow-sm border border-gray-200'
                             : 'bg-white/50 hover:bg-white border border-transparent'

@@ -33,7 +33,7 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
                     </div>
                     <div>
                         <h2 id="comparison-modal-title" className="text-lg sm:text-xl font-bold text-gray-900">{t('catalog.compare')}</h2>
-                        <p className="text-xs text-gray-400">{tours.length} tours seleccionados</p>
+                        <p className="text-xs text-gray-400">{tours.length} {language === 'en' ? 'tours selected' : 'tours seleccionados'}</p>
                     </div>
                 </div>
                 <button onClick={onClose} className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all active:scale-95" aria-label={t('common.back')}>
@@ -116,7 +116,7 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
                                                 </div>
                                             ))}
                                             {tour.itinerary.length > 3 && (
-                                                <p className="text-[10px] text-gray-400 italic">+{tour.itinerary.length - 3} paradas más...</p>
+                                                <p className="text-[10px] text-gray-400 italic">+{tour.itinerary.length - 3} {language === 'en' ? 'more stops...' : 'paradas más...'}</p>
                                             )}
                                         </div>
                                     </div>

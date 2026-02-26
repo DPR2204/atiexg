@@ -22,59 +22,81 @@ const getGalleryPublicId = (item: string) => isVideoGalleryItem(item) ? item.sli
 
 const TourRouteMap = lazy(() => import('../components/TourRouteMap'));
 
-const NOT_INCLUDED: Record<string, string[]> = {
-  'Signature': ['Propinas para guías y lancheros', 'Gastos personales en pueblos', 'Souvenirs y artesanías'],
-  'Lago & Momentos': ['Alimentos y bebidas (salvo que se indique)', 'Propinas', 'Transporte terrestre desde tu hotel'],
-  'Cultura & Pueblos': ['Entradas a museos opcionales', 'Propinas', 'Compras personales'],
-  'Sabores del Lago': ['Bebidas alcohólicas adicionales', 'Propinas', 'Transporte terrestre'],
-  'Días de Campo': ['Bebidas alcohólicas premium', 'Propinas', 'Actividades no especificadas'],
+const NOT_INCLUDED: Record<string, { items: string[]; items_en: string[] }> = {
+  'Signature': {
+    items: ['Propinas para guías y lancheros', 'Gastos personales en pueblos', 'Souvenirs y artesanías'],
+    items_en: ['Tips for guides and boatmen', 'Personal expenses in villages', 'Souvenirs and handicrafts'],
+  },
+  'Lago & Momentos': {
+    items: ['Alimentos y bebidas (salvo que se indique)', 'Propinas', 'Transporte terrestre desde tu hotel'],
+    items_en: ['Food and beverages (unless specified)', 'Tips', 'Ground transportation from your hotel'],
+  },
+  'Cultura & Pueblos': {
+    items: ['Entradas a museos opcionales', 'Propinas', 'Compras personales'],
+    items_en: ['Optional museum entrance fees', 'Tips', 'Personal purchases'],
+  },
+  'Sabores del Lago': {
+    items: ['Bebidas alcohólicas adicionales', 'Propinas', 'Transporte terrestre'],
+    items_en: ['Additional alcoholic beverages', 'Tips', 'Ground transportation'],
+  },
+  'Días de Campo': {
+    items: ['Bebidas alcohólicas premium', 'Propinas', 'Actividades no especificadas'],
+    items_en: ['Premium alcoholic beverages', 'Tips', 'Unspecified activities'],
+  },
 };
 const DEFAULT_NOT_INCLUDED = ['Propinas para guías y lancheros', 'Gastos personales', 'Transporte desde tu hotel al punto de encuentro'];
+const DEFAULT_NOT_INCLUDED_EN = ['Tips for guides and boatmen', 'Personal expenses', 'Transportation from your hotel to the meeting point'];
 
-const TOUR_FAQ: Record<string, Array<{ q: string; a: string }>> = {
+const TOUR_FAQ: Record<string, Array<{ q: string; q_en: string; a: string; a_en: string }>> = {
   'Signature': [
-    { q: '¿Cuánto dura el tour completo?', a: 'El tour Signature dura entre 8 y 9 horas, es una experiencia de día completo que incluye visitas a 3 pueblos, almuerzo y coffee break.' },
-    { q: '¿Está incluido el almuerzo?', a: 'Sí, el almuerzo está incluido en nuestro restaurante partner en Santiago Atitlán con opciones de comida local y menú internacional.' },
-    { q: '¿Puedo personalizar el itinerario?', a: 'Absolutamente. Contáctanos por WhatsApp y diseñaremos una ruta a tu medida manteniendo los highlights del tour.' },
-    { q: '¿Es apto para niños?', a: 'Sí, el tour es familiar. Los niños menores de 5 años viajan gratis y los menores de 12 tienen descuento.' },
+    { q: '¿Cuánto dura el tour completo?', q_en: 'How long does the full tour last?', a: 'El tour Signature dura entre 8 y 9 horas, es una experiencia de día completo que incluye visitas a 3 pueblos, almuerzo y coffee break.', a_en: 'The Signature tour lasts between 8 and 9 hours. It is a full-day experience that includes visits to 3 villages, lunch, and a coffee break.' },
+    { q: '¿Está incluido el almuerzo?', q_en: 'Is lunch included?', a: 'Sí, el almuerzo está incluido en nuestro restaurante partner en Santiago Atitlán con opciones de comida local y menú internacional.', a_en: 'Yes, lunch is included at our partner restaurant in Santiago Atitlán with local food options and an international menu.' },
+    { q: '¿Puedo personalizar el itinerario?', q_en: 'Can I customize the itinerary?', a: 'Absolutamente. Contáctanos por WhatsApp y diseñaremos una ruta a tu medida manteniendo los highlights del tour.', a_en: 'Absolutely. Contact us on WhatsApp and we will design a custom route while keeping the tour highlights.' },
+    { q: '¿Es apto para niños?', q_en: 'Is it suitable for children?', a: 'Sí, el tour es familiar. Los niños menores de 5 años viajan gratis y los menores de 12 tienen descuento.', a_en: 'Yes, the tour is family-friendly. Children under 5 travel free and those under 12 get a discount.' },
   ],
   'Lago & Momentos': [
-    { q: '¿A qué hora sale la lancha?', a: 'Las salidas dependen del tour elegido, pero generalmente partimos entre 8:00 y 9:00 AM desde el muelle de Panajachel.' },
-    { q: '¿Qué pasa si llueve?', a: 'Monitoreamos las condiciones climáticas. En caso de lluvia fuerte, reprogramamos sin costo adicional o ajustamos la ruta.' },
-    { q: '¿Necesito saber nadar?', a: 'No es necesario. Todos los pasajeros llevan chaleco salvavidas y las actividades acuáticas son opcionales.' },
+    { q: '¿A qué hora sale la lancha?', q_en: 'What time does the boat depart?', a: 'Las salidas dependen del tour elegido, pero generalmente partimos entre 8:00 y 9:00 AM desde el muelle de Panajachel.', a_en: 'Departure times depend on the chosen tour, but we generally leave between 8:00 and 9:00 AM from the Panajachel dock.' },
+    { q: '¿Qué pasa si llueve?', q_en: 'What happens if it rains?', a: 'Monitoreamos las condiciones climáticas. En caso de lluvia fuerte, reprogramamos sin costo adicional o ajustamos la ruta.', a_en: 'We monitor weather conditions. In case of heavy rain, we reschedule at no additional cost or adjust the route.' },
+    { q: '¿Necesito saber nadar?', q_en: 'Do I need to know how to swim?', a: 'No es necesario. Todos los pasajeros llevan chaleco salvavidas y las actividades acuáticas son opcionales.', a_en: 'No, it is not necessary. All passengers wear life jackets and water activities are optional.' },
   ],
   'Cultura & Pueblos': [
-    { q: '¿Se visitan comunidades indígenas?', a: 'Sí, visitamos pueblos tz\'utujil y kaqchikel con respeto a sus tradiciones. Nuestros guías son locales y facilitan el intercambio cultural.' },
-    { q: '¿Puedo comprar artesanías?', a: 'Por supuesto. Haremos paradas en mercados y talleres donde podrás comprar directamente a los artesanos locales.' },
-    { q: '¿Es necesario hablar español?', a: 'No, nuestros guías son bilingües (español/inglés) y pueden comunicarse en ambos idiomas durante todo el recorrido.' },
+    { q: '¿Se visitan comunidades indígenas?', q_en: 'Do you visit indigenous communities?', a: 'Sí, visitamos pueblos tz\'utujil y kaqchikel con respeto a sus tradiciones. Nuestros guías son locales y facilitan el intercambio cultural.', a_en: 'Yes, we visit Tz\'utujil and Kaqchikel villages with respect for their traditions. Our guides are locals who facilitate cultural exchange.' },
+    { q: '¿Puedo comprar artesanías?', q_en: 'Can I buy handicrafts?', a: 'Por supuesto. Haremos paradas en mercados y talleres donde podrás comprar directamente a los artesanos locales.', a_en: 'Of course. We make stops at markets and workshops where you can buy directly from local artisans.' },
+    { q: '¿Es necesario hablar español?', q_en: 'Do I need to speak Spanish?', a: 'No, nuestros guías son bilingües (español/inglés) y pueden comunicarse en ambos idiomas durante todo el recorrido.', a_en: 'No, our guides are bilingual (Spanish/English) and can communicate in both languages throughout the tour.' },
   ],
   'Sabores del Lago': [
-    { q: '¿Hay opciones vegetarianas?', a: 'Sí, todos nuestros tours gastronómicos incluyen opciones vegetarianas y podemos adaptarnos a restricciones alimentarias con aviso previo.' },
-    { q: '¿Incluye bebidas alcohólicas?', a: 'El tour incluye una degustación de bebidas locales. Bebidas alcohólicas adicionales se pueden comprar por cuenta propia.' },
-    { q: '¿Cuántas degustaciones incluye?', a: 'Dependiendo del tour, incluimos entre 4 y 6 paradas gastronómicas con degustaciones de platillos típicos de la región.' },
+    { q: '¿Hay opciones vegetarianas?', q_en: 'Are there vegetarian options?', a: 'Sí, todos nuestros tours gastronómicos incluyen opciones vegetarianas y podemos adaptarnos a restricciones alimentarias con aviso previo.', a_en: 'Yes, all our gastronomic tours include vegetarian options and we can accommodate dietary restrictions with prior notice.' },
+    { q: '¿Incluye bebidas alcohólicas?', q_en: 'Does it include alcoholic beverages?', a: 'El tour incluye una degustación de bebidas locales. Bebidas alcohólicas adicionales se pueden comprar por cuenta propia.', a_en: 'The tour includes a tasting of local drinks. Additional alcoholic beverages can be purchased on your own.' },
+    { q: '¿Cuántas degustaciones incluye?', q_en: 'How many tastings are included?', a: 'Dependiendo del tour, incluimos entre 4 y 6 paradas gastronómicas con degustaciones de platillos típicos de la región.', a_en: 'Depending on the tour, we include between 4 and 6 gastronomic stops with tastings of typical regional dishes.' },
   ],
   'Días de Campo': [
-    { q: '¿Qué actividades están incluidas?', a: 'Incluimos actividades como kayak, senderismo, natación y juegos al aire libre según el paquete elegido.' },
-    { q: '¿Es apto para grupos grandes?', a: 'Sí, podemos acomodar grupos de hasta 25 personas. Para grupos más grandes, contáctanos para un presupuesto personalizado.' },
-    { q: '¿Qué comida se incluye?', a: 'Incluimos un picnic o almuerzo tipo barbacoa con ingredientes frescos y locales, además de snacks y bebidas no alcohólicas.' },
+    { q: '¿Qué actividades están incluidas?', q_en: 'What activities are included?', a: 'Incluimos actividades como kayak, senderismo, natación y juegos al aire libre según el paquete elegido.', a_en: 'We include activities such as kayaking, hiking, swimming, and outdoor games depending on the package chosen.' },
+    { q: '¿Es apto para grupos grandes?', q_en: 'Is it suitable for large groups?', a: 'Sí, podemos acomodar grupos de hasta 25 personas. Para grupos más grandes, contáctanos para un presupuesto personalizado.', a_en: 'Yes, we can accommodate groups of up to 25 people. For larger groups, contact us for a custom quote.' },
+    { q: '¿Qué comida se incluye?', q_en: 'What food is included?', a: 'Incluimos un picnic o almuerzo tipo barbacoa con ingredientes frescos y locales, además de snacks y bebidas no alcohólicas.', a_en: 'We include a picnic or barbecue-style lunch with fresh and local ingredients, plus snacks and non-alcoholic beverages.' },
   ],
 };
-const DEFAULT_FAQ: Array<{ q: string; a: string }> = [
-  { q: '¿Cuánto tiempo de anticipación necesito para reservar?', a: 'Recomendamos reservar con al menos 24-48 horas de anticipación para garantizar disponibilidad.' },
-  { q: '¿Qué pasa si necesito cancelar?', a: 'Ofrecemos cancelación gratuita hasta 48 horas antes de la fecha del tour. Después de ese plazo, aplican cargos.' },
-  { q: '¿El tour es apto para todas las edades?', a: 'Sí, nuestros tours están diseñados para ser disfrutados por personas de todas las edades en un ambiente seguro y familiar.' },
+const DEFAULT_FAQ: Array<{ q: string; q_en: string; a: string; a_en: string }> = [
+  { q: '¿Cuánto tiempo de anticipación necesito para reservar?', q_en: 'How far in advance do I need to book?', a: 'Recomendamos reservar con al menos 24-48 horas de anticipación para garantizar disponibilidad.', a_en: 'We recommend booking at least 24-48 hours in advance to ensure availability.' },
+  { q: '¿Qué pasa si necesito cancelar?', q_en: 'What if I need to cancel?', a: 'Ofrecemos cancelación gratuita hasta 48 horas antes de la fecha del tour. Después de ese plazo, aplican cargos.', a_en: 'We offer free cancellation up to 48 hours before the tour date. After that, charges apply.' },
+  { q: '¿El tour es apto para todas las edades?', q_en: 'Is the tour suitable for all ages?', a: 'Sí, nuestros tours están diseñados para ser disfrutados por personas de todas las edades en un ambiente seguro y familiar.', a_en: 'Yes, our tours are designed to be enjoyed by people of all ages in a safe and family-friendly environment.' },
 ];
 
-const formatWhatsApp = (tourName: string, priceLabel?: string, priceAmount?: string, addons?: string[]) => {
+const formatWhatsApp = (tourName: string, lang: 'es' | 'en', priceLabel?: string, priceAmount?: string, addons?: string[]) => {
   const base = 'https://wa.me/50222681264?text=';
-  let message = `¡Hola Atitlán Experiences! 🌊\n\nMe interesa la experiencia: *${tourName}*.`;
+  let message = lang === 'en'
+    ? `Hello Atitlán Experiences! 🌊\n\nI'm interested in the experience: *${tourName}*.`
+    : `¡Hola Atitlán Experiences! 🌊\n\nMe interesa la experiencia: *${tourName}*.`;
   if (priceLabel && priceAmount) {
-    message += `\nOpción: ${priceLabel} ($${priceAmount})`;
+    message += lang === 'en'
+      ? `\nOption: ${priceLabel} ($${priceAmount})`
+      : `\nOpción: ${priceLabel} ($${priceAmount})`;
   }
   if (addons && addons.length > 0) {
     message += `\nAdd-ons: ${addons.join(', ')}`;
   }
-  message += '\n¿Podrían compartir disponibilidad y próximos horarios?';
+  message += lang === 'en'
+    ? '\nCould you share availability and upcoming schedules?'
+    : '\n¿Podrían compartir disponibilidad y próximos horarios?';
   return base + encodeURIComponent(message);
 };
 
@@ -150,13 +172,20 @@ const TourPage = () => {
 
   const selectedPrice = tour.prices.find((price) => price.id === selectedPriceId);
   const selectedAddons = tour.addons.filter((addon) => selectedAddonIds.includes(addon.id));
-  const selectedAddonLabels = selectedAddons.map((addon) => `${addon.label} ($${addon.price})`);
+  const selectedAddonLabels = selectedAddons.map((addon) => `${L(addon, 'label', language)} ($${addon.price})`);
   const galleryImages = tour.gallery && tour.gallery.length > 0 ? tour.gallery : [tour.image];
   const currentImage = galleryImages[selectedImageIndex] || tour.image;
-  const notIncludedItems = NOT_INCLUDED[tour.category] ?? DEFAULT_NOT_INCLUDED;
-  const faqItems = TOUR_FAQ[tour.category] ?? DEFAULT_FAQ;
+  const notIncludedCat = NOT_INCLUDED[tour.category];
+  const notIncludedItems = notIncludedCat
+    ? (language === 'en' ? notIncludedCat.items_en : notIncludedCat.items)
+    : (language === 'en' ? DEFAULT_NOT_INCLUDED_EN : DEFAULT_NOT_INCLUDED);
+  const faqItemsRaw = TOUR_FAQ[tour.category] ?? DEFAULT_FAQ;
+  const faqItems = faqItemsRaw.map((item) => ({
+    q: language === 'en' ? item.q_en : item.q,
+    a: language === 'en' ? item.a_en : item.a,
+  }));
   const hasMeals = tour.meals && tour.meals.length > 0;
-  const hasLancha = tour.features.some((f) => /lancha/i.test(f));
+  const hasLancha = tour.features.some((f) => /lancha/i.test(f)) || (tour.features_en && tour.features_en.some((f: string) => /boat/i.test(f)));
 
   const faqSchema = {
     '@context': 'https://schema.org',
@@ -234,7 +263,7 @@ const TourPage = () => {
                 )}
                 {tour.isNew && (
                   <span className="px-3 py-1.5 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
-                    {language === 'en' ? 'New' : 'Nuevo'}
+                    {t('tour.new')}
                   </span>
                 )}
                 <span className="px-3 py-1.5 glass-card text-[10px] font-bold uppercase tracking-wider rounded-full">
@@ -242,12 +271,12 @@ const TourPage = () => {
                 </span>
                 {hasMeals && (
                   <span className="px-3 py-1.5 bg-orange-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
-                    {language === 'en' ? 'Meals included' : 'Comidas incluidas'}
+                    {t('tour.mealsIncluded')}
                   </span>
                 )}
                 {hasLancha && (
                   <span className="px-3 py-1.5 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
-                    {language === 'en' ? 'Private boat' : 'Lancha privada'}
+                    {t('tour.privateBoat')}
                   </span>
                 )}
               </div>
@@ -333,7 +362,7 @@ const TourPage = () => {
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-3">
               <a
-                href={formatWhatsApp(tour.name, selectedPrice?.label, selectedPrice?.amount, selectedAddonLabels)}
+                href={formatWhatsApp(L(tour, 'name', language), language, selectedPrice ? L(selectedPrice, 'label', language) : undefined, selectedPrice?.amount, selectedAddonLabels)}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-green-400 transition-all shadow-lg shadow-green-500/30"
@@ -355,12 +384,12 @@ const TourPage = () => {
             </div>
             {/* Deposit Option */}
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-400">{language === 'en' ? 'Prefer to secure your spot?' : '¿Prefieres asegurar tu lugar?'}</span>
+              <span className="text-gray-400">{t('tour.secureSpot')}</span>
               <Link
                 to={`/checkout?tour=${tour.id}`}
                 className="text-red-500 hover:text-red-600 font-bold underline underline-offset-2 transition-colors"
               >
-                {language === 'en' ? 'Pay $50 deposit' : 'Pagar $50 de anticipo'}
+                {t('tour.payDeposit')}
               </Link>
             </div>
 
@@ -372,13 +401,13 @@ const TourPage = () => {
                 </svg>
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-700">{language === 'en' ? 'Free cancellation up to 48h before' : 'Cancelación gratuita hasta 48h antes'}</p>
+                <p className="text-sm font-semibold text-gray-700">{t('tour.freeCancellation')}</p>
               </div>
               <Link
                 to="/politica-cancelacion"
                 className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors shrink-0"
               >
-                {language === 'en' ? 'View policy' : 'Ver política'}
+                {t('tour.viewPolicy')}
               </Link>
             </div>
           </div>
@@ -406,8 +435,8 @@ const TourPage = () => {
             </ul>
             {tour.includes && (
               <div className="mt-6 pt-5 border-t border-gray-100">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Incluye</p>
-                <p className="text-gray-600 text-sm whitespace-pre-line">{tour.includes}</p>
+                <p className="text-sm font-semibold text-gray-700 mb-2">{t('tour.includesLabel')}</p>
+                <p className="text-gray-600 text-sm whitespace-pre-line">{L(tour, 'includes', language)}</p>
               </div>
             )}
           </div>
@@ -452,7 +481,7 @@ const TourPage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </span>
-              {language === 'en' ? 'Not included' : 'No incluye'}
+              {t('tour.notIncluded')}
             </h3>
             <ul className="space-y-3">
               {notIncludedItems.map((item) => (
@@ -479,15 +508,15 @@ const TourPage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                   </span>
-                  {language === 'en' ? 'What to bring' : 'Qué llevar'}
+                  {t('tour.whatToBring')}
                 </h3>
                 <ul className="space-y-3">
                   {[
-                    { icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z', text: 'Protector solar y sombrero' },
-                    { icon: 'M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z', text: 'Ropa cómoda y zapatos cerrados' },
-                    { icon: 'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z', text: 'Cámara o smartphone' },
-                    { icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', text: 'Efectivo para compras personales' },
-                    { icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', text: 'Botella de agua reutilizable' },
+                    { icon: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z', text: 'Protector solar y sombrero', text_en: 'Sunscreen and hat' },
+                    { icon: 'M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z', text: 'Ropa cómoda y zapatos cerrados', text_en: 'Comfortable clothes and closed-toe shoes' },
+                    { icon: 'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z', text: 'Cámara o smartphone', text_en: 'Camera or smartphone' },
+                    { icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', text: 'Efectivo para compras personales', text_en: 'Cash for personal purchases' },
+                    { icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', text: 'Botella de agua reutilizable', text_en: 'Reusable water bottle' },
                   ].map((item) => (
                     <li key={item.text} className="flex items-center gap-3 text-gray-600">
                       <span className="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center shrink-0">
@@ -495,7 +524,7 @@ const TourPage = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                         </svg>
                       </span>
-                      <span className="text-sm">{item.text}</span>
+                      <span className="text-sm">{language === 'en' ? item.text_en : item.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -509,15 +538,15 @@ const TourPage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </span>
-                  {language === 'en' ? 'What to expect' : 'Qué esperar'}
+                  {t('tour.whatToExpect')}
                 </h3>
                 <ul className="space-y-3">
                   {[
-                    { icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z', text: 'Punto de encuentro en muelle de Panajachel' },
-                    { icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', text: 'Grupos pequeños para experiencia personalizada' },
-                    { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', text: 'Guía bilingüe (español/inglés) durante todo el recorrido' },
-                    { icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z', text: 'Posibles cambios por condiciones climáticas' },
-                    { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', text: 'Ambiente familiar y seguro' },
+                    { icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z', text: 'Punto de encuentro en muelle de Panajachel', text_en: 'Meeting point at Panajachel dock' },
+                    { icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', text: 'Grupos pequeños para experiencia personalizada', text_en: 'Small groups for a personalized experience' },
+                    { icon: 'M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129', text: 'Guía bilingüe (español/inglés) durante todo el recorrido', text_en: 'Bilingual guide (Spanish/English) throughout the tour' },
+                    { icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z', text: 'Posibles cambios por condiciones climáticas', text_en: 'Possible changes due to weather conditions' },
+                    { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', text: 'Ambiente familiar y seguro', text_en: 'Safe and family-friendly environment' },
                   ].map((item) => (
                     <li key={item.text} className="flex items-center gap-3 text-gray-600">
                       <span className="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center shrink-0">
@@ -525,7 +554,7 @@ const TourPage = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                         </svg>
                       </span>
-                      <span className="text-sm">{item.text}</span>
+                      <span className="text-sm">{language === 'en' ? item.text_en : item.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -544,7 +573,7 @@ const TourPage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
                 </span>
-                {language === 'en' ? 'Tour route' : 'Ruta del tour'}
+                {t('tour.tourRoute')}
               </h3>
               <Suspense fallback={<div className="h-[300px] sm:h-[360px] rounded-2xl bg-gray-100 animate-pulse" />}>
                 <TourRouteMap
@@ -562,7 +591,7 @@ const TourPage = () => {
                       {idx + 1}
                     </span>
                     <span className="font-medium">
-                      {stop.isReturn ? `${stop.name} (regreso)` : stop.name}
+                      {stop.isReturn ? `${stop.name} (${t('tour.return')})` : stop.name}
                     </span>
                     {idx < arr.length - 1 && (
                       <svg className="w-3 h-3 text-gray-300 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

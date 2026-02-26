@@ -8,6 +8,7 @@ import {
   buildWebSiteSchema,
 } from '../seo';
 import { useLanguage } from '../contexts/LanguageContext';
+import { L } from '../lib/localize';
 
 const CONTACT_METHODS = [
   {
@@ -17,9 +18,10 @@ const CONTACT_METHODS = [
       </svg>
     ),
     title: 'WhatsApp',
+    title_en: 'WhatsApp',
     descKey: 'contact.methodWhatsapp' as const,
     actionKey: 'contact.actionWhatsapp' as const,
-    href: 'https://wa.me/50222681264?text=¡Hola! Me interesa conocer más sobre las experiencias en Atitlán.',
+    href: 'https://wa.me/50222681264',
     color: 'bg-green-500 hover:bg-green-400',
     shadowColor: 'shadow-green-500/30',
   },
@@ -30,6 +32,7 @@ const CONTACT_METHODS = [
       </svg>
     ),
     title: 'Email',
+    title_en: 'Email',
     descKey: 'contact.methodEmail' as const,
     actionKey: 'contact.actionEmail' as const,
     href: 'mailto:hola@atitlanexperience.com',
@@ -87,13 +90,6 @@ const FAQ_ITEMS = [
 
 const ContactoPage = () => {
   const { t, language } = useLanguage();
-  const L = (obj: Record<string, any>, field: string) => {
-    if (language === 'en') {
-      const enKey = `${field}_en`;
-      if (enKey in obj && obj[enKey]) return obj[enKey] as string;
-    }
-    return (obj[field] ?? '') as string;
-  };
   const meta = PAGE_META.contacto;
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [contactForm, setContactForm] = useState({
@@ -111,12 +107,12 @@ const ContactoPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(contactForm),
       });
-      if (!res.ok) throw new Error('Error al enviar');
+      if (!res.ok) throw new Error(language === 'en' ? 'Error sending' : 'Error al enviar');
       setContactStatus('success');
       setContactForm({ name: '', email: '', phone: '', tourInterest: 'Consulta general', travelDate: '', pax: 1, message: '' });
     } catch {
       setContactStatus('error');
-      setContactError('Hubo un error al enviar tu mensaje. Intenta de nuevo o contáctanos por WhatsApp.');
+      setContactError(language === 'en' ? 'There was an error sending your message. Please try again or contact us via WhatsApp.' : 'Hubo un error al enviar tu mensaje. Intenta de nuevo o contáctanos por WhatsApp.');
     }
   };
 
@@ -162,7 +158,7 @@ const ContactoPage = () => {
               <div className={`w-14 h-14 ${method.color} rounded-2xl flex items-center justify-center text-white mb-5 shadow-lg ${method.shadowColor} group-hover:scale-110 transition-transform duration-300`}>
                 {method.icon}
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{'title_en' in method && language === 'en' ? (method as any).title_en : method.title}</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{L(method, 'title', language)}</h3>
               <p className="text-sm text-gray-500 mb-4">{t(method.descKey)}</p>
               <span className="inline-flex items-center gap-2 text-sm font-bold text-red-600 group-hover:text-red-500 transition-colors">
                 {t(method.actionKey)}
@@ -234,19 +230,19 @@ const ContactoPage = () => {
                     onChange={(e) => setContactForm({ ...contactForm, tourInterest: e.target.value })}
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   >
-                    <option value="Consulta general">Consulta general</option>
+                    <option value="Consulta general">{language === 'en' ? 'General inquiry' : 'Consulta general'}</option>
                     <option value="Atitlán Signature">Atitlán Signature</option>
-                    <option value="Día Privado en el Lago">Día Privado en el Lago</option>
-                    <option value="Crucero al Atardecer">Crucero al Atardecer</option>
-                    <option value="Amanecer en el Lago">Amanecer en el Lago</option>
-                    <option value="Escapada Bienestar">Escapada Bienestar</option>
-                    <option value="Ruta Artesanal">Ruta Artesanal</option>
-                    <option value="Santiago Cultural">Santiago Cultural</option>
-                    <option value="Laboratorio de Café">Laboratorio de Café</option>
-                    <option value="Café y Lago Combo">Café y Lago Combo</option>
-                    <option value="Día de Campo Esencial">Día de Campo Esencial</option>
-                    <option value="Día de Campo Premium">Día de Campo Premium</option>
-                    <option value="Canasta Celebración">Canasta Celebración</option>
+                    <option value="Día Privado en el Lago">{language === 'en' ? 'Private Lake Day' : 'Día Privado en el Lago'}</option>
+                    <option value="Crucero al Atardecer">{language === 'en' ? 'Sunset Cruise' : 'Crucero al Atardecer'}</option>
+                    <option value="Amanecer en el Lago">{language === 'en' ? 'Sunrise on the Lake' : 'Amanecer en el Lago'}</option>
+                    <option value="Escapada Bienestar">{language === 'en' ? 'Wellness Getaway' : 'Escapada Bienestar'}</option>
+                    <option value="Ruta Artesanal">{language === 'en' ? 'Artisan Route' : 'Ruta Artesanal'}</option>
+                    <option value="Santiago Cultural">{language === 'en' ? 'Santiago Cultural' : 'Santiago Cultural'}</option>
+                    <option value="Laboratorio de Café">{language === 'en' ? 'Coffee Lab' : 'Laboratorio de Café'}</option>
+                    <option value="Café y Lago Combo">{language === 'en' ? 'Coffee & Lake Combo' : 'Café y Lago Combo'}</option>
+                    <option value="Día de Campo Esencial">{language === 'en' ? 'Essential Picnic Day' : 'Día de Campo Esencial'}</option>
+                    <option value="Día de Campo Premium">{language === 'en' ? 'Premium Picnic Day' : 'Día de Campo Premium'}</option>
+                    <option value="Canasta Celebración">{language === 'en' ? 'Celebration Basket' : 'Canasta Celebración'}</option>
                   </select>
                 </div>
               </div>
@@ -391,7 +387,7 @@ const ContactoPage = () => {
                   aria-expanded={openFaq === index}
                   className="w-full flex items-center justify-between p-5 sm:p-6 text-left"
                 >
-                  <span className="text-base font-bold text-gray-900 pr-4">{L(item, 'question')}</span>
+                  <span className="text-base font-bold text-gray-900 pr-4">{L(item, 'question', language)}</span>
                   <span className={`w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0 transition-transform duration-300 ${openFaq === index ? 'rotate-180 bg-red-100' : ''}`}>
                     <svg className={`w-4 h-4 ${openFaq === index ? 'text-red-600' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -400,7 +396,7 @@ const ContactoPage = () => {
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ${openFaq === index ? 'max-h-48' : 'max-h-0'}`}>
                   <div className="px-5 sm:px-6 pb-5 sm:pb-6">
-                    <p className="text-gray-500 leading-relaxed">{L(item, 'answer')}</p>
+                    <p className="text-gray-500 leading-relaxed">{L(item, 'answer', language)}</p>
                   </div>
                 </div>
               </div>
@@ -424,7 +420,7 @@ const ContactoPage = () => {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <a
-                href="https://wa.me/50222681264?text=¡Hola! Necesito ayuda para encontrar la experiencia perfecta en Atitlán."
+                href={language === 'en' ? 'https://wa.me/50222681264?text=Hello! I need help finding the perfect experience in Atitlán.' : 'https://wa.me/50222681264?text=¡Hola! Necesito ayuda para encontrar la experiencia perfecta en Atitlán.'}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-3 bg-green-500 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-green-400 transition-all duration-300 shadow-xl shadow-green-500/30"

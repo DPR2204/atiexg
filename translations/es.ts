@@ -208,7 +208,20 @@ export const es = {
         from: 'Desde',
         popular: 'Popular',
         favoriteAdd: 'Agregar a favoritos',
-        favoriteRemove: 'Quitar de favoritos'
+        favoriteRemove: 'Quitar de favoritos',
+        notIncluded: 'No incluye',
+        includesLabel: 'Incluye',
+        whatToBring: 'Qué llevar',
+        whatToExpect: 'Qué esperar',
+        tourRoute: 'Ruta del tour',
+        new: 'Nuevo',
+        mealsIncluded: 'Comidas incluidas',
+        privateBoat: 'Lancha privada',
+        secureSpot: '¿Prefieres asegurar tu lugar?',
+        payDeposit: 'Pagar $50 de anticipo',
+        freeCancellation: 'Cancelación gratuita hasta 48h antes',
+        viewPolicy: 'Ver política',
+        return: 'regreso'
     },
     faq: {
         tag: 'Centro de Ayuda',

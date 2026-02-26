@@ -8,7 +8,8 @@ import GalleryViewer from '../components/GalleryViewer';
 import { GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
 import { getCloudinaryUrl } from '../src/utils/cloudinary';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useLanguage, type Language } from '../contexts/LanguageContext';
+import { L } from '../lib/localize';
 import cloudinaryAssets from '../src/data/cloudinary-assets.json';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -21,8 +22,11 @@ interface GalleryItem {
   id: number;
   src: string;
   alt: string;
+  alt_en?: string;
   title: string;
+  title_en?: string;
   location: string;
+  location_en?: string;
   tourLink: string;
   color: string;
   size: 'large' | 'medium' | 'small';
@@ -35,7 +39,9 @@ const galleryItems: GalleryItem[] = [
     id: 1,
     src: 'DSC04496_noiz4x',
     alt: 'Vista panorámica del Lago de Atitlán desde el mirador de San Antonio Palopó',
+    alt_en: 'Panoramic view of Lake Atitlán from San Antonio Palopó viewpoint',
     title: 'Mirador San Antonio Palopó',
+    title_en: 'San Antonio Palopó Viewpoint',
     location: 'San Antonio Palopó',
     tourLink: '/experiencias/palopo-art-route',
     color: '#1a3a50',
@@ -46,7 +52,9 @@ const galleryItems: GalleryItem[] = [
     id: 2,
     src: 'DSC04042_ktnwye',
     alt: 'Calle colorida en el centro de San Juan la Laguna',
+    alt_en: 'Colorful street in downtown San Juan la Laguna',
     title: 'Calles de San Juan la Laguna',
+    title_en: 'Streets of San Juan la Laguna',
     location: 'San Juan la Laguna',
     tourLink: '/experiencias/atitlan-artisan-day',
     color: '#4a3d2e',
@@ -57,8 +65,11 @@ const galleryItems: GalleryItem[] = [
     id: 3,
     src: 'DSC04094_vht4pi',
     alt: 'Vista del lago y volcanes en la ruta de lancha San Pedro a Santiago Atitlán',
+    alt_en: 'Lake and volcano views on the boat route from San Pedro to Santiago Atitlán',
     title: 'Ruta en Lancha por el Lago',
+    title_en: 'Boat Route Across the Lake',
     location: 'Lago de Atitlán',
+    location_en: 'Lake Atitlán',
     tourLink: '/experiencias/atitlan-signature',
     color: '#1a2d3e',
     size: 'large',
@@ -68,7 +79,9 @@ const galleryItems: GalleryItem[] = [
     id: 4,
     src: 'DSC04374_rdep9d',
     alt: 'Playa con aguas cristalinas en Santa Catarina Palopó',
+    alt_en: 'Beach with crystal-clear waters in Santa Catarina Palopó',
     title: 'Playa Santa Catarina Palopó',
+    title_en: 'Santa Catarina Palopó Beach',
     location: 'Santa Catarina Palopó',
     tourLink: '/experiencias/palopo-art-route',
     color: '#1a4050',
@@ -79,7 +92,9 @@ const galleryItems: GalleryItem[] = [
     id: 5,
     src: 'DSC04185_rgqgug',
     alt: 'Platillos de comida local en el mercado de Santiago Atitlán',
+    alt_en: 'Local food dishes at Santiago Atitlán market',
     title: 'Gastronomía Local',
+    title_en: 'Local Gastronomy',
     location: 'Santiago Atitlán',
     tourLink: '/experiencias/san-pedro-foodies',
     color: '#5a3a20',
@@ -90,7 +105,9 @@ const galleryItems: GalleryItem[] = [
     id: 6,
     src: 'DSC04045_etlucg',
     alt: 'Güipiles tradicionales mayas tejidos a mano en San Juan la Laguna',
+    alt_en: 'Traditional hand-woven Mayan huipiles in San Juan la Laguna',
     title: 'Textiles Mayas',
+    title_en: 'Mayan Textiles',
     location: 'San Juan la Laguna',
     tourLink: '/experiencias/atitlan-artisan-day',
     color: '#3a2535',
@@ -101,7 +118,9 @@ const galleryItems: GalleryItem[] = [
     id: 7,
     src: 'DSC04361_iuucat',
     alt: 'Playa de arena junto al lago en San Lucas Tolimán con volcanes de fondo',
+    alt_en: 'Sandy beach by the lake in San Lucas Tolimán with volcanoes in the background',
     title: 'Playa San Lucas Tolimán',
+    title_en: 'San Lucas Tolimán Beach',
     location: 'San Lucas Tolimán',
     tourLink: '/experiencias/hidden-south-shore',
     color: '#2d3a2e',
@@ -112,7 +131,9 @@ const galleryItems: GalleryItem[] = [
     id: 8,
     src: 'DSC04466_mxfzds',
     alt: 'Callejones pintados de colores en San Antonio Palopó',
+    alt_en: 'Colorfully painted alleyways in San Antonio Palopó',
     title: 'Callejones de San Antonio',
+    title_en: 'San Antonio Alleyways',
     location: 'San Antonio Palopó',
     tourLink: '/experiencias/palopo-art-route',
     color: '#2a3540',
@@ -123,7 +144,9 @@ const galleryItems: GalleryItem[] = [
     id: 9,
     src: 'DSC04238_swyart',
     alt: 'Tabla de vino y queso gourmet junto al Lago de Atitlán',
+    alt_en: 'Gourmet wine and cheese board by Lake Atitlán',
     title: 'Experiencia Gourmet',
+    title_en: 'Gourmet Experience',
     location: 'San Lucas Tolimán',
     tourLink: '/experiencias/coffee-lab',
     color: '#2a2218',
@@ -134,7 +157,9 @@ const galleryItems: GalleryItem[] = [
     id: 10,
     src: 'DSC04381_ro3yne',
     alt: 'Vista del lago desde el mirador público de Santa Catarina Palopó',
+    alt_en: 'Lake view from the public viewpoint in Santa Catarina Palopó',
     title: 'Mirador Santa Catarina',
+    title_en: 'Santa Catarina Viewpoint',
     location: 'Santa Catarina Palopó',
     tourLink: '/experiencias/palopo-art-route',
     color: '#1a3525',
@@ -587,8 +612,8 @@ const GaleriaPage: React.FC = () => {
   return (
     <div ref={containerRef} className="min-h-screen bg-[#0a0a0a] text-[#f5f0e8] overflow-x-hidden">
       <Seo
-        title="Galería | Atitlán Experiences — Fotos del Lago de Atitlán"
-        description="Explora nuestra galería de fotos del Lago de Atitlán, Guatemala. Paisajes, cultura, gastronomía y aventuras premium en el lago más hermoso del mundo."
+        title={t('seo.gallery.title')}
+        description={t('seo.gallery.description')}
         canonicalPath="/galeria"
         structuredData={[buildOrganizationSchema(), buildWebSiteSchema()]}
       />
@@ -643,9 +668,9 @@ const GaleriaPage: React.FC = () => {
             target="_blank"
             rel="noreferrer"
             className="bg-[#f5f0e8] text-[#0a0a0a] px-5 py-2 rounded-full font-dm-sans text-sm font-semibold hover:bg-white transition-colors duration-200"
-            aria-label="Reservar tour por WhatsApp"
+            aria-label={language === 'en' ? 'Book a tour via WhatsApp' : 'Reservar tour por WhatsApp'}
           >
-            Reservar
+            {t('tour.reserve')}
           </a>
         </div>
       </header>
@@ -659,7 +684,7 @@ const GaleriaPage: React.FC = () => {
           src={getCloudinaryUrl('DSC04387_zcq91s', { width: 1400 })}
           srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [600, 1000, 1400]).srcSet}
           sizes="100vw"
-          alt="Vista panorámica del Lago de Atitlán desde el mirador de Santa Catarina Palopó"
+          alt={language === 'en' ? 'Panoramic view of Lake Atitlán from Santa Catarina Palopó viewpoint' : 'Vista panorámica del Lago de Atitlán desde el mirador de Santa Catarina Palopó'}
           className="absolute inset-0 w-full h-full object-cover will-change-transform"
           loading="eager"
           fetchPriority="high"
@@ -696,39 +721,39 @@ const GaleriaPage: React.FC = () => {
         {/* ---- Experience counter ---- */}
         <div className="flex justify-end mb-4 sm:mb-6 lg:mb-8 px-1">
           <span className="font-dm-sans text-[11px] sm:text-xs uppercase tracking-[0.25em] text-[#f5f0e8]/25">
-            {allGalleryItems.length} {language === 'en' ? 'experiences' : 'experiencias'}
+            {allGalleryItems.length} {language === 'en' ? 'photos' : 'fotos'}
           </span>
         </div>
 
         {/* ---- Group 1: Large landscape + Medium portrait ---- */}
         <div data-gallery-group="1" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5">
           <div className="md:col-span-1 lg:col-span-8" data-gallery-card>
-            <GalleryCard item={galleryItems[0]} itemIndex={0} heightClass="h-[42vh] sm:h-[55vh] lg:h-[70vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[0]} itemIndex={0} heightClass="h-[42vh] sm:h-[55vh] lg:h-[70vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} lang={language} />
           </div>
           <div className="md:col-span-1 lg:col-span-4" data-gallery-card>
-            <GalleryCard item={galleryItems[1]} itemIndex={1} heightClass="h-[42vh] sm:h-[50vh] lg:h-[70vh]" parallaxSpeed={0.18} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[1]} itemIndex={1} heightClass="h-[42vh] sm:h-[50vh] lg:h-[70vh]" parallaxSpeed={0.18} onOpen={handleOpenViewer} lang={language} />
           </div>
         </div>
 
         {/* ---- Group 2: Full-width large landscape ---- */}
         <div data-gallery-group="2" className="mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[2]} itemIndex={2} heightClass="h-[42vh] sm:h-[55vh] lg:h-[75vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[2]} itemIndex={2} heightClass="h-[42vh] sm:h-[55vh] lg:h-[75vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} lang={language} />
           </div>
         </div>
 
         {/* ---- Group 3: Medium landscape + Small + Small ---- */}
         <div data-gallery-group="3" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div className="md:col-span-2 lg:col-span-7" data-gallery-card>
-            <GalleryCard item={galleryItems[3]} itemIndex={3} heightClass="h-[42vh] sm:h-[50vh] lg:h-[55vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[3]} itemIndex={3} heightClass="h-[42vh] sm:h-[50vh] lg:h-[55vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} lang={language} />
           </div>
           <div className="lg:col-span-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 lg:gap-5 h-full">
               <div data-gallery-card>
-                <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[35vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
+                <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[35vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} lang={language} />
               </div>
               <div data-gallery-card>
-                <GalleryCard item={galleryItems[5]} itemIndex={5} heightClass="h-[42vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
+                <GalleryCard item={galleryItems[5]} itemIndex={5} heightClass="h-[42vh] sm:h-[35vh] lg:h-auto lg:min-h-[25vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} lang={language} />
               </div>
             </div>
           </div>
@@ -737,7 +762,7 @@ const GaleriaPage: React.FC = () => {
         {/* ---- Inline CTA ---- */}
         <div data-gallery-cta className="my-[8vh] sm:my-[10vh] max-w-3xl mx-auto text-center">
           <p className="font-dm-sans text-xs uppercase tracking-[0.3em] text-[#1a3a5c] mb-4">
-            {language === 'en' ? 'Premium Experiences' : 'Experiencias Premium'}
+            {t('catalog.titleAccent')}
           </p>
           <h2 className="font-playfair text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-4">
             {language === 'en' ? 'Every photo is an experience' : 'Cada foto es una experiencia'}
@@ -752,7 +777,7 @@ const GaleriaPage: React.FC = () => {
               to="/catalogo"
               className="inline-flex items-center justify-center gap-2 bg-[#f5f0e8] text-[#0a0a0a] px-7 py-3 rounded-full font-dm-sans font-semibold text-sm hover:bg-white transition-colors duration-200"
             >
-              {language === 'en' ? 'View all tours' : 'Ver todos los tours'}
+              {t('nav.cta')}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
@@ -762,12 +787,12 @@ const GaleriaPage: React.FC = () => {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 border border-[#f5f0e8]/20 text-[#f5f0e8]/70 px-7 py-3 rounded-full font-dm-sans text-sm hover:bg-[#f5f0e8]/5 hover:text-[#f5f0e8] transition-colors duration-200"
-              aria-label="Consultar disponibilidad por WhatsApp"
+              aria-label={language === 'en' ? 'Check availability on WhatsApp' : 'Consultar disponibilidad por WhatsApp'}
             >
               <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
               </svg>
-              WhatsApp
+              {t('cta.whatsapp')}
             </a>
           </div>
         </div>
@@ -775,27 +800,27 @@ const GaleriaPage: React.FC = () => {
         {/* ---- Group 4: Large landscape (full) ---- */}
         <div data-gallery-group="4">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[6]} itemIndex={6} heightClass="h-[45vh] sm:h-[55vh] lg:h-[80vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[6]} itemIndex={6} heightClass="h-[45vh] sm:h-[55vh] lg:h-[80vh]" parallaxSpeed={0.1} onOpen={handleOpenViewer} lang={language} />
           </div>
         </div>
 
         {/* ---- Group 5: Medium portrait + Medium landscape ---- */}
         <div data-gallery-group="5" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div className="md:col-span-1 lg:col-span-5" data-gallery-card>
-            <GalleryCard item={galleryItems[9]} itemIndex={9} heightClass="h-[42vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[9]} itemIndex={9} heightClass="h-[42vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.2} onOpen={handleOpenViewer} lang={language} />
           </div>
           <div className="md:col-span-1 lg:col-span-7" data-gallery-card>
-            <GalleryCard item={galleryItems[7]} itemIndex={7} heightClass="h-[42vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[7]} itemIndex={7} heightClass="h-[42vh] sm:h-[50vh] lg:h-[65vh]" parallaxSpeed={0.12} onOpen={handleOpenViewer} lang={language} />
           </div>
         </div>
 
         {/* ---- Group 6: Small + Small (closing pair) ---- */}
         <div data-gallery-group="6" className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 mt-[6vh] sm:mt-[7vh] lg:mt-[8vh]">
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[8]} itemIndex={8} heightClass="h-[35vh] sm:h-[40vh] lg:h-[50vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[8]} itemIndex={8} heightClass="h-[35vh] sm:h-[40vh] lg:h-[50vh]" parallaxSpeed={0.15} onOpen={handleOpenViewer} lang={language} />
           </div>
           <div data-gallery-card>
-            <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[35vh] sm:h-[40vh] lg:h-[50vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} />
+            <GalleryCard item={galleryItems[4]} itemIndex={4} heightClass="h-[35vh] sm:h-[40vh] lg:h-[50vh]" parallaxSpeed={0.08} onOpen={handleOpenViewer} lang={language} />
           </div>
         </div>
 
@@ -805,6 +830,7 @@ const GaleriaPage: React.FC = () => {
             items={remainingItems}
             startIndex={galleryItems.length}
             onOpen={handleOpenViewer}
+            lang={language}
           />
         )}
       </main>
@@ -836,7 +862,7 @@ const GaleriaPage: React.FC = () => {
               to="/catalogo"
               className="inline-flex items-center justify-center gap-2.5 bg-[#f5f0e8] text-[#0a0a0a] min-h-[52px] px-9 py-3.5 rounded-full font-dm-sans font-semibold text-base hover:bg-white transition-colors duration-200"
             >
-              {language === 'en' ? 'View all tours' : 'Ver todos los tours'}
+              {t('nav.cta')}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
@@ -851,7 +877,7 @@ const GaleriaPage: React.FC = () => {
               <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
               </svg>
-              Hablar con nosotros
+              {t('cta.whatsapp')}
             </a>
           </div>
         </div>
@@ -871,12 +897,12 @@ const GaleriaPage: React.FC = () => {
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-2.5 bg-[#f5f0e8]/[0.08] backdrop-blur-2xl border border-[#f5f0e8]/[0.12] text-[#f5f0e8] px-6 py-3.5 sm:px-7 sm:py-3.5 rounded-full font-dm-sans text-sm font-medium shadow-lg shadow-black/25 hover:bg-[#f5f0e8]/[0.14] hover:border-[#f5f0e8]/20 transition-all duration-200"
-          aria-label="Reservar experiencia en Lago de Atitlán"
+          aria-label={language === 'en' ? 'Book an experience at Lake Atitlán' : 'Reservar experiencia en Lago de Atitlán'}
         >
           <svg className="w-4 h-4 text-[#f5f0e8]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          Reservar experiencia
+          {t('tour.reserve')}
         </a>
       </div>
 
@@ -947,7 +973,8 @@ const RemainingGalleryGrid: React.FC<{
   items: GalleryItem[];
   startIndex: number;
   onOpen: (index: number, sourceEl: HTMLElement) => void;
-}> = ({ items, startIndex, onOpen }) => {
+  lang?: Language;
+}> = ({ items, startIndex, onOpen, lang = 'es' as Language }) => {
   const rows: { layout: LayoutRow; items: GalleryItem[]; baseIdx: number }[] = [];
   let cursor = 0;
   let cycleIdx = 0;
@@ -978,6 +1005,7 @@ const RemainingGalleryGrid: React.FC<{
                   heightClass={HEIGHT_MAP.full[it.size]}
                   parallaxSpeed={0.1}
                   onOpen={onOpen}
+                  lang={lang}
                 />
               </div>
             </div>
@@ -995,6 +1023,7 @@ const RemainingGalleryGrid: React.FC<{
                     heightClass={HEIGHT_MAP['two-asymmetric'][row.items[0].size]}
                     parallaxSpeed={0.12}
                     onOpen={onOpen}
+                    lang={lang}
                   />
                 </div>
               )}
@@ -1006,6 +1035,7 @@ const RemainingGalleryGrid: React.FC<{
                     heightClass={HEIGHT_MAP['two-asymmetric'][row.items[1].size]}
                     parallaxSpeed={0.18}
                     onOpen={onOpen}
+                    lang={lang}
                   />
                 </div>
               )}
@@ -1024,6 +1054,7 @@ const RemainingGalleryGrid: React.FC<{
                     heightClass={HEIGHT_MAP['two-asymmetric-reverse'][row.items[0].size]}
                     parallaxSpeed={0.18}
                     onOpen={onOpen}
+                    lang={lang}
                   />
                 </div>
               )}
@@ -1035,6 +1066,7 @@ const RemainingGalleryGrid: React.FC<{
                     heightClass={HEIGHT_MAP['two-asymmetric-reverse'][row.items[1].size]}
                     parallaxSpeed={0.1}
                     onOpen={onOpen}
+                    lang={lang}
                   />
                 </div>
               )}
@@ -1053,6 +1085,7 @@ const RemainingGalleryGrid: React.FC<{
                   heightClass={HEIGHT_MAP.three[it.size]}
                   parallaxSpeed={[0.08, 0.15, 0.12][i % 3]}
                   onOpen={onOpen}
+                  lang={lang}
                 />
               </div>
             ))}
@@ -1073,7 +1106,8 @@ const GalleryCard: React.FC<{
   heightClass: string;
   parallaxSpeed?: number;
   onOpen: (index: number, sourceEl: HTMLElement) => void;
-}> = ({ item, itemIndex, heightClass, parallaxSpeed = 0.15, onOpen }) => {
+  lang?: Language;
+}> = ({ item, itemIndex, heightClass, parallaxSpeed = 0.15, onOpen, lang = 'es' as Language }) => {
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -1104,7 +1138,7 @@ const GalleryCard: React.FC<{
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      aria-label={`Ver ${item.title} en pantalla completa`}
+      aria-label={lang === 'en' ? `View ${L(item, 'title', lang)} fullscreen` : `Ver ${L(item, 'title', lang)} en pantalla completa`}
       className={`group relative block w-full overflow-hidden rounded-xl sm:rounded-2xl bg-[#141414] cursor-pointer select-none ${heightClass}`}
     >
       {/* Blur placeholder — dominant color */}
@@ -1133,7 +1167,7 @@ const GalleryCard: React.FC<{
           src={getCloudinaryUrl(item.src, { width: 1600 })}
           srcSet={srcSet}
           sizes={sizes}
-          alt={item.alt}
+          alt={L(item, 'alt', lang)}
           data-parallax={parallaxSpeed}
           className={`absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
           loading="lazy"
@@ -1155,9 +1189,9 @@ const GalleryCard: React.FC<{
         className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 lg:p-6"
       >
         <p className="font-dm-sans text-[13px] sm:text-sm font-medium text-[#f5f0e8]/90 leading-snug">
-          {item.title}
+          {L(item, 'title', lang)}
           <span className="text-[#f5f0e8]/25 mx-1.5">·</span>
-          <span className="text-[#f5f0e8]/50">{item.location}</span>
+          <span className="text-[#f5f0e8]/50">{L(item, 'location', lang)}</span>
         </p>
       </div>
     </div>

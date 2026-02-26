@@ -93,12 +93,12 @@ export default function CheckoutPage() {
                 // Redirect user to Recurrente
                 window.location.href = data.checkoutUrl;
             } else {
-                throw new Error(data.error || 'Error al generar pago');
+                throw new Error(data.error || (language === 'en' ? 'Error generating payment' : 'Error al generar pago'));
             }
 
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Error al procesar la reserva. Intenta de nuevo o contactanos.');
+            setError(err.message || (language === 'en' ? 'Error processing reservation. Try again or contact us.' : 'Error al procesar la reserva. Intenta de nuevo o contáctanos.'));
         } finally {
             setLoading(false);
         }
@@ -197,7 +197,7 @@ export default function CheckoutPage() {
                                         type="text"
                                         required
                                         autoComplete="name"
-                                        placeholder="Tu nombre"
+                                        placeholder={language === 'en' ? 'Your name' : 'Tu nombre'}
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                                         value={form.name}
                                         onChange={e => setForm({ ...form, name: e.target.value })}
@@ -211,7 +211,7 @@ export default function CheckoutPage() {
                                             type="email"
                                             required
                                             autoComplete="email"
-                                            placeholder="tucorreo@ejemplo.com"
+                                            placeholder={language === 'en' ? 'your@email.com' : 'tucorreo@ejemplo.com'}
                                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                                             value={form.email}
                                             onChange={e => setForm({ ...form, email: e.target.value })}
