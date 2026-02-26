@@ -7,7 +7,7 @@ import Seo from '../components/Seo';
 import GalleryViewer from '../components/GalleryViewer';
 import { GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
-import { getCloudinaryUrl } from '../src/utils/cloudinary';
+import { getCloudinaryUrl, buildFormatSrcSets } from '../src/utils/cloudinary';
 import { useLanguage, type Language } from '../contexts/LanguageContext';
 import { L } from '../lib/localize';
 import cloudinaryAssets from '../src/data/cloudinary-assets.json';
@@ -286,20 +286,19 @@ function supportsShaderReveal(): boolean {
 // Responsive image helper — Cloudinary srcSet
 // ============================================================
 
+const GALLERY_SIZES = '(max-width: 480px) 95vw, (max-width: 768px) 50vw, (max-width: 1024px) 50vw, 33vw';
+
 function buildCloudinarySrcSet(
   publicId: string,
   widths = [480, 800, 1200, 1800],
-): { srcSet: string; sizes: string } {
-  const srcSet = widths
-    .map((w) => {
-      const url = getCloudinaryUrl(publicId, { width: w });
-      return `${url} ${w}w`;
-    })
-    .join(', ');
+): { srcSet: string; sizes: string; avifSrcSet: string; webpSrcSet: string } {
+  const formats = buildFormatSrcSets(publicId, widths);
 
   return {
-    srcSet,
-    sizes: '(max-width: 480px) 95vw, (max-width: 768px) 50vw, (max-width: 1024px) 50vw, 33vw',
+    srcSet: formats.jpg,
+    avifSrcSet: formats.avif,
+    webpSrcSet: formats.webp,
+    sizes: GALLERY_SIZES,
   };
 }
 
@@ -679,16 +678,28 @@ const GaleriaPage: React.FC = () => {
           HERO — Fullscreen with entrance anim
           ================================ */}
       <section ref={heroRef} className="relative h-[100svh] min-h-[600px] overflow-hidden">
-        <img
-          ref={heroImgRef}
-          src={getCloudinaryUrl('DSC04387_zcq91s', { width: 1400 })}
-          srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [600, 1000, 1400]).srcSet}
-          sizes="100vw"
-          alt={language === 'en' ? 'Panoramic view of Lake Atitlán from Santa Catarina Palopó viewpoint' : 'Vista panorámica del Lago de Atitlán desde el mirador de Santa Catarina Palopó'}
-          className="absolute inset-0 w-full h-full object-cover will-change-transform"
-          loading="eager"
-          fetchPriority="high"
-        />
+        <picture>
+          <source
+            srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [600, 1000, 1400]).avifSrcSet}
+            sizes="100vw"
+            type="image/avif"
+          />
+          <source
+            srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [600, 1000, 1400]).webpSrcSet}
+            sizes="100vw"
+            type="image/webp"
+          />
+          <img
+            ref={heroImgRef}
+            src={getCloudinaryUrl('DSC04387_zcq91s', { width: 1400, format: 'jpg' })}
+            srcSet={buildCloudinarySrcSet('DSC04387_zcq91s', [600, 1000, 1400]).srcSet}
+            sizes="100vw"
+            alt={language === 'en' ? 'Panoramic view of Lake Atitlán from Santa Catarina Palopó viewpoint' : 'Vista panorámica del Lago de Atitlán desde el mirador de Santa Catarina Palopó'}
+            className="absolute inset-0 w-full h-full object-cover will-change-transform"
+            loading="eager"
+            fetchPriority="high"
+          />
+        </picture>
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/50 via-transparent to-[#0a0a0a]" />
 
@@ -1130,7 +1141,9 @@ const GalleryCard: React.FC<{
     }
   };
 
-  const { srcSet, sizes } = buildCloudinarySrcSet(item.src);
+  const { srcSet, avifSrcSet, webpSrcSet, sizes } = buildCloudinarySrcSet(item.src);
+
+  const imgClass = `absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`;
 
   return (
     <div
@@ -1154,7 +1167,7 @@ const GalleryCard: React.FC<{
           ref={imgRef as any}
           src={getCloudinaryUrl(item.src, { resourceType: 'video' })}
           data-parallax={parallaxSpeed}
-          className={`absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          className={imgClass}
           autoPlay
           loop
           muted
@@ -1162,19 +1175,23 @@ const GalleryCard: React.FC<{
           onLoadedData={() => setLoaded(true)}
         />
       ) : (
-        <img
-          ref={imgRef}
-          src={getCloudinaryUrl(item.src, { width: 1600 })}
-          srcSet={srcSet}
-          sizes={sizes}
-          alt={L(item, 'alt', lang)}
-          data-parallax={parallaxSpeed}
-          className={`absolute inset-[-18%] w-[136%] h-[136%] sm:inset-[-15%] sm:w-[130%] sm:h-[130%] max-w-none object-cover will-change-transform transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.03] ${loaded ? 'opacity-100' : 'opacity-0'}`}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          draggable={false}
-        />
+        <picture>
+          <source srcSet={avifSrcSet} sizes={sizes} type="image/avif" />
+          <source srcSet={webpSrcSet} sizes={sizes} type="image/webp" />
+          <img
+            ref={imgRef}
+            src={getCloudinaryUrl(item.src, { width: 1600, format: 'jpg' })}
+            srcSet={srcSet}
+            sizes={sizes}
+            alt={L(item, 'alt', lang)}
+            data-parallax={parallaxSpeed}
+            className={imgClass}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            draggable={false}
+          />
+        </picture>
       )}
 
       {/* Permanent subtle bottom gradient */}
