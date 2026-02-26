@@ -3,13 +3,15 @@ import { Link } from 'react-router-dom';
 import Seo from '../components/Seo';
 import { GlassNav, GlassFooter } from '../components/shared';
 import { buildOrganizationSchema, buildWebSiteSchema } from '../seo';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const NotFoundPage = () => {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Seo
-        title="Página no encontrada | Atitlán Experiences"
-        description="La página que buscas no existe. Explora nuestro catálogo de experiencias premium en el Lago de Atitlán, Guatemala."
+        title={`${t('notFound.subtitle')} | Atitlán Experiences`}
+        description={t('notFound.desc')}
         canonicalPath="/404"
         structuredData={[buildOrganizationSchema(), buildWebSiteSchema()]}
       />
@@ -43,11 +45,10 @@ const NotFoundPage = () => {
           {/* Content */}
           <div className="relative animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-4">
-              ¡Parece que te perdiste en el lago!
+              {t('notFound.subtitle')}
             </h2>
             <p className="text-gray-500 text-base sm:text-lg mb-8 max-w-md mx-auto">
-              No te preocupes, hasta los mejores exploradores se pierden a veces.
-              Pero no encontramos la página que buscas.
+              {t('notFound.desc')}
             </p>
 
             {/* Action Buttons */}
@@ -59,28 +60,28 @@ const NotFoundPage = () => {
                 <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                <span>Volver al inicio</span>
+                <span>{t('notFound.backHome')}</span>
               </Link>
               <Link
                 to="/catalogo"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider glass-card hover:bg-white/80 transition-all duration-300"
               >
-                Explorar catálogo
+                {t('hero.primaryCTA')}
               </Link>
             </div>
 
             {/* Quick Links */}
             <div className="glass-card rounded-3xl p-6 sm:p-8 inline-block">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">
-                O puedes visitar
+                {t('common.explore')}
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 {[
-                  { label: 'Inicio', path: '/' },
-                  { label: 'Catálogo', path: '/catalogo' },
-                  { label: 'Galería', path: '/galeria' },
-                  { label: 'Conócenos', path: '/conocenos' },
-                  { label: 'Contacto', path: '/contacto' },
+                  { label: t('nav.home'), path: '/' },
+                  { label: t('nav.catalog'), path: '/catalogo' },
+                  { label: t('nav.gallery'), path: '/galeria' },
+                  { label: t('nav.about'), path: '/conocenos' },
+                  { label: t('nav.contact'), path: '/contacto' },
                 ].map((link) => (
                   <Link
                     key={link.path}

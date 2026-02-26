@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const HeroSection: React.FC = () => {
+    const { t, language } = useLanguage();
     return (
         <section className="relative min-h-[75vh] sm:min-h-[90vh] flex items-center overflow-hidden">
             {/* Background Elements */}
@@ -19,19 +21,18 @@ const HeroSection: React.FC = () => {
                     <div className="space-y-8 animate-fade-in-up">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card">
                             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                            <span className="text-xs font-semibold text-gray-600">Lago de Atitlán, Guatemala</span>
+                            <span className="text-xs font-semibold text-gray-600">{t('hero.tag')}</span>
                         </div>
 
                         <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-gray-900 leading-[0.95] tracking-tight">
-                            Más que tours:
+                            {t('hero.titleMain')}
                             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">
-                                experiencias premium
+                                {t('hero.titleAccent')}
                             </span>
-                            en el lago.
                         </h1>
 
                         <p className="text-lg sm:text-xl text-gray-500 leading-relaxed max-w-xl">
-                            Creamos rutas de alto nivel para visitantes exigentes. Gastronomía, hospitalidad y actividades privadas en el corazón de Atitlán.
+                            {t('hero.description')}
                         </p>
 
                         <div className="flex flex-wrap gap-4">
@@ -39,7 +40,7 @@ const HeroSection: React.FC = () => {
                                 to="/catalogo"
                                 className="group inline-flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-red-600 transition-all duration-300 shadow-xl shadow-gray-900/20 hover:shadow-red-600/30"
                             >
-                                <span>Explorar Catálogo</span>
+                                <span>{t('hero.primaryCTA')}</span>
                                 <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
@@ -48,7 +49,7 @@ const HeroSection: React.FC = () => {
                                 to="/contacto"
                                 className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider glass-card hover:bg-white/80 transition-all duration-300"
                             >
-                                Contactar
+                                {t('hero.secondaryCTA')}
                             </Link>
                         </div>
 
@@ -56,15 +57,15 @@ const HeroSection: React.FC = () => {
                         <div className="flex flex-wrap gap-8 pt-4">
                             <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                                 <p className="text-3xl font-black text-gray-900">14+</p>
-                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Experiencias</p>
+                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t('hero.stats.experiences')}</p>
                             </div>
                             <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                                 <p className="text-3xl font-black text-gray-900">4.9</p>
-                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Rating</p>
+                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t('hero.stats.rating')}</p>
                             </div>
                             <div className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
                                 <p className="text-3xl font-black text-gray-900">1000+</p>
-                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Viajeros</p>
+                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t('hero.stats.travelers')}</p>
                             </div>
                         </div>
                     </div>
@@ -119,8 +120,8 @@ const HeroSection: React.FC = () => {
                                     </svg>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-gray-900">Reserva confirmada</p>
-                                    <p className="text-xs text-gray-500">Sunset Cruise - 2 personas</p>
+                                    <p className="text-sm font-bold text-gray-900">{language === 'en' ? 'Booking confirmed' : 'Reserva confirmada'}</p>
+                                    <p className="text-xs text-gray-500">{language === 'en' ? 'Sunset Cruise - 2 guests' : 'Sunset Cruise - 2 personas'}</p>
                                 </div>
                             </div>
                         </div>

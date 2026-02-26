@@ -2,8 +2,31 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Seo from '../components/Seo';
 import { GlassNav, GlassFooter } from '../components/shared';
+import { useLanguage } from '../contexts/LanguageContext';
+import { L } from '../lib/localize';
+
+const WEATHER_ITEMS = [
+  {
+    text: 'Si cancelamos por clima, se reprograma sin costo a la fecha que prefieras.',
+    text_en: 'If we cancel due to weather, we reschedule at no cost to your preferred date.',
+  },
+  {
+    text: 'Si el clima permite ajustar el itinerario (ruta alternativa), te lo proponemos.',
+    text_en: 'If the weather allows for an adjusted itinerary (alternative route), we will propose it to you.',
+  },
+  {
+    text: 'El reembolso completo esta disponible si no puedes reprogramar.',
+    text_en: 'A full refund is available if you cannot reschedule.',
+  },
+  {
+    text: 'Te notificamos lo antes posible por WhatsApp sobre cualquier cambio.',
+    text_en: 'We notify you as soon as possible via WhatsApp about any changes.',
+  },
+];
 
 const PoliticaCancelacionPage = () => {
+  const { t, language } = useLanguage();
+
   return (
     <div className="min-h-screen bg-white">
       <Seo
@@ -23,19 +46,18 @@ const PoliticaCancelacionPage = () => {
             <div className="flex items-center justify-center gap-2 mb-4">
               <span className="h-px w-8 bg-red-500" />
               <span className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">
-                Transparencia
+                {t('legal.cancellationTag')}
               </span>
               <span className="h-px w-8 bg-red-500" />
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-[0.95] tracking-tight mb-6">
-              Politica de
+              {t('legal.cancellationTitle')}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">
-                Cancelacion
+                {t('legal.cancellationAccent')}
               </span>
             </h1>
             <p className="text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
-              Queremos que reserves con total confianza. Nuestra politica es clara,
-              justa y pensada para tu tranquilidad.
+              {t('legal.cancellationDesc')}
             </p>
           </div>
         </section>
@@ -55,12 +77,11 @@ const PoliticaCancelacionPage = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-gray-900 mb-2">
-                      Mas de 48 horas antes
+                      {t('legal.cancellation48Title')}
                     </h3>
-                    <p className="text-3xl font-black text-green-600 mb-2">Reembolso completo</p>
+                    <p className="text-3xl font-black text-green-600 mb-2">{t('legal.cancellation48Amount')}</p>
                     <p className="text-gray-600 leading-relaxed">
-                      Cancela o reprograma sin ningun costo. Te devolvemos el 100% de tu anticipo
-                      o pago. Sin preguntas, sin complicaciones.
+                      {t('legal.cancellation48Desc')}
                     </p>
                   </div>
                 </div>
@@ -76,12 +97,11 @@ const PoliticaCancelacionPage = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-gray-900 mb-2">
-                      Entre 24 y 48 horas antes
+                      {t('legal.cancellation24Title')}
                     </h3>
-                    <p className="text-3xl font-black text-yellow-600 mb-2">Reembolso del 50%</p>
+                    <p className="text-3xl font-black text-yellow-600 mb-2">{t('legal.cancellation24Amount')}</p>
                     <p className="text-gray-600 leading-relaxed">
-                      Te devolvemos la mitad de tu pago. Alternativamente, puedes reprogramar
-                      tu tour a otra fecha disponible sin cargo adicional.
+                      {t('legal.cancellation24Desc')}
                     </p>
                   </div>
                 </div>
@@ -97,12 +117,11 @@ const PoliticaCancelacionPage = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-gray-900 mb-2">
-                      Menos de 24 horas antes
+                      {t('legal.cancellation0Title')}
                     </h3>
-                    <p className="text-3xl font-black text-red-600 mb-2">Sin reembolso</p>
+                    <p className="text-3xl font-black text-red-600 mb-2">{t('legal.cancellation0Amount')}</p>
                     <p className="text-gray-600 leading-relaxed">
-                      Lamentablemente no podemos ofrecer reembolso con menos de 24 horas de anticipacion,
-                      ya que los recursos (lancha, capitan, guia) ya han sido asignados para tu experiencia.
+                      {t('legal.cancellation0Desc')}
                     </p>
                   </div>
                 </div>
@@ -117,23 +136,16 @@ const PoliticaCancelacionPage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-black text-gray-900">Politica de Clima</h2>
+                <h2 className="text-xl font-black text-gray-900">{t('legal.weatherTitle')}</h2>
               </div>
               <p className="text-gray-600 leading-relaxed mb-4">
-                La seguridad de nuestros pasajeros es siempre la prioridad. Si las condiciones climaticas
-                no permiten realizar el tour de forma segura (vientos fuertes, tormentas, lago agitado),
-                nosotros tomaremos la decision de reprogramar.
+                {t('legal.weatherDesc')}
               </p>
               <ul className="space-y-3">
-                {[
-                  'Si cancelamos por clima, se reprograma sin costo a la fecha que prefieras.',
-                  'Si el clima permite ajustar el itinerario (ruta alternativa), te lo proponemos.',
-                  'El reembolso completo esta disponible si no puedes reprogramar.',
-                  'Te notificamos lo antes posible por WhatsApp sobre cualquier cambio.',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-600">
+                {WEATHER_ITEMS.map((item) => (
+                  <li key={item.text} className="flex items-start gap-3 text-gray-600">
                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                    <span className="text-sm">{item}</span>
+                    <span className="text-sm">{L(item, 'text', language)}</span>
                   </li>
                 ))}
               </ul>
@@ -147,10 +159,10 @@ const PoliticaCancelacionPage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-black text-gray-900">Como Cancelar o Hacer Cambios</h2>
+                <h2 className="text-xl font-black text-gray-900">{t('legal.howToCancelTitle')}</h2>
               </div>
               <p className="text-gray-600 leading-relaxed mb-4">
-                Para cancelar o modificar tu reserva, simplemente contactanos por cualquiera de estos canales:
+                {t('legal.howToCancelDesc')}
               </p>
               <div className="grid sm:grid-cols-2 gap-4">
                 <a
@@ -184,10 +196,10 @@ const PoliticaCancelacionPage = () => {
 
             {/* Note */}
             <div className="text-center text-sm text-gray-400 animate-fade-in">
-              <p>Ultima actualizacion: Febrero 2026</p>
+              <p>{t('legal.lastUpdated')}</p>
               <p className="mt-2">
                 <Link to="/terminos" className="text-red-500 hover:text-red-600 font-medium transition-colors">
-                  Ver Terminos y Condiciones completos
+                  {t('legal.viewTerms')}
                 </Link>
               </p>
             </div>

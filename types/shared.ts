@@ -8,12 +8,17 @@ export interface TourPrice {
     label: string;
     amount: string;
     description?: string;
+    // English variants
+    label_en?: string;
+    description_en?: string;
 }
 
 export interface Addon {
     id: string;
     label: string;
     price: string;
+    // English variant
+    label_en?: string;
 }
 
 export interface Tour {
@@ -38,6 +43,14 @@ export interface Tour {
     addons: Addon[];
     format: string;
     meals?: ('desayuno' | 'almuerzo' | 'coffee_break' | 'snacks' | 'picnic' | 'cena')[];
+    // English variants
+    name_en?: string;
+    concept_en?: string;
+    description_en?: string;
+    features_en?: string[];
+    includes_en?: string;
+    itinerary_en?: ItineraryStep[];
+    format_en?: string;
 }
 
 export interface SelectedTourConfig {

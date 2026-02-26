@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
 import { useTours } from '../../hooks/useTours';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const CATEGORIES = [
     { name: 'Signature', desc: 'Experiencia de día completo', image: 'DSC04496_noiz4x', count: 0 },
@@ -12,11 +13,12 @@ const CATEGORIES = [
 ];
 
 const CategoryExplorer: React.FC = () => {
+    const { t, language } = useLanguage();
     const { tours } = useTours();
 
     // Count tours per category
     const categoriesWithCounts = CATEGORIES.map((cat) => {
-        const count = tours.filter((t) => t.category === cat.name).length;
+        const count = tours.filter((tour) => tour.category === cat.name).length;
         return { ...cat, count };
     });
 
@@ -25,13 +27,13 @@ const CategoryExplorer: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">
-                        Categorías
+                        {t('destinations.tag')}
                     </span>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
-                        Explora por Categoría
+                        {t('destinations.title')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">{t('destinations.titleAccent')}</span>
                     </h2>
                     <p className="mt-4 text-lg text-gray-500 leading-relaxed">
-                        Encuentra la experiencia perfecta para tu estilo de viaje
+                        {t('destinations.description')}
                     </p>
                 </div>
 
@@ -60,7 +62,7 @@ const CategoryExplorer: React.FC = () => {
                                     </p>
                                     {cat.count > 0 && (
                                         <span className="inline-block mt-2 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-[10px] font-bold uppercase tracking-wider text-white rounded-full">
-                                            {cat.count} {cat.count === 1 ? 'experiencia' : 'experiencias'}
+                                            {cat.count} {cat.count === 1 ? (language === 'en' ? 'experience' : 'experiencia') : (language === 'en' ? 'experiences' : 'experiencias')}
                                         </span>
                                     )}
                                 </div>

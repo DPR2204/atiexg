@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
 import { Tour, SelectedTourConfig } from '../../types';
 import { getTourPath } from '../../seo';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { L } from '../../lib/localize';
 
 interface TourCardProps {
     tour: Tour;
@@ -17,6 +19,8 @@ const TourCard: React.FC<TourCardProps> = ({
     onToggleSelection,
     animationDelay = 0,
 }) => {
+    const { t, language } = useLanguage();
+
     return (
         <Link
             to={getTourPath(tour)}
@@ -27,7 +31,7 @@ const TourCard: React.FC<TourCardProps> = ({
                 <div className="relative aspect-[4/5] overflow-hidden">
                     <TourImage
                         src={tour.image}
-                        alt={tour.name}
+                        alt={L(tour, 'name', language)}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
@@ -46,8 +50,8 @@ const TourCard: React.FC<TourCardProps> = ({
                             }`}
                         aria-label={
                             isSelected
-                                ? `Quitar ${tour.name} del plan`
-                                : `Agregar ${tour.name} al plan`
+                                ? `${t('catalog.removeFromPlan')}: ${L(tour, 'name', language)}`
+                                : `${t('catalog.addToPlan')}: ${L(tour, 'name', language)}`
                         }
                     >
                         {isSelected ? (
@@ -55,14 +59,14 @@ const TourCard: React.FC<TourCardProps> = ({
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                                 </svg>
-                                <span className="text-[10px] font-bold uppercase tracking-wide">Agregado</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wide">{t('catalog.added')}</span>
                             </>
                         ) : (
                             <>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                                 </svg>
-                                <span className="text-[10px] font-bold uppercase tracking-wide">Comparar</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wide">{t('catalog.compare')}</span>
                             </>
                         )}
                     </button>
@@ -71,7 +75,7 @@ const TourCard: React.FC<TourCardProps> = ({
                     <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                         {tour.isBestSeller && (
                             <span className="px-3 py-1 bg-red-500 text-white text-[9px] font-bold uppercase tracking-wider rounded-full shadow-lg">
-                                Popular
+                                {t('common.popular')}
                             </span>
                         )}
                         <span className="px-3 py-1 glass-card text-[9px] font-bold uppercase tracking-wider rounded-full">
@@ -82,10 +86,10 @@ const TourCard: React.FC<TourCardProps> = ({
                     {/* Content */}
                     <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
                         <h3 className="text-xl sm:text-2xl font-black leading-tight mb-1 uppercase tracking-tight">
-                            {tour.name}
+                            {L(tour, 'name', language)}
                         </h3>
                         <p className="text-sm text-white/70 line-clamp-2 italic">
-                            {tour.concept}
+                            {L(tour, 'concept', language)}
                         </p>
                     </div>
                 </div>
@@ -93,7 +97,7 @@ const TourCard: React.FC<TourCardProps> = ({
                 {/* Footer */}
                 <div className="p-5 flex items-center justify-between bg-white">
                     <div>
-                        <p className="text-[9px] font-mono uppercase tracking-wider text-gray-400 mb-1">Desde</p>
+                        <p className="text-[9px] font-mono uppercase tracking-wider text-gray-400 mb-1">{t('tour.from')}</p>
                         <p className="text-2xl font-black text-gray-900">${tour.price}</p>
                     </div>
                     <div className="flex items-center gap-4">

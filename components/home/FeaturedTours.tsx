@@ -3,30 +3,32 @@ import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
 import { useTours } from '../../hooks/useTours';
 import { getTourPath } from '../../seo';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const FeaturedTours: React.FC = () => {
+    const { t } = useLanguage();
     const { tours, loading } = useTours();
 
     // Filter and slice tours
     const featuredTours = tours
-        .filter((t) => t.isBestSeller || t.rating >= 4.9)
+        .filter((tour) => tour.isBestSeller || tour.rating >= 4.9)
         .slice(0, 3);
 
-    if (loading) return <div className="py-20 text-center">Cargando experiencias destacadas...</div>;
+    if (loading) return <div className="py-20 text-center">{t('common.loading')}</div>;
 
     return (
         <section className="py-20 lg:py-32">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-12">
                     <div>
-                        <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">Destacados</span>
-                        <h2 className="text-3xl sm:text-4xl font-black text-gray-900">Experiencias más populares</h2>
+                        <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">{t('common.popular')}</span>
+                        <h2 className="text-3xl sm:text-4xl font-black text-gray-900">{t('tour.popular')}</h2>
                     </div>
                     <Link
                         to="/catalogo"
                         className="group inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-red-600 transition-colors"
                     >
-                        <span>Ver todas</span>
+                        <span>{t('common.viewAll')}</span>
                         <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
@@ -53,7 +55,7 @@ const FeaturedTours: React.FC = () => {
                                     <div className="absolute top-4 left-4 flex gap-2">
                                         {tour.isBestSeller && (
                                             <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
-                                                Popular
+                                                {t('common.popular')}
                                             </span>
                                         )}
                                         <span className="px-3 py-1 glass-card text-[10px] font-bold uppercase tracking-wider rounded-full">
@@ -67,7 +69,7 @@ const FeaturedTours: React.FC = () => {
                                 </div>
                                 <div className="p-5 flex items-center justify-between">
                                     <div>
-                                        <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">Desde</p>
+                                        <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">{t('tour.from')}</p>
                                         <p className="text-2xl font-black text-gray-900">${tour.price}</p>
                                     </div>
                                     <div className="flex items-center gap-1 text-sm font-bold text-gray-600">

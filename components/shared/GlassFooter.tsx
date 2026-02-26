@@ -1,34 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
-const FOOTER_LINKS = [
-  {
-    title: 'Explorar',
-    links: [
-      { label: 'Inicio', path: '/' },
-      { label: 'Catálogo', path: '/catalogo' },
-      { label: 'Galería', path: '/galeria' },
-      { label: 'Blog', path: '/blog' },
-    ],
-  },
-  {
-    title: 'Empresa',
-    links: [
-      { label: 'Conócenos', path: '/conocenos' },
-      { label: 'Contacto', path: '/contacto' },
-      { label: 'Back Office', path: '/backoffice' },
-    ],
-  },
-  {
-    title: 'Legal',
-    links: [
-      { label: 'FAQ', path: '/faq' },
-      { label: 'Términos', path: '/terminos' },
-      { label: 'Privacidad', path: '/privacidad' },
-      { label: 'Cancelación', path: '/politica-cancelacion' },
-    ],
-  },
-];
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const SOCIAL_LINKS = [
   {
@@ -52,6 +24,37 @@ const SOCIAL_LINKS = [
 ];
 
 export const GlassFooter = () => {
+  const { t } = useLanguage();
+
+  const FOOTER_LINKS = [
+    {
+      title: t('footer.explore'),
+      links: [
+        { label: t('nav.home'), path: '/' },
+        { label: t('nav.catalog'), path: '/catalogo' },
+        { label: t('nav.gallery'), path: '/galeria' },
+        { label: t('nav.blog'), path: '/blog' },
+      ],
+    },
+    {
+      title: t('footer.company'),
+      links: [
+        { label: t('nav.about'), path: '/conocenos' },
+        { label: t('nav.contact'), path: '/contacto' },
+        { label: 'Back Office', path: '/backoffice' },
+      ],
+    },
+    {
+      title: t('footer.legal'),
+      links: [
+        { label: t('footer.faq'), path: '/faq' },
+        { label: t('footer.terms'), path: '/terminos' },
+        { label: t('footer.privacy'), path: '/privacidad' },
+        { label: t('footer.cancellation'), path: '/politica-cancelacion' },
+      ],
+    },
+  ];
+
   return (
     <footer className="relative mt-20 overflow-hidden">
       {/* Gradient Background */}
@@ -72,12 +75,12 @@ export const GlassFooter = () => {
                   <span className="text-white font-black text-2xl italic">A</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-xl font-black tracking-tight text-gray-900">ATITLÁN</span>
+                  <span className="text-xl font-black tracking-tight text-gray-900">ATITLAN</span>
                   <span className="text-[9px] font-mono text-gray-400 tracking-[0.2em] uppercase">Experiences</span>
                 </div>
               </Link>
               <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
-                Más que tours: experiencias, gastronomía y hospitalidad premium en el Lago de Atitlán, Guatemala.
+                {t('footer.description')}
               </p>
               <div className="flex gap-3">
                 {SOCIAL_LINKS.map((social) => (
@@ -119,7 +122,7 @@ export const GlassFooter = () => {
             {/* Contact Section */}
             <div>
               <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">
-                Contacto
+                {t('footer.contact')}
               </h4>
               <ul className="space-y-3 text-sm text-gray-600">
                 <li className="flex items-center gap-2">
@@ -127,7 +130,7 @@ export const GlassFooter = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                   </svg>
-                  <span>Panajachel, Sololá</span>
+                  <span>Panajachel, Solola</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +144,7 @@ export const GlassFooter = () => {
                   <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  <span>Lun - Dom: 8:00 - 20:00</span>
+                  <span>{t('footer.hours')}</span>
                 </li>
               </ul>
             </div>
@@ -150,9 +153,9 @@ export const GlassFooter = () => {
 
         {/* Bottom Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
-          <p>&copy; 2026 Atitlán Experiences. Todos los derechos reservados.</p>
+          <p>&copy; 2026 Atitlan Experiences. {t('footer.rights')}</p>
           <p className="flex items-center gap-1">
-            Hecho con
+            {t('footer.madeWith')}
             <span className="text-red-500 animate-pulse">&hearts;</span>
             por
             <a

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const EXPERIENCE_PREVIEWS = [
     {
@@ -24,29 +25,21 @@ const EXPERIENCE_PREVIEWS = [
 ];
 
 const TestimonialsSection: React.FC = () => {
+    const { t } = useLanguage();
+
     return (
         <section className="py-20 lg:py-32">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 {/* Header */}
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">
-                        Nuevo en 2026
+                        {t('about.tag')}
                     </span>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
-                        Próximamente: Historias de Viajeros
+                        {t('about.title')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">{t('about.titleAccent')}</span>
                     </h2>
                     <p className="mt-4 text-lg text-gray-500 leading-relaxed">
-                        Somos el equipo detrás de{' '}
-                        <a
-                            href="https://atitlanrestaurantes.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-red-500 font-semibold hover:text-red-600 transition-colors underline underline-offset-2"
-                        >
-                            AtitlánRestaurantes.com
-                        </a>
-                        , la guía gastronómica más completa del Lago de Atitlán. Ahora llevamos esa misma
-                        dedicación a las experiencias turísticas.
+                        {t('about.description')}
                     </p>
                 </div>
 
@@ -85,7 +78,7 @@ const TestimonialsSection: React.FC = () => {
                         to="/contacto"
                         className="group inline-flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-red-600 transition-all duration-300 shadow-xl shadow-gray-900/20 hover:shadow-red-600/30"
                     >
-                        <span>Sé de los primeros en vivir la experiencia</span>
+                        <span>{t('about.viewExperiences')}</span>
                         <svg
                             className="w-4 h-4 transition-transform group-hover:translate-x-1"
                             fill="none"

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const FAQS = [
     {
@@ -52,6 +53,7 @@ const FaqItem: React.FC<{ question: string; answer: string; isOpen: boolean; onT
 };
 
 const FaqPreview: React.FC = () => {
+    const { t } = useLanguage();
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
     const handleToggle = (index: number) => {
@@ -63,13 +65,13 @@ const FaqPreview: React.FC = () => {
             <div className="max-w-3xl mx-auto px-4 sm:px-6">
                 <div className="text-center mb-16">
                     <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">
-                        Preguntas Frecuentes
+                        {t('contact.faqTag')}
                     </span>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight">
-                        ¿Tienes dudas?
+                        {t('contact.faqTitle')}
                     </h2>
                     <p className="mt-4 text-lg text-gray-500 leading-relaxed">
-                        Respuestas rápidas a las preguntas más comunes
+                        {t('faq.heroDesc')}
                     </p>
                 </div>
 

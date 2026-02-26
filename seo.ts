@@ -1,35 +1,63 @@
 import { TOURS } from './data';
 import { Tour } from './types';
 import { getCloudinaryUrl } from './src/utils/cloudinary';
+import { Language } from './contexts/LanguageContext';
 
 export const SITE_URL = 'https://atitlanexperience.com';
+export const SITE_URL_EN = 'https://en.atitlanexperience.com';
+
+/** @deprecated Use getLocale(lang) instead */
 export const LOCALE = 'es-419';
+
+export const getLocale = (lang: Language) => (lang === 'en' ? 'en' : 'es-419');
+
 export const DEFAULT_OG_IMAGE =
   'https://static.wixstatic.com/media/acc6a6_239e70f3ee8d48aab8d7041ebafb9892~mv2.jpg';
 export const LOGO_URL =
   'https://static.wixstatic.com/media/acc6a6_923203f0b02b49afadd0f156f6363de3~mv2.png';
 
-// Keywords principales para SEO
+// Keywords principales para SEO (Spanish)
 export const DEFAULT_KEYWORDS = [
   'tours Panajachel',
   'tours en Pana',
   'que hacer en Panajachel',
-  'lanchas Lago Atitlán',
+  'lanchas Lago Atitlan',
   'lanchas privadas Panajachel',
-  'tours Lago Atitlán',
-  'actividades Lago Atitlán',
+  'tours Lago Atitlan',
+  'actividades Lago Atitlan',
   'excursiones Guatemala',
-  'paseos en lancha Atitlán',
+  'paseos en lancha Atitlan',
   'San Pedro La Laguna tours',
   'San Juan La Laguna tours',
-  'Santiago Atitlán tours',
-  'kayak Lago Atitlán',
-  'volcán San Pedro Guatemala',
-  'atardecer Lago Atitlán',
+  'Santiago Atitlan tours',
+  'kayak Lago Atitlan',
+  'volcan San Pedro Guatemala',
+  'atardecer Lago Atitlan',
   'Indian Nose amanecer',
   'turismo Guatemala',
   'que hacer en Pana Guatemala',
 ].join(', ');
+
+// Keywords for SEO (English)
+export const DEFAULT_KEYWORDS_EN = [
+  'Panajachel tours',
+  'Lake Atitlan tours',
+  'things to do in Panajachel',
+  'private boats Lake Atitlan',
+  'Guatemala boat tours',
+  'Lake Atitlan activities',
+  'San Pedro La Laguna tours',
+  'Santiago Atitlan tours',
+  'kayak Lake Atitlan',
+  'San Pedro volcano Guatemala',
+  'Lake Atitlan sunset',
+  'Indian Nose sunrise',
+  'Guatemala tourism',
+  'what to do in Panajachel Guatemala',
+].join(', ');
+
+export const getKeywords = (lang: Language) =>
+  lang === 'en' ? DEFAULT_KEYWORDS_EN : DEFAULT_KEYWORDS;
 
 export type PageKey = 'home' | 'catalogo' | 'galeria' | 'conocenos' | 'contacto';
 
@@ -42,35 +70,73 @@ export type PageMeta = {
 
 export const PAGE_META: Record<PageKey, PageMeta> = {
   home: {
-    title: 'Tours en Panajachel y Lago Atitlán | Lanchas, Excursiones y Actividades | Atitlán Experiences',
+    title: 'Tours en Panajachel y Lago Atitlan | Lanchas, Excursiones y Actividades | Atitlan Experiences',
     description:
-      'Tours en Panajachel y Lago Atitlán, Guatemala: lanchas privadas, excursiones a pueblos mayas, actividades de aventura y experiencias gastronómicas. Reserva qué hacer en Pana con logística premium.',
+      'Tours en Panajachel y Lago Atitlan, Guatemala: lanchas privadas, excursiones a pueblos mayas, actividades de aventura y experiencias gastronomicas. Reserva que hacer en Pana con logistica premium.',
     path: '/',
   },
   catalogo: {
-    title: 'Qué Hacer en Panajachel: Tours, Lanchas y Actividades en Lago Atitlán',
+    title: 'Que Hacer en Panajachel: Tours, Lanchas y Actividades en Lago Atitlan',
     description:
-      'Catálogo de tours en Panajachel: lanchas a San Pedro, San Juan y Santiago, paseos en kayak, volcanes, atardeceres y más. Las mejores actividades en el Lago Atitlán, Guatemala.',
+      'Catalogo de tours en Panajachel: lanchas a San Pedro, San Juan y Santiago, paseos en kayak, volcanes, atardeceres y mas. Las mejores actividades en el Lago Atitlan, Guatemala.',
     path: '/catalogo',
   },
   galeria: {
-    title: 'Galería de Fotos del Lago Atitlán | Paisajes, Cultura y Aventuras',
+    title: 'Galeria de Fotos del Lago Atitlan | Paisajes, Cultura y Aventuras',
     description:
-      'Explora nuestra galería de fotos del Lago de Atitlán, Guatemala. Paisajes impresionantes, cultura maya, gastronomía local y aventuras en el lago más hermoso del mundo.',
+      'Explora nuestra galeria de fotos del Lago de Atitlan, Guatemala. Paisajes impresionantes, cultura maya, gastronomia local y aventuras en el lago mas hermoso del mundo.',
     path: '/galeria',
   },
   conocenos: {
-    title: 'Operador de Tours en Panajachel, Guatemala | Atitlán Experiences',
+    title: 'Operador de Tours en Panajachel, Guatemala | Atitlan Experiences',
     description:
-      'Somos operadores locales de tours en Panajachel y Lago Atitlán. Lanchas privadas, guías bilingües y experiencias curadas en Guatemala. Conoce nuestro equipo.',
+      'Somos operadores locales de tours en Panajachel y Lago Atitlan. Lanchas privadas, guias bilingues y experiencias curadas en Guatemala. Conoce nuestro equipo.',
     path: '/conocenos',
   },
   contacto: {
-    title: 'Reservar Tours en Panajachel | Contacto | Atitlán Experiences',
+    title: 'Reservar Tours en Panajachel | Contacto | Atitlan Experiences',
     description:
-      'Reserva tours, lanchas privadas y actividades en Panajachel y Lago Atitlán. WhatsApp disponible. Planifica qué hacer en tu visita a Guatemala.',
+      'Reserva tours, lanchas privadas y actividades en Panajachel y Lago Atitlan. WhatsApp disponible. Planifica que hacer en tu visita a Guatemala.',
     path: '/contacto',
   },
+};
+
+export const PAGE_META_EN: Record<PageKey, PageMeta> = {
+  home: {
+    title: 'Tours in Panajachel & Lake Atitlan | Boats, Excursions & Activities | Atitlan Experiences',
+    description:
+      'Tours in Panajachel and Lake Atitlan, Guatemala: private boats, Mayan village excursions, adventure activities, and culinary experiences. Book things to do in Pana with premium logistics.',
+    path: '/',
+  },
+  catalogo: {
+    title: 'Things to Do in Panajachel: Tours, Boats & Activities on Lake Atitlan',
+    description:
+      'Tour catalog in Panajachel: boats to San Pedro, San Juan and Santiago, kayak rides, volcanoes, sunsets and more. The best activities on Lake Atitlan, Guatemala.',
+    path: '/catalogo',
+  },
+  galeria: {
+    title: 'Lake Atitlan Photo Gallery | Landscapes, Culture & Adventures',
+    description:
+      'Explore our photo gallery of Lake Atitlan, Guatemala. Stunning landscapes, Mayan culture, local cuisine and adventures on the most beautiful lake in the world.',
+    path: '/galeria',
+  },
+  conocenos: {
+    title: 'Tour Operator in Panajachel, Guatemala | Atitlan Experiences',
+    description:
+      'We are local tour operators in Panajachel and Lake Atitlan. Private boats, bilingual guides and curated experiences in Guatemala. Meet our team.',
+    path: '/conocenos',
+  },
+  contacto: {
+    title: 'Book Tours in Panajachel | Contact | Atitlan Experiences',
+    description:
+      'Book tours, private boats and activities in Panajachel and Lake Atitlan. WhatsApp available. Plan what to do on your visit to Guatemala.',
+    path: '/contacto',
+  },
+};
+
+export const getPageMeta = (key: PageKey, lang: Language): PageMeta => {
+  if (lang === 'en') return PAGE_META_EN[key];
+  return PAGE_META[key];
 };
 
 export const slugify = (value: string) =>
@@ -87,20 +153,41 @@ export const getTourPath = (tour: Tour) => `/experiencias/${getTourSlug(tour)}`;
 
 export const getTourUrl = (tour: Tour) => `${SITE_URL}${getTourPath(tour)}`;
 
-// Keywords por categoría para mejorar SEO
+// Keywords por categoria para mejorar SEO (Spanish)
 const CATEGORY_KEYWORDS: Record<string, string> = {
   'Signature': 'tour premium en Panajachel',
-  'Lago & Momentos': 'lancha privada Lago Atitlán, atardecer Atitlán',
-  'Cultura & Pueblos': 'tour cultural pueblos mayas, artesanías Guatemala',
-  'Sabores del Lago': 'experiencia gastronómica Atitlán, café Guatemala',
-  'Días de Campo': 'día de campo Lago Atitlán, picnic San Lucas Tolimán',
+  'Lago & Momentos': 'lancha privada Lago Atitlan, atardecer Atitlan',
+  'Cultura & Pueblos': 'tour cultural pueblos mayas, artesanias Guatemala',
+  'Sabores del Lago': 'experiencia gastronomica Atitlan, cafe Guatemala',
+  'Dias de Campo': 'dia de campo Lago Atitlan, picnic San Lucas Toliman',
 };
 
-export const getTourMeta = (tour: Tour): PageMeta => {
+// Keywords by category for SEO (English)
+const CATEGORY_KEYWORDS_EN: Record<string, string> = {
+  'Signature': 'premium tour in Panajachel',
+  'Lago & Momentos': 'private boat Lake Atitlan, sunset Atitlan',
+  'Cultura & Pueblos': 'cultural tour Mayan villages, Guatemala handicrafts',
+  'Sabores del Lago': 'culinary experience Atitlan, Guatemala coffee',
+  'Dias de Campo': 'field day Lake Atitlan, picnic San Lucas Toliman',
+};
+
+export const getTourMeta = (tour: Tour, lang: Language = 'es'): PageMeta => {
+  if (lang === 'en') {
+    const categoryKeyword = CATEGORY_KEYWORDS_EN[tour.category] || 'tour in Panajachel';
+    const name = tour.name_en || tour.name;
+    const description = tour.description_en || tour.description;
+    return {
+      title: `${name} | Experience in Panajachel, Lake Atitlan`,
+      description: `${description} ${categoryKeyword}. From $${tour.price} USD. Duration ${tour.duration}. Book in Panajachel, Guatemala.`,
+      path: getTourPath(tour),
+      ogImage: tour.image ? getCloudinaryUrl(tour.image, { width: 1200, height: 630 }) : undefined,
+    };
+  }
+
   const categoryKeyword = CATEGORY_KEYWORDS[tour.category] || 'tour en Panajachel';
   return {
-    title: `${tour.name} | Experiencia en Panajachel, Lago Atitlán`,
-    description: `${tour.description} ${categoryKeyword}. Desde $${tour.price} USD. Duración ${tour.duration}. Reserva en Panajachel, Guatemala.`,
+    title: `${tour.name} | Experiencia en Panajachel, Lago Atitlan`,
+    description: `${tour.description} ${categoryKeyword}. Desde $${tour.price} USD. Duracion ${tour.duration}. Reserva en Panajachel, Guatemala.`,
     path: getTourPath(tour),
     ogImage: tour.image ? getCloudinaryUrl(tour.image, { width: 1200, height: 630 }) : undefined,
   };
@@ -127,27 +214,42 @@ export const getDurationIso = (duration: string) => {
   return `PT${whole}H`;
 };
 
-export const buildOrganizationSchema = () => ({
+export const getAlternateUrls = (path: string) => [
+  { hreflang: 'es', href: `${SITE_URL}${path}` },
+  { hreflang: 'en', href: `${SITE_URL_EN}${path}` },
+  { hreflang: 'x-default', href: `${SITE_URL}${path}` },
+];
+
+export const buildOrganizationSchema = (lang: Language = 'es') => ({
   '@context': 'https://schema.org',
   '@type': 'TravelAgency',
   '@id': `${SITE_URL}/#organization`,
-  name: 'Atitlán Experiences',
-  alternateName: ['Tours Panajachel', 'Tours Pana', 'Lanchas Atitlán', 'Tours Lago Atitlán'],
+  name: 'Atitlan Experiences',
+  alternateName: ['Tours Panajachel', 'Tours Pana', 'Lanchas Atitlan', 'Tours Lago Atitlan'],
   url: SITE_URL,
   logo: LOGO_URL,
   image: DEFAULT_OG_IMAGE,
-  description: 'Operador de tours en Panajachel y Lago Atitlán, Guatemala. Lanchas privadas, excursiones a pueblos mayas, actividades de aventura, paseos en kayak y experiencias gastronómicas.',
-  slogan: 'Tours premium en Panajachel y Lago Atitlán',
+  description:
+    lang === 'en'
+      ? 'Tour operator in Panajachel and Lake Atitlan, Guatemala. Private boats, Mayan village excursions, adventure activities, kayak rides, and culinary experiences.'
+      : 'Operador de tours en Panajachel y Lago Atitlan, Guatemala. Lanchas privadas, excursiones a pueblos mayas, actividades de aventura, paseos en kayak y experiencias gastronomicas.',
+  slogan:
+    lang === 'en'
+      ? 'Premium tours in Panajachel and Lake Atitlan'
+      : 'Tours premium en Panajachel y Lago Atitlan',
   telephone: '+502 2268 1264',
   email: 'hola@atitlanexperience.com',
   priceRange: '$$-$$$',
   currenciesAccepted: 'USD, GTQ',
-  paymentAccepted: 'Efectivo, Tarjeta de crédito, Transferencia',
+  paymentAccepted:
+    lang === 'en'
+      ? 'Cash, Credit card, Transfer'
+      : 'Efectivo, Tarjeta de credito, Transferencia',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Calle Principal',
     addressLocality: 'Panajachel',
-    addressRegion: 'Sololá',
+    addressRegion: 'Solola',
     postalCode: '07010',
     addressCountry: 'GT',
   },
@@ -159,7 +261,7 @@ export const buildOrganizationSchema = () => ({
   areaServed: [
     {
       '@type': 'Place',
-      name: 'Lago Atitlán',
+      name: 'Lago Atitlan',
     },
     {
       '@type': 'City',
@@ -175,53 +277,94 @@ export const buildOrganizationSchema = () => ({
     },
     {
       '@type': 'City',
-      name: 'Santiago Atitlán',
+      name: 'Santiago Atitlan',
     },
   ],
   hasOfferCatalog: {
     '@type': 'OfferCatalog',
-    name: 'Tours y Actividades en Lago Atitlán',
-    itemListElement: [
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Tours en lancha por el Lago Atitlán',
-        },
-      },
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Excursiones a pueblos mayas',
-        },
-      },
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Lanchas privadas en Panajachel',
-        },
-      },
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Paseos en kayak y SUP',
-        },
-      },
-      {
-        '@type': 'Offer',
-        itemOffered: {
-          '@type': 'Service',
-          name: 'Senderismo volcán San Pedro',
-        },
-      },
-    ],
+    name:
+      lang === 'en'
+        ? 'Tours and Activities on Lake Atitlan'
+        : 'Tours y Actividades en Lago Atitlan',
+    itemListElement: lang === 'en'
+      ? [
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Boat tours on Lake Atitlan',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Mayan village excursions',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Private boats in Panajachel',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Kayak and SUP rides',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'San Pedro volcano hiking',
+            },
+          },
+        ]
+      : [
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Tours en lancha por el Lago Atitlan',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Excursiones a pueblos mayas',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Lanchas privadas en Panajachel',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Paseos en kayak y SUP',
+            },
+          },
+          {
+            '@type': 'Offer',
+            itemOffered: {
+              '@type': 'Service',
+              name: 'Senderismo volcan San Pedro',
+            },
+          },
+        ],
   },
   contactPoint: {
     '@type': 'ContactPoint',
-    contactType: 'reservas',
+    contactType: lang === 'en' ? 'reservations' : 'reservas',
     telephone: '+502 2268 1264',
     email: 'hola@atitlanexperience.com',
     availableLanguage: ['es', 'en'],
@@ -229,13 +372,13 @@ export const buildOrganizationSchema = () => ({
   sameAs: ['https://wa.me/50222681264', 'https://instagram.com/atitlanexperience'],
 });
 
-export const buildWebSiteSchema = () => ({
+export const buildWebSiteSchema = (lang: Language = 'es') => ({
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   '@id': `${SITE_URL}/#website`,
-  name: 'Atitlán Experiences',
+  name: 'Atitlan Experiences',
   url: SITE_URL,
-  inLanguage: LOCALE,
+  inLanguage: getLocale(lang),
   potentialAction: {
     '@type': 'SearchAction',
     target: `${SITE_URL}/catalogo?buscar={search_term_string}`,
@@ -243,19 +386,23 @@ export const buildWebSiteSchema = () => ({
   },
 });
 
-export const buildTourSchema = (tour: Tour) => {
+export const buildTourSchema = (tour: Tour, lang: Language = 'es') => {
   const duration = getDurationIso(tour.duration);
+  const name = lang === 'en' ? (tour.name_en || tour.name) : tour.name;
+  const description = lang === 'en' ? (tour.description_en || tour.description) : tour.description;
+  const itinerary = lang === 'en' ? (tour.itinerary_en || tour.itinerary) : tour.itinerary;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'TouristTrip',
     '@id': `${getTourUrl(tour)}#trip`,
-    name: tour.name,
-    description: tour.description,
+    name,
+    description,
     image: tour.image ? getCloudinaryUrl(tour.image, { width: 1200, height: 630 }) : undefined,
     url: getTourUrl(tour),
-    inLanguage: LOCALE,
+    inLanguage: getLocale(lang),
     category: tour.category,
-    itinerary: tour.itinerary.map((step) => ({
+    itinerary: itinerary.map((step) => ({
       '@type': 'TouristAttraction',
       name: step.activity,
     })),
@@ -275,15 +422,15 @@ export const buildTourSchema = (tour: Tour) => {
     },
     provider: {
       '@type': 'Organization',
-      name: 'Atitlán Experiences',
+      name: 'Atitlan Experiences',
       url: SITE_URL,
     },
     location: {
       '@type': 'Place',
-      name: 'Lago Atitlán',
+      name: 'Lago Atitlan',
       address: {
         '@type': 'PostalAddress',
-        addressLocality: 'Sololá',
+        addressLocality: 'Solola',
         addressCountry: 'GT',
       },
     },

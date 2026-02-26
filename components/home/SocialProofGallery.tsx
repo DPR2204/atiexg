@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const TOUR_PHOTOS = [
     {
@@ -120,6 +121,7 @@ const MarqueeRow: React.FC<MarqueeRowProps> = ({ speed = 40, reverse = false, is
 /* ── Main Section ─────────────────────────────────────────── */
 
 const SocialProofGallery: React.FC = () => {
+    const { t } = useLanguage();
     const sectionRef = useRef<HTMLDivElement>(null);
     const isVisibleRef = useRef(true);
 
@@ -139,14 +141,13 @@ const SocialProofGallery: React.FC = () => {
             {/* Heading */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-12 text-center">
                 <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">
-                    Momentos Reales
+                    {t('gallery.title')} {t('gallery.titleAccent')}
                 </span>
                 <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">
-                    Nuestros viajeros en acción
+                    {t('gallery.description')}
                 </h2>
                 <p className="text-gray-500 max-w-xl mx-auto">
-                    Cada tour es una historia nueva. Estas son algunas de las experiencias
-                    que nuestros clientes han vivido.
+                    {t('gallery.ctaDesc')}
                 </p>
             </div>
 

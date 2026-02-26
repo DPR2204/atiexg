@@ -5,6 +5,8 @@ import { GlassNav, GlassFooter } from '../components/shared';
 import { getCloudinaryUrl } from '../src/utils/cloudinary';
 import { BLOG_POSTS } from '../data/blog-posts';
 import { SITE_URL } from '../seo';
+import { useLanguage } from '../contexts/LanguageContext';
+import { L } from '../lib/localize';
 
 const blogListSchema = {
   '@context': 'https://schema.org',
@@ -27,6 +29,8 @@ const blogListSchema = {
 };
 
 const BlogPage = () => {
+  const { t, language } = useLanguage();
+
   return (
     <div className="min-h-screen bg-white">
       <Seo
@@ -48,19 +52,18 @@ const BlogPage = () => {
             <div className="flex items-center justify-center gap-2 mb-4">
               <span className="h-px w-8 bg-red-500" />
               <span className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">
-                Blog
+                {t('blog.tag')}
               </span>
               <span className="h-px w-8 bg-red-500" />
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-[0.95] tracking-tight mb-6">
-              Guias y Consejos
+              {t('blog.title')}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">
-                del Lago Atitlan
+                {t('blog.titleAccent')}
               </span>
             </h1>
             <p className="text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
-              Todo lo que necesitas saber para planificar tu viaje perfecto al Lago de Atitlan.
-              Guias, recomendaciones y secretos locales.
+              {t('blog.heroDesc')}
             </p>
           </div>
         </section>
@@ -80,7 +83,7 @@ const BlogPage = () => {
                   <div className="relative aspect-[16/10] overflow-hidden">
                     <img
                       src={getCloudinaryUrl(post.image, { width: 600, height: 375 })}
-                      alt={post.title}
+                      alt={L(post, 'title', language)}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
@@ -89,7 +92,7 @@ const BlogPage = () => {
                     {/* Category Badge */}
                     <div className="absolute top-4 left-4">
                       <span className="px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
-                        {post.category}
+                        {L(post, 'category', language)}
                       </span>
                     </div>
                   </div>
@@ -97,21 +100,21 @@ const BlogPage = () => {
                   {/* Content */}
                   <div className="p-6">
                     <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
-                      <span>{new Date(post.publishedAt).toLocaleDateString('es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span>{new Date(post.publishedAt).toLocaleDateString(language === 'en' ? 'en-US' : 'es-GT', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                       <span className="w-1 h-1 rounded-full bg-gray-300" />
-                      <span>{post.readTime} lectura</span>
+                      <span>{post.readTime} {t('blog.reading')}</span>
                     </div>
 
                     <h2 className="text-lg font-black text-gray-900 mb-2 group-hover:text-red-600 transition-colors leading-tight">
-                      {post.title}
+                      {L(post, 'title', language)}
                     </h2>
 
                     <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">
-                      {post.excerpt}
+                      {L(post, 'excerpt', language)}
                     </p>
 
                     <div className="mt-4 flex items-center gap-1 text-red-500 font-bold text-sm group-hover:gap-2 transition-all">
-                      Leer articulo
+                      {t('blog.readArticle')}
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                       </svg>
@@ -132,18 +135,17 @@ const BlogPage = () => {
 
               <div className="relative px-8 py-14 sm:px-14 sm:py-20 text-center">
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight mb-4">
-                  Listo para tu aventura?
+                  {t('blog.ctaTitle')}
                 </h2>
                 <p className="text-white/70 max-w-xl mx-auto mb-8">
-                  Deja de leer y empieza a vivir. Reserva tu tour en el Lago de Atitlan
-                  y crea recuerdos inolvidables.
+                  {t('blog.ctaDesc')}
                 </p>
                 <div className="flex flex-wrap justify-center gap-4">
                   <Link
                     to="/catalogo"
                     className="inline-flex items-center gap-2 bg-white text-gray-900 px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-red-50 transition-all duration-300 shadow-xl"
                   >
-                    Ver experiencias
+                    {t('blog.ctaViewExperiences')}
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>

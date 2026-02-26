@@ -16,8 +16,10 @@ import {
   buildOrganizationSchema,
   buildWebSiteSchema,
 } from '../seo';
+import { useLanguage } from '../contexts/LanguageContext';
+import { L } from '../lib/localize';
 
-const FILTERS = ['Todos', 'Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'];
+const FILTER_CATEGORIES = ['Todos', 'Signature', 'Lago & Momentos', 'Cultura & Pueblos', 'Sabores del Lago', 'Días de Campo'];
 
 const GENERAL_ADDONS = [
   {
@@ -99,7 +101,7 @@ const GENERAL_ADDONS = [
   },
 ];
 
-const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: string[], allTours: Tour[]) => {
+const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: string[], allTours: Tour[], lang: 'es' | 'en' = 'es') => {
   const base = 'https://wa.me/50222681264?text=';
   let message = '¡Hola Atitlán Experiences! 🌊\n\nSolicitud de Reserva Premium:\n\n';
 
@@ -137,6 +139,7 @@ const formatWhatsAppMessage = (selections: SelectedTourConfig[], generalAddons: 
 };
 
 const CatalogoPage = () => {
+  const { t, language } = useLanguage();
   const { tours, loading, error } = useTours();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -148,6 +151,10 @@ const CatalogoPage = () => {
   const [isAddonsExpanded, setIsAddonsExpanded] = useState(true);
   const [expandedAddonCategories, setExpandedAddonCategories] = useState<Set<string>>(new Set(GENERAL_ADDONS.map(c => c.id)));
   const meta = PAGE_META.catalogo;
+
+  // Build display labels for filters — 'Todos' gets translated, categories keep their data names
+  const FILTERS = FILTER_CATEGORIES;
+  const filterDisplayLabel = (filter: string) => filter === 'Todos' ? t('catalog.filterAll') : filter;
 
   const filteredTours = useMemo(() => {
     if (!tours) return [];
@@ -228,9 +235,9 @@ const CatalogoPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error al cargar catálogo</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{error}</h2>
           <p className="text-gray-500 mb-4">{error}</p>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-500 text-white rounded-lg">Reintentar</button>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-500 text-white rounded-lg">{t('common.back')}</button>
         </div>
       </div>
     );
@@ -273,14 +280,13 @@ const CatalogoPage = () => {
             </span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-[0.95] tracking-tight mb-6">
-            Catálogo de
+            {t('catalog.title')}
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">
-              Experiencias Premium
+              {t('catalog.titleAccent')}
             </span>
           </h1>
           <p className="text-lg text-gray-500 max-w-2xl">
-            {tours.length} experiencias diseñadas por expertos locales para el viajero exigente.
-            Personaliza tu propia ruta.
+            {tours.length} {t('catalog.description')}
           </p>
         </div>
 
@@ -289,18 +295,19 @@ const CatalogoPage = () => {
           filters={FILTERS}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
+          labelMap={{ 'Todos': t('catalog.filterAll') }}
         />
 
         {/* Results Count */}
         {searchQuery && (
           <div className="mb-6 animate-fade-in">
             <p className="text-sm text-gray-500">
-              {filteredTours.length} resultado{filteredTours.length !== 1 ? 's' : ''} para "{searchQuery}"
+              {filteredTours.length} {filteredTours.length !== 1 ? t('common.results') : t('common.result')} {t('common.for')} "{searchQuery}"
               <button
                 onClick={() => setSearchQuery('')}
                 className="ml-2 text-red-500 hover:text-red-600 font-medium"
               >
-                Limpiar
+                {t('common.clear')}
               </button>
             </p>
           </div>
@@ -327,9 +334,9 @@ const CatalogoPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No encontramos experiencias</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{t('catalog.noResults')}</h3>
             <p className="text-gray-500 mb-6">
-              Intenta con otros términos de búsqueda o cambia los filtros.
+              {t('catalog.noResults')}
             </p>
             <button
               onClick={() => {
@@ -338,7 +345,7 @@ const CatalogoPage = () => {
               }}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white font-bold text-sm uppercase tracking-wider hover:bg-red-600 transition-colors"
             >
-              Ver todo el catálogo
+              {t('common.viewAll')}
             </button>
           </div>
         )}
@@ -357,23 +364,23 @@ const CatalogoPage = () => {
                 <div className="flex items-center gap-2 mb-3">
                   <span className="h-px w-8 bg-gray-300" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                    Personaliza
+                    {t('catalog.addonsTag')}
                   </span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Add-ons Opcionales</h2>
-                <p className="text-sm text-gray-500">Complementa tu experiencia con servicios adicionales</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{t('catalog.addonsTitle')}</h2>
+                <p className="text-sm text-gray-500">{t('catalog.addonsDesc')}</p>
               </div>
               <div className="flex items-center gap-3">
                 {selectedGeneralAddons.length > 0 && (
                   <>
                     <span className="px-3 py-1.5 bg-red-50 border border-red-100 rounded-full text-xs font-bold text-red-600">
-                      {selectedGeneralAddons.length} seleccionado{selectedGeneralAddons.length > 1 ? 's' : ''}
+                      {selectedGeneralAddons.length} {selectedGeneralAddons.length > 1 ? t('catalog.selectedPlural') : t('catalog.selected')}
                     </span>
                     <button
                       onClick={() => setSelectedGeneralAddons([])}
                       className="text-xs text-gray-400 hover:text-red-500 font-medium transition-colors"
                     >
-                      Limpiar
+                      {t('common.clear')}
                     </button>
                   </>
                 )}
@@ -381,7 +388,7 @@ const CatalogoPage = () => {
                   onClick={() => setIsAddonsExpanded(!isAddonsExpanded)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all"
                 >
-                  {isAddonsExpanded ? 'Ocultar' : 'Mostrar'}
+                  {isAddonsExpanded ? (language === 'en' ? 'Hide' : 'Ocultar') : (language === 'en' ? 'Show' : 'Mostrar')}
                   <svg className={`w-4 h-4 transition-transform duration-300 ${isAddonsExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -426,7 +433,7 @@ const CatalogoPage = () => {
                       </div>
                       <div className="text-left">
                         <h3 className="font-semibold text-gray-900 text-sm">{category.title.split(' (')[0]}</h3>
-                        <p className="text-[10px] text-gray-400">{category.items.length} opciones</p>
+                        <p className="text-[10px] text-gray-400">{category.items.length} {language === 'en' ? 'options' : 'opciones'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -489,7 +496,7 @@ const CatalogoPage = () => {
           </div>
 
           {/* Footer Note */}
-          <p className="text-center text-[11px] text-gray-400 mt-8">Precios sujetos a temporada y disponibilidad</p>
+          <p className="text-center text-[11px] text-gray-400 mt-8">{language === 'en' ? 'Prices subject to season and availability' : 'Precios sujetos a temporada y disponibilidad'}</p>
         </section>
       </main>
 
@@ -497,7 +504,7 @@ const CatalogoPage = () => {
         selectedConfigs={selectedConfigs}
         onClear={() => setSelectedConfigs([])}
         onCompare={() => setIsCompareOpen(true)}
-        formatWhatsAppMessage={(selections) => formatWhatsAppMessage(selections, selectedGeneralAddons, tours)}
+        formatWhatsAppMessage={(selections) => formatWhatsAppMessage(selections, selectedGeneralAddons, tours, language)}
         selectedGeneralAddons={selectedGeneralAddons}
         tours={tours}
       />

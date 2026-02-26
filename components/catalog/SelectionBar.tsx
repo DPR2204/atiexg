@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import TourImage from '../TourImage';
 import { Tour, SelectedTourConfig } from '../../types';
+import { useLanguage, type Language } from '../../contexts/LanguageContext';
 
 interface SelectionBarProps {
     selectedConfigs: SelectedTourConfig[];
@@ -20,6 +21,8 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
     selectedGeneralAddons,
     tours,
 }) => {
+    const { t, language } = useLanguage();
+
     // Build checkout URL with tour info
     const firstTour = selectedConfigs.length > 0
         ? tours.find((t) => t.id === selectedConfigs[0].tourId)
@@ -56,7 +59,7 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
                     </div>
                     <div className="flex flex-col min-w-0">
                         <span className="text-[9px] sm:text-xs font-black uppercase tracking-tighter leading-none truncate">{selectedConfigs.length} Item{selectedConfigs.length > 1 ? 's' : ''}</span>
-                        <span className="text-[7px] sm:text-[9px] text-white/30 font-mono uppercase tracking-widest mt-1 hidden xs:block">Plan de viaje</span>
+                        <span className="text-[7px] sm:text-[9px] text-white/30 font-mono uppercase tracking-widest mt-1 hidden xs:block">{language === 'en' ? 'Travel plan' : 'Plan de viaje'}</span>
                     </div>
                 </div>
 
@@ -65,14 +68,14 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
                         onClick={onClear}
                         className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white px-1 sm:px-2"
                     >
-                        Limpiar
+                        {t('common.clear')}
                     </button>
                     {selectedConfigs.length > 1 && (
                         <button
                             onClick={onCompare}
                             className="bg-white/10 text-white border border-white/20 px-2.5 sm:px-6 py-2 sm:py-3.5 rounded-xl text-[8px] sm:text-[10px] font-mono uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95"
                         >
-                            Comparar
+                            {t('catalog.compare')}
                         </button>
                     )}
                     <div className="flex flex-col gap-1">
@@ -81,15 +84,15 @@ const SelectionBar: React.FC<SelectionBarProps> = ({
                             target="_blank"
                             rel="noreferrer"
                             className="bg-green-600 text-white px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-green-500 active:scale-95 shadow-sm text-center"
-                            aria-label="Reservar experiencias seleccionadas por WhatsApp"
+                            aria-label={t('tour.reserve')}
                         >
-                            RESERVAR
+                            {t('tour.reserve')}
                         </a>
                         <Link
                             to={checkoutUrl}
                             className="text-[7px] sm:text-[8px] text-white/50 hover:text-white/80 text-center transition-colors underline underline-offset-2"
                         >
-                            Pagar anticipo
+                            {language === 'en' ? 'Pay deposit' : 'Pagar anticipo'}
                         </Link>
                     </div>
                 </div>

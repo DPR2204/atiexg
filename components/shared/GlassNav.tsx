@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface NavItem {
   label: string;
@@ -7,19 +8,20 @@ interface NavItem {
   isExternal?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Inicio', path: '/' },
-  { label: 'Catálogo', path: '/catalogo' },
-  { label: 'Galería', path: '/galeria' },
-  { label: 'Blog', path: '/blog' },
-  { label: 'Conócenos', path: '/conocenos' },
-  { label: 'Contacto', path: '/contacto' },
-];
-
 export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
+  const { t, language, setLanguage } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+
+  const NAV_ITEMS: NavItem[] = [
+    { label: t('nav.home'), path: '/' },
+    { label: t('nav.catalog'), path: '/catalogo' },
+    { label: t('nav.gallery'), path: '/galeria' },
+    { label: t('nav.blog'), path: '/blog' },
+    { label: t('nav.about'), path: '/conocenos' },
+    { label: t('nav.contact'), path: '/contacto' },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,7 +63,7 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
               <div className="absolute -inset-1 bg-red-500/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="text-base sm:text-lg font-black tracking-tight leading-none text-gray-900">ATITLÁN</span>
+              <span className="text-base sm:text-lg font-black tracking-tight leading-none text-gray-900">ATITLAN</span>
               <span className="text-[8px] sm:text-[9px] font-mono text-gray-400 tracking-[0.2em] uppercase">Experiences</span>
             </div>
           </Link>
@@ -88,18 +90,18 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
             ))}
           </nav>
 
-          {/* Search & CTA */}
+          {/* Search, Language Toggle & CTA */}
           <div className="flex items-center gap-2 sm:gap-3">
             {onSearchClick && (
               <button
                 onClick={onSearchClick}
                 className="hidden md:flex items-center gap-2.5 px-4 py-2.5 rounded-xl glass-card hover:bg-white/80 transition-all duration-300 group min-w-[200px]"
-                aria-label="Buscar experiencias"
+                aria-label={t('nav.searchLabel')}
               >
                 <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">Buscar experiencias...</span>
+                <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">{t('nav.search')}</span>
               </button>
             )}
 
@@ -108,7 +110,7 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
               <button
                 onClick={onSearchClick}
                 className="md:hidden w-10 h-10 rounded-xl glass-card flex items-center justify-center text-red-500 hover:bg-white/80 transition-all"
-                aria-label="Buscar"
+                aria-label={t('nav.searchShort')}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -116,12 +118,21 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
               </button>
             )}
 
+            {/* Desktop Language Toggle */}
+            <button
+              onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}
+              className="hidden sm:inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-gray-200 bg-white/60 text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all duration-300"
+              aria-label={t('nav.langLabel')}
+            >
+              {t('nav.langSwitch')}
+            </button>
+
             {/* Desktop CTA */}
             <Link
               to="/catalogo"
               className="hidden sm:inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider hover:bg-red-600 active:scale-95 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-red-600/30"
             >
-              <span>Ver Tours</span>
+              <span>{t('nav.cta')}</span>
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
               </svg>
@@ -131,7 +142,7 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden w-10 h-10 rounded-xl glass-card flex items-center justify-center text-gray-700 hover:bg-white/80 transition-all"
-              aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-label={isMobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
               aria-expanded={isMobileMenuOpen}
             >
               <div className="relative w-5 h-4">
@@ -159,10 +170,21 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
       {/* Mobile Menu */}
       <div
         className={`lg:hidden overflow-hidden transition-all duration-500 ease-out ${
-          isMobileMenuOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'
+          isMobileMenuOpen ? 'max-h-[450px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
         <div className="glass-card mx-4 mb-4 rounded-2xl p-4 space-y-1">
+          {/* Mobile Language Toggle */}
+          <div className="flex justify-end pb-2">
+            <button
+              onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}
+              className="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-gray-200 bg-white/60 text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all duration-300"
+              aria-label={t('nav.langLabel')}
+            >
+              {t('nav.langSwitch')}
+            </button>
+          </div>
+
           {NAV_ITEMS.map((item, index) => (
             <Link
               key={item.path}
@@ -196,7 +218,7 @@ export const GlassNav = ({ onSearchClick }: { onSearchClick?: () => void }) => {
               to="/catalogo"
               className="flex items-center justify-center gap-2 bg-gray-900 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider"
             >
-              Catálogo
+              {t('nav.catalog2')}
             </Link>
           </div>
         </div>

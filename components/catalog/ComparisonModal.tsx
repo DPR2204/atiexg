@@ -1,6 +1,8 @@
 import React from 'react';
 import TourImage from '../TourImage';
 import { Tour, SelectedTourConfig } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { L, LItinerary } from '../../lib/localize';
 
 interface ComparisonModalProps {
     tours: Tour[];
@@ -14,7 +16,10 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
     configs,
     onClose,
     onRemoveTour,
-}) => (
+}) => {
+    const { t, language } = useLanguage();
+
+    return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="comparison-modal-title">
         <div className="absolute inset-0 bg-black/80 backdrop-blur-2xl" onClick={onClose}></div>
         <div className="relative bg-white w-full max-w-6xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-in">
@@ -27,11 +32,11 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
                         </svg>
                     </div>
                     <div>
-                        <h2 id="comparison-modal-title" className="text-lg sm:text-xl font-bold text-gray-900">Comparar Experiencias</h2>
+                        <h2 id="comparison-modal-title" className="text-lg sm:text-xl font-bold text-gray-900">{t('catalog.compare')}</h2>
                         <p className="text-xs text-gray-400">{tours.length} tours seleccionados</p>
                     </div>
                 </div>
-                <button onClick={onClose} className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all active:scale-95" aria-label="Cerrar comparación">
+                <button onClick={onClose} className="p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all active:scale-95" aria-label={t('common.back')}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
@@ -52,7 +57,7 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
                                 <div className="relative">
                                     <TourImage
                                         src={tour.image}
-                                        alt={tour.name}
+                                        alt={L(tour, 'name', language)}
                                         className="w-full h-36 sm:h-44 object-cover rounded-t-2xl"
                                         sizes="(max-width: 768px) 80vw, 320px"
                                     />
@@ -62,7 +67,7 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
                                     <button
                                         onClick={() => onRemoveTour(tour.id)}
                                         className="absolute top-3 right-3 p-2 bg-black/40 hover:bg-red-500 rounded-xl text-white/80 hover:text-white transition-all active:scale-90 backdrop-blur-sm"
-                                        aria-label={`Quitar ${tour.name} de comparación`}
+                                        aria-label={`${t('catalog.removeFromPlan')}: ${L(tour, 'name', language)}`}
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -77,16 +82,16 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
 
                                 {/* Content */}
                                 <div className="p-4 sm:p-5 flex-1 flex flex-col">
-                                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 leading-tight line-clamp-2">{tour.name}</h3>
+                                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 leading-tight line-clamp-2">{L(tour, 'name', language)}</h3>
 
                                     {/* Key Info */}
                                     <div className="space-y-2.5 mb-4">
                                         <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
-                                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Formato</span>
-                                            <span className="text-xs font-bold text-gray-900">{price?.label || 'Standard'}</span>
+                                            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{t('catalog.pricingTag')}</span>
+                                            <span className="text-xs font-bold text-gray-900">{price ? L(price, 'label', language) : 'Standard'}</span>
                                         </div>
                                         <div className="flex items-center justify-between py-2 px-3 bg-red-50 rounded-xl">
-                                            <span className="text-[10px] font-medium text-red-400 uppercase tracking-wide">Desde</span>
+                                            <span className="text-[10px] font-medium text-red-400 uppercase tracking-wide">{t('tour.from')}</span>
                                             <span className="text-sm font-black text-red-600">${price?.amount || tour.price}</span>
                                         </div>
                                         <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
@@ -102,9 +107,9 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
 
                                     {/* Itinerary Preview */}
                                     <div className="flex-1">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Itinerario</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('tour.itinerary')}</p>
                                         <div className="space-y-1.5">
-                                            {(config?.customItinerary || tour.itinerary).slice(0, 3).map((step, idx) => (
+                                            {(config?.customItinerary || LItinerary(tour, language)).slice(0, 3).map((step, idx) => (
                                                 <div key={`${step.time}-${idx}`} className="flex gap-2 text-[11px]">
                                                     <span className="font-mono font-semibold text-red-500 shrink-0 w-12">{step.time}</span>
                                                     <span className="text-gray-600 truncate">{step.activity}</span>
@@ -124,10 +129,11 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
 
             {/* Footer Hint */}
             <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
-                <p className="text-xs text-gray-400">Desliza horizontalmente para ver todos los tours</p>
+                <p className="text-xs text-gray-400">{t('catalog.pricingDesc')}</p>
             </div>
         </div>
     </div>
-);
+    );
+};
 
 export default ComparisonModal;

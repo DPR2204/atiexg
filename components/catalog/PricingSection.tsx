@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PricingSectionProps {
     isExpanded: boolean;
@@ -9,6 +10,8 @@ const PricingSection: React.FC<PricingSectionProps> = ({
     isExpanded,
     onToggle,
 }) => {
+    const { t, language } = useLanguage();
+
     return (
         <>
             {/* Section Header */}
@@ -18,17 +21,17 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         <div className="flex items-center gap-2 mb-3">
                             <span className="h-px w-8 bg-gray-300" />
                             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                                Opciones de servicio
+                                {t('catalog.pricingTag')}
                             </span>
                         </div>
-                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Esquema de Precios</h2>
-                        <p className="text-sm text-gray-500 max-w-xl">Elige el nivel de experiencia que mejor se adapte a tu viaje</p>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{t('catalog.pricingTitle')}</h2>
+                        <p className="text-sm text-gray-500 max-w-xl">{t('catalog.pricingDesc')}</p>
                     </div>
                     <button
                         onClick={onToggle}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all"
                     >
-                        {isExpanded ? 'Ocultar' : 'Mostrar'}
+                        {isExpanded ? (language === 'en' ? 'Hide' : 'Ocultar') : (language === 'en' ? 'Show' : 'Mostrar')}
                         <svg className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -66,7 +69,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         </div>
                     </div>
                     <div className="pt-3 border-t border-gray-50">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Desde</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">{t('tour.from')}</span>
                         <p className="text-lg font-bold text-gray-900">Precio base</p>
                     </div>
                 </div>
@@ -82,7 +85,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-900">Premium</h3>
-                                <span className="text-[9px] font-medium uppercase tracking-wider text-blue-500">Popular</span>
+                                <span className="text-[9px] font-medium uppercase tracking-wider text-blue-500">{t('common.popular')}</span>
                             </div>
                         </div>
                     </div>
@@ -101,7 +104,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Premium perk</span>
                     </div>
                     <div className="pt-3 border-t border-blue-100">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400">Desde</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-blue-400">{t('tour.from')}</span>
                         <p className="text-lg font-bold text-gray-900">+15-25%</p>
                     </div>
                 </div>
@@ -126,7 +129,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Yoga</span>
                     </div>
                     <div className="pt-3 border-t border-emerald-100">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-400">Desde</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-400">{t('tour.from')}</span>
                         <p className="text-lg font-bold text-gray-900">+40-60%</p>
                     </div>
                 </div>
@@ -156,7 +159,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({
                         <span className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-medium text-gray-600">Ruta flexible</span>
                     </div>
                     <div className="pt-3 border-t border-amber-100">
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-amber-400">Desde</span>
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-amber-400">{t('tour.from')}</span>
                         <p className="text-lg font-bold text-gray-900">+80-120%</p>
                     </div>
                 </div>

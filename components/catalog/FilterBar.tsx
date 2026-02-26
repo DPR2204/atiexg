@@ -4,12 +4,14 @@ interface FilterBarProps {
     filters: string[];
     activeFilter: string;
     onFilterChange: (filter: string) => void;
+    labelMap?: Record<string, string>;
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({
     filters,
     activeFilter,
     onFilterChange,
+    labelMap,
 }) => {
     return (
         <div className="mb-10 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
@@ -23,7 +25,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                                 : 'glass-card text-gray-600 hover:bg-white/80'
                             }`}
                     >
-                        {filter}
+                        {labelMap?.[filter] ?? filter}
                     </button>
                 ))}
             </div>
