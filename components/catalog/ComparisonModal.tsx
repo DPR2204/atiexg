@@ -15,7 +15,7 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
     onClose,
     onRemoveTour,
 }) => (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="comparison-modal-title">
         <div className="absolute inset-0 bg-black/80 backdrop-blur-2xl" onClick={onClose}></div>
         <div className="relative bg-white w-full max-w-6xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-in">
             {/* Header */}
@@ -27,7 +27,7 @@ const ComparisonModal: React.FC<ComparisonModalProps> = ({
                         </svg>
                     </div>
                     <div>
-                        <h2 className="text-lg sm:text-xl font-bold text-gray-900">Comparar Experiencias</h2>
+                        <h2 id="comparison-modal-title" className="text-lg sm:text-xl font-bold text-gray-900">Comparar Experiencias</h2>
                         <p className="text-xs text-gray-400">{tours.length} tours seleccionados</p>
                     </div>
                 </div>

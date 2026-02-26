@@ -49,26 +49,6 @@ const VALUES = [
   },
 ];
 
-const TEAM_MEMBERS = [
-  {
-    name: 'Equipo de Guías',
-    role: 'Hosts Bilingües',
-    image: 'https://picsum.photos/seed/team-1/400/400',
-    description: 'Expertos locales con conocimiento profundo de la cultura y geografía de Atitlán.',
-  },
-  {
-    name: 'Capitanes',
-    role: 'Navegación',
-    image: 'https://picsum.photos/seed/team-2/400/400',
-    description: 'Más de 15 años navegando el lago, conocen cada rincón y el mejor momento para visitarlo.',
-  },
-  {
-    name: 'Concierge',
-    role: 'Atención al Cliente',
-    image: 'https://picsum.photos/seed/team-3/400/400',
-    description: 'Disponibles 24/7 para coordinar tu experiencia perfecta desde la reserva hasta el final.',
-  },
-];
 
 const ConocenosPage = () => {
   const meta = PAGE_META.conocenos;
@@ -131,11 +111,14 @@ const ConocenosPage = () => {
 
               <div className="relative animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                 <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl">
-                  <TourImage
-                    src="https://picsum.photos/seed/about-hero/800/600"
-                    alt="Equipo de Atitlán Experiences"
+                  <video
+                    src="https://res.cloudinary.com/dhtcup7uv/video/upload/v1771889289/SanAntonio_yuz1zc.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    aria-label="Vista del malecón de San Antonio Palopó en el Lago de Atitlán"
                     className="w-full h-full object-cover"
-                    sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
@@ -197,44 +180,6 @@ const ConocenosPage = () => {
           </div>
         </section>
 
-        {/* Team Section */}
-        <section className="py-20 lg:py-32">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">
-                El Equipo
-              </span>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight mb-4">
-                Las personas detrás de cada experiencia
-              </h2>
-              <p className="text-lg text-gray-500">
-                Un equipo apasionado por el Lago de Atitlán y comprometido con brindarte la mejor experiencia.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {TEAM_MEMBERS.map((member, index) => (
-                <div
-                  key={member.name}
-                  className="group text-center animate-fade-in-up"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="relative mb-6 mx-auto w-48 h-48 rounded-full overflow-hidden glass-card p-1">
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">{member.name}</h3>
-                  <p className="text-sm font-semibold text-red-500 mb-3">{member.role}</p>
-                  <p className="text-sm text-gray-500">{member.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Partners Section */}
         <section className="py-20 lg:py-32 bg-gray-50/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -273,8 +218,8 @@ const ConocenosPage = () => {
                 <div className="relative">
                   <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl">
                     <TourImage
-                      src="https://picsum.photos/seed/partners/600/600"
-                      alt="Aliados locales"
+                      src="https://res.cloudinary.com/dhtcup7uv/image/upload/v1771101946/DSC04135-HDR_gyllyu.jpg"
+                      alt="Restaurante Atitlán en Santiago Atitlán"
                       className="w-full h-full object-cover"
                       sizes="(max-width: 1024px) 100vw, 50vw"
                     />

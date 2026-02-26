@@ -136,32 +136,41 @@ export default function CheckoutPage() {
 
                             <div className="grid sm:grid-cols-2 gap-6 mb-8">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Fecha</label>
+                                    <label htmlFor="checkout-date" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Fecha</label>
                                     <input
+                                        id="checkout-date"
                                         type="date"
                                         required
+                                        min={new Date().toISOString().split('T')[0]}
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                                         value={form.date}
                                         onChange={e => setForm({ ...form, date: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Hora de Inicio</label>
+                                    <label htmlFor="checkout-time" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Hora de Inicio</label>
                                     <select
+                                        id="checkout-time"
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium appearance-none"
                                         value={form.time}
                                         onChange={e => setForm({ ...form, time: e.target.value })}
                                     >
+                                        <option value="05:00">05:00 AM</option>
+                                        <option value="06:00">06:00 AM</option>
+                                        <option value="07:00">07:00 AM</option>
                                         <option value="08:00">08:00 AM</option>
                                         <option value="09:00">09:00 AM</option>
                                         <option value="10:00">10:00 AM</option>
                                         <option value="13:00">01:00 PM</option>
                                         <option value="14:00">02:00 PM</option>
+                                        <option value="15:00">03:00 PM</option>
+                                        <option value="16:00">04:00 PM</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Personas</label>
+                                    <label htmlFor="checkout-pax" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Personas</label>
                                     <input
+                                        id="checkout-pax"
                                         type="number"
                                         min="1"
                                         max="15"
@@ -179,10 +188,12 @@ export default function CheckoutPage() {
 
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Nombre Completo</label>
+                                    <label htmlFor="checkout-name" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Nombre Completo</label>
                                     <input
+                                        id="checkout-name"
                                         type="text"
                                         required
+                                        autoComplete="name"
                                         placeholder="Tu nombre"
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                                         value={form.name}
@@ -191,10 +202,12 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="grid sm:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Email</label>
+                                        <label htmlFor="checkout-email" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Email</label>
                                         <input
+                                            id="checkout-email"
                                             type="email"
                                             required
+                                            autoComplete="email"
                                             placeholder="tucorreo@ejemplo.com"
                                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                                             value={form.email}
@@ -202,10 +215,12 @@ export default function CheckoutPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">WhatsApp / Telefono</label>
+                                        <label htmlFor="checkout-phone" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">WhatsApp / Telefono</label>
                                         <input
+                                            id="checkout-phone"
                                             type="tel"
                                             required
+                                            autoComplete="tel"
                                             placeholder="+502 0000 0000"
                                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                                             value={form.phone}
@@ -214,8 +229,9 @@ export default function CheckoutPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Notas Especiales (Opcional)</label>
+                                    <label htmlFor="checkout-notes" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Notas Especiales (Opcional)</label>
                                     <textarea
+                                        id="checkout-notes"
                                         rows={3}
                                         placeholder="Alergias, restricciones, ocasiones especiales..."
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
@@ -270,6 +286,7 @@ export default function CheckoutPage() {
                             )}
 
                             <button
+                                type="button"
                                 onClick={handleSubmit}
                                 disabled={loading}
                                 className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold uppercase tracking-wider text-sm hover:bg-red-600 transition-all shadow-lg flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"

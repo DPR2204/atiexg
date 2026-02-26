@@ -31,7 +31,7 @@ const CONTACT_METHODS = [
     title: 'Email',
     description: 'Para consultas detalladas y cotizaciones',
     action: 'Enviar email',
-    href: 'mailto:hola@atitlancafe.com',
+    href: 'mailto:hola@atitlanexperience.com',
     color: 'bg-gray-900 hover:bg-gray-800',
     shadowColor: 'shadow-gray-900/30',
   },
@@ -76,6 +76,29 @@ const FAQ_ITEMS = [
 const ContactoPage = () => {
   const meta = PAGE_META.contacto;
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [contactForm, setContactForm] = useState({
+    name: '', email: '', phone: '', tourInterest: 'Consulta general', travelDate: '', pax: 1, message: ''
+  });
+  const [contactStatus, setContactStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [contactError, setContactError] = useState('');
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactStatus('loading');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      });
+      if (!res.ok) throw new Error('Error al enviar');
+      setContactStatus('success');
+      setContactForm({ name: '', email: '', phone: '', tourInterest: 'Consulta general', travelDate: '', pax: 1, message: '' });
+    } catch {
+      setContactStatus('error');
+      setContactError('Hubo un error al enviar tu mensaje. Intenta de nuevo o contáctanos por WhatsApp.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -131,6 +154,139 @@ const ContactoPage = () => {
             </a>
           ))}
         </div>
+
+        {/* Contact Form */}
+        <section className="mb-20 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-red-500 mb-4">
+              Escríbenos
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900">
+              Formulario de Contacto
+            </h2>
+          </div>
+          <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-8">
+            <form onSubmit={handleContactSubmit} className="space-y-6">
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="contact-name" className="block text-sm font-semibold text-gray-700 mb-2">Nombre completo</label>
+                  <input
+                    id="contact-name"
+                    type="text"
+                    required
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Tu nombre"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contact-email" className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    required
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="tu@email.com"
+                  />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="contact-phone" className="block text-sm font-semibold text-gray-700 mb-2">Teléfono</label>
+                  <input
+                    id="contact-phone"
+                    type="tel"
+                    required
+                    value={contactForm.phone}
+                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="+502 1234 5678"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contact-tour" className="block text-sm font-semibold text-gray-700 mb-2">Tour de interés</label>
+                  <select
+                    id="contact-tour"
+                    required
+                    value={contactForm.tourInterest}
+                    onChange={(e) => setContactForm({ ...contactForm, tourInterest: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  >
+                    <option value="Consulta general">Consulta general</option>
+                    <option value="Atitlán Signature">Atitlán Signature</option>
+                    <option value="Día Privado en el Lago">Día Privado en el Lago</option>
+                    <option value="Crucero al Atardecer">Crucero al Atardecer</option>
+                    <option value="Amanecer en el Lago">Amanecer en el Lago</option>
+                    <option value="Escapada Bienestar">Escapada Bienestar</option>
+                    <option value="Ruta Artesanal">Ruta Artesanal</option>
+                    <option value="Santiago Cultural">Santiago Cultural</option>
+                    <option value="Laboratorio de Café">Laboratorio de Café</option>
+                    <option value="Café y Lago Combo">Café y Lago Combo</option>
+                    <option value="Día de Campo Esencial">Día de Campo Esencial</option>
+                    <option value="Día de Campo Premium">Día de Campo Premium</option>
+                    <option value="Canasta Celebración">Canasta Celebración</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="contact-date" className="block text-sm font-semibold text-gray-700 mb-2">Fecha de viaje</label>
+                  <input
+                    id="contact-date"
+                    type="date"
+                    required
+                    value={contactForm.travelDate}
+                    onChange={(e) => setContactForm({ ...contactForm, travelDate: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contact-pax" className="block text-sm font-semibold text-gray-700 mb-2">Número de personas</label>
+                  <input
+                    id="contact-pax"
+                    type="number"
+                    required
+                    min={1}
+                    value={contactForm.pax}
+                    onChange={(e) => setContactForm({ ...contactForm, pax: Number(e.target.value) })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="contact-message" className="block text-sm font-semibold text-gray-700 mb-2">Mensaje (opcional)</label>
+                <textarea
+                  id="contact-message"
+                  rows={4}
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  placeholder="Cuéntanos más sobre lo que buscas..."
+                />
+              </div>
+              {contactStatus === 'success' && (
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-green-800 text-sm font-medium">
+                  ¡Mensaje enviado con éxito! Te responderemos lo antes posible.
+                </div>
+              )}
+              {contactStatus === 'error' && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-800 text-sm font-medium">
+                  {contactError}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={contactStatus === 'loading'}
+                className="w-full bg-red-600 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-red-500 transition-all duration-300 shadow-xl shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {contactStatus === 'loading' ? 'Enviando...' : 'Enviar mensaje'}
+              </button>
+            </form>
+          </div>
+        </section>
 
         {/* Info Cards */}
         <div className="grid lg:grid-cols-2 gap-8 mb-20">
@@ -213,6 +369,7 @@ const ContactoPage = () => {
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  aria-expanded={openFaq === index}
                   className="w-full flex items-center justify-between p-5 sm:p-6 text-left"
                 >
                   <span className="text-base font-bold text-gray-900 pr-4">{item.question}</span>

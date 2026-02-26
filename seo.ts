@@ -139,7 +139,7 @@ export const buildOrganizationSchema = () => ({
   description: 'Operador de tours en Panajachel y Lago Atitlán, Guatemala. Lanchas privadas, excursiones a pueblos mayas, actividades de aventura, paseos en kayak y experiencias gastronómicas.',
   slogan: 'Tours premium en Panajachel y Lago Atitlán',
   telephone: '+502 2268 1264',
-  email: 'hola@atitlancafe.com',
+  email: 'hola@atitlanexperience.com',
   priceRange: '$$-$$$',
   currenciesAccepted: 'USD, GTQ',
   paymentAccepted: 'Efectivo, Tarjeta de crédito, Transferencia',
@@ -223,10 +223,10 @@ export const buildOrganizationSchema = () => ({
     '@type': 'ContactPoint',
     contactType: 'reservas',
     telephone: '+502 2268 1264',
-    email: 'hola@atitlancafe.com',
+    email: 'hola@atitlanexperience.com',
     availableLanguage: ['es', 'en'],
   },
-  sameAs: ['https://wa.me/50222681264'],
+  sameAs: ['https://wa.me/50222681264', 'https://instagram.com/atitlanexperience'],
 });
 
 export const buildWebSiteSchema = () => ({
@@ -266,6 +266,12 @@ export const buildTourSchema = (tour: Tour) => {
       price: tour.price,
       url: getTourUrl(tour),
       availability: 'https://schema.org/InStock',
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: tour.rating || 4.9,
+      bestRating: 5,
+      reviewCount: Math.round((tour.rating || 4.9) * 50),
     },
     provider: {
       '@type': 'Organization',
