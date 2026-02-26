@@ -17,17 +17,17 @@ const isCloudinaryId = (src: string) => !src.startsWith('http');
 const replaceSize = (src: string, width: number, height: number) =>
   src.replace(/\/(\d+)\/(\d+)(?=$)/, `/${width}/${height}`);
 
-const buildSized = (src: string, width: number, height: number) => {
+const buildSized = (src: string, width: number, height: number, format?: string) => {
   if (isCloudinaryId(src)) {
-    return getCloudinaryUrl(src, { width, height });
+    return getCloudinaryUrl(src, { width, height, ...(format && { format }) });
   }
   return replaceSize(src, width, height);
 };
 
-const buildSrcSet = (src: string) =>
+const buildSrcSet = (src: string, format?: string) =>
   SIZES.map((width) => {
     const height = Math.round(width * 0.8);
-    const url = buildSized(src, width, height);
+    const url = buildSized(src, width, height, format);
     return `${url} ${width}w`;
   }).join(', ');
 
@@ -39,12 +39,19 @@ const TourImage = ({
   loading = 'lazy',
   priority = false,
 }: TourImageProps) => {
-  const srcSet = buildSrcSet(src);
+  const useExplicitFormats = isCloudinaryId(src);
+
   return (
     <picture>
+      {useExplicitFormats && (
+        <>
+          <source srcSet={buildSrcSet(src, 'avif')} sizes={sizes} type="image/avif" />
+          <source srcSet={buildSrcSet(src, 'webp')} sizes={sizes} type="image/webp" />
+        </>
+      )}
       <img
-        src={buildSized(src, 1440, 1152)}
-        srcSet={srcSet}
+        src={buildSized(src, 1440, 1152, useExplicitFormats ? 'jpg' : undefined)}
+        srcSet={buildSrcSet(src, useExplicitFormats ? 'jpg' : undefined)}
         sizes={sizes}
         alt={alt}
         className={className}

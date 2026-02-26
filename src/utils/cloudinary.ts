@@ -39,3 +39,30 @@ export const getCloudinaryUrl = (publicId: string, options: CloudinaryOptions & 
 
     return `https://res.cloudinary.com/${CLOUD_NAME}/${resourceType}/upload/${transformations}/${publicId}`;
 };
+
+/**
+ * Builds srcSet strings for AVIF, WebP, and JPEG fallback.
+ * Use with <picture><source> to guarantee modern format delivery.
+ */
+export const buildFormatSrcSets = (
+    publicId: string,
+    widths: number[],
+    options: Omit<CloudinaryOptions, 'format'> & { resourceType?: 'image' | 'video' } = {},
+) => {
+    const buildSrcSet = (format: string) =>
+        widths
+            .map((w) => {
+                const h = options.height
+                    ? Math.round((options.height / (options.width || w)) * w)
+                    : undefined;
+                const url = getCloudinaryUrl(publicId, { ...options, width: w, height: h, format });
+                return `${url} ${w}w`;
+            })
+            .join(', ');
+
+    return {
+        avif: buildSrcSet('avif'),
+        webp: buildSrcSet('webp'),
+        jpg: buildSrcSet('jpg'),
+    };
+};

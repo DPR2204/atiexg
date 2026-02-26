@@ -395,8 +395,7 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
             const fullWidth = isMobile
               ? Math.min(Math.round(window.innerWidth * (window.devicePixelRatio || 1)), 1200)
               : Math.min(Math.round(window.innerWidth * (window.devicePixelRatio || 1)), 2400);
-            const placeholderUrl = getCloudinaryUrl(item.src, { width: 60, quality: 'auto:low' });
-            const fullUrl = getCloudinaryUrl(item.src, { width: fullWidth });
+            const placeholderUrl = getCloudinaryUrl(item.src, { width: 40, quality: 'auto:low' });
 
             return (
               <>
@@ -409,15 +408,25 @@ const GalleryViewer: React.FC<GalleryViewerProps> = ({
                   style={{ filter: 'blur(20px)', transform: 'scale(1.1)' }}
                   draggable={false}
                 />
-                {/* Full resolution image */}
-                <img
-                  src={fullUrl}
-                  alt={item.alt}
-                  className="relative w-full h-full object-cover"
-                  draggable={false}
-                  onLoad={handleImageLoad}
-                  onError={handleImageLoad}
-                />
+                {/* Full resolution image — explicit formats to bypass Cloudinary cache issues */}
+                <picture>
+                  <source
+                    srcSet={getCloudinaryUrl(item.src, { width: fullWidth, format: 'avif' })}
+                    type="image/avif"
+                  />
+                  <source
+                    srcSet={getCloudinaryUrl(item.src, { width: fullWidth, format: 'webp' })}
+                    type="image/webp"
+                  />
+                  <img
+                    src={getCloudinaryUrl(item.src, { width: fullWidth, format: 'jpg' })}
+                    alt={item.alt}
+                    className="relative w-full h-full object-cover"
+                    draggable={false}
+                    onLoad={handleImageLoad}
+                    onError={handleImageLoad}
+                  />
+                </picture>
               </>
             );
           })()
