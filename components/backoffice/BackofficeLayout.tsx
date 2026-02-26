@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import '../../styles/backoffice.css';
 import { Outlet, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -23,6 +24,7 @@ export default function BackofficeLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [badges, setBadges] = useState({ offered: 0, missingBoats: 0 });
+    const badgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [collapsed, setCollapsed] = useState(false);
 
@@ -33,11 +35,15 @@ export default function BackofficeLayout() {
         const channel = supabase
             .channel('badges')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
-                fetchBadges();
+                if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current);
+                badgeTimerRef.current = setTimeout(() => fetchBadges(), 10000);
             })
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
+        return () => {
+            supabase.removeChannel(channel);
+            if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current);
+        };
     }, []);
 
     async function fetchBadges() {
@@ -57,9 +63,11 @@ export default function BackofficeLayout() {
             .is('boat_id', null)
             .neq('status', 'cancelled');
 
-        setBadges({
-            offered: offeredCount || 0,
-            missingBoats: missingData?.length || 0
+        setBadges(prev => {
+            const newOffered = offeredCount || 0;
+            const newMissing = missingData?.length || 0;
+            if (prev.offered === newOffered && prev.missingBoats === newMissing) return prev;
+            return { offered: newOffered, missingBoats: newMissing };
         });
     }
 

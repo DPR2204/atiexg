@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -88,6 +88,7 @@ export default function ReservasPage() {
     const { agent } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const [reservations, setReservations] = useState<Reservation[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -154,51 +155,18 @@ export default function ReservasPage() {
     // Custom Tour Data State (V7)
     const [customTourForm, setCustomTourForm] = useState<any>({ itinerary: [], includes: '' });
 
+    // Fetch resources (boats, staff, tours) only once on mount
+    useEffect(() => {
+        fetchResources();
+    }, []);
+
+    // Fetch reservations when page, filter, or search changes
     useEffect(() => {
         fetchAll();
-    }, [filterStatus]);
+    }, [currentPage, filterStatus, debouncedSearchQuery]);
 
-    async function fetchAll(silent = false) {
-        if (!silent) setLoading(true);
+    async function fetchResources() {
         try {
-            let query = supabase
-                .from('reservations')
-                .select(`
-                    *,
-                    custom_tour_data,
-                    tour:tours(
-                        name,
-                        includes,
-                        itinerary
-                    ),
-                    public_token,
-                    agent:agents(name),
-                    boat:boats(name),
-                    driver:staff!reservations_driver_id_fkey(name),
-                    guide:staff!reservations_guide_id_fkey(name)
-                `)
-                .order('tour_date', { ascending: false });
-
-            if (filterStatus !== 'all') {
-                query = query.eq('status', filterStatus);
-            }
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            setReservations((data as Reservation[]) || []);
-
-            // Handle deep link editing
-            const editId = searchParams.get('editId');
-            if (editId && data) {
-                const res = (data as Reservation[]).find(r => r.id === Number(editId));
-                if (res) {
-                    startEdit(res);
-                    setSearchParams({}, { replace: true });
-                }
-            }
-
-            // Load resources
             const [boatsRes, staffRes, toursRes] = await Promise.all([
                 supabase.from('boats').select('*').eq('status', 'active'),
                 supabase.from('staff').select('*').eq('active', true),
@@ -218,6 +186,83 @@ export default function ReservasPage() {
                 itinerary: t.itinerary || []
             }));
             setToursList(mappedTours);
+        } catch (err) {
+            console.error('Error fetching resources:', err);
+        }
+    }
+
+    async function fetchAll(silent = false) {
+        if (!silent) setLoading(true);
+        try {
+            const from = (currentPage - 1) * ITEMS_PER_PAGE;
+            const to = from + ITEMS_PER_PAGE - 1;
+
+            let query = supabase
+                .from('reservations')
+                .select(`
+                    id,
+                    tour_id,
+                    tour_name,
+                    agent_id,
+                    status,
+                    tour_date,
+                    end_date,
+                    start_time,
+                    boat_id,
+                    driver_id,
+                    guide_id,
+                    pax_count,
+                    deposit_amount,
+                    total_amount,
+                    paid_amount,
+                    payment_url,
+                    payment_id,
+                    custom_stops,
+                    notes,
+                    updated_at,
+                    emergency_contact_name,
+                    emergency_contact_phone,
+                    public_token,
+                    meal_options,
+                    selected_addons,
+                    meal_per_group,
+                    price_manual,
+                    passengers(full_name, email, phone),
+                    tour:tours(name),
+                    agent:agents(name),
+                    boat:boats(name),
+                    driver:staff!reservations_driver_id_fkey(name),
+                    guide:staff!reservations_guide_id_fkey(name)
+                `, { count: 'exact' })
+                .order('tour_date', { ascending: false });
+
+            if (filterStatus !== 'all') {
+                query = query.eq('status', filterStatus);
+            }
+
+            if (debouncedSearchQuery.trim()) {
+                const q = debouncedSearchQuery.trim();
+                // Server-side search: match by tour name or reservation ID
+                query = query.or(`tour_name.ilike.%${q}%,id.eq.${isNaN(Number(q)) ? 0 : Number(q)}`);
+            }
+
+            query = query.range(from, to);
+
+            const { data, count, error } = await query;
+            if (error) throw error;
+
+            setReservations((data as unknown as Reservation[]) || []);
+            setTotalCount(count ?? 0);
+
+            // Handle deep link editing
+            const editId = searchParams.get('editId');
+            if (editId && data) {
+                const res = (data as unknown as Reservation[]).find(r => r.id === Number(editId));
+                if (res) {
+                    startEdit(res);
+                    setSearchParams({}, { replace: true });
+                }
+            }
         } catch (err) {
             console.error('Error fetching reservations data:', err);
         } finally {
@@ -460,10 +505,11 @@ export default function ReservasPage() {
             // Load details
             const res = reservations.find(r => r.id === id);
             if (res) {
-                // Load passengers and audit in parallel
-                const [{ data: pax }, { data: audits }] = await Promise.all([
+                // Load passengers, audit, and custom_tour_data in parallel
+                const [{ data: pax }, { data: audits }, { data: detailData }] = await Promise.all([
                     supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', id),
                     supabase.from('reservation_audit_log').select('*').eq('reservation_id', id).order('created_at', { ascending: false }),
+                    supabase.from('reservations').select('custom_tour_data').eq('id', id).single(),
                 ]);
                 setPassengers((pax as any[]) || []);
                 setAuditLogs((audits as AuditLogEntry[]) || []);
@@ -473,18 +519,18 @@ export default function ReservasPage() {
 
                 // Load Custom Tour Data (V7)
                 // Use saved custom data if it exists, otherwise fallback to tour defaults
-                if (res.custom_tour_data) {
-                    setCustomTourForm(res.custom_tour_data);
+                const customTourData = detailData?.custom_tour_data;
+                if (customTourData) {
+                    setCustomTourForm(customTourData);
                 } else {
-                    // Pre-fill with default tour data if available
-                    // Handle case where Supabase returns join as an array
-                    const tourData = Array.isArray(res.tour) ? res.tour[0] : res.tour;
+                    // Pre-fill with default tour data from the already-loaded toursList
+                    const tourFromList = toursList.find(t => t.id === res.tour_id);
 
-                    if (tourData) {
+                    if (tourFromList) {
                         setCustomTourForm({
-                            tour_name: tourData.name || res.tour_name,
-                            includes: tourData.includes || '',
-                            itinerary: tourData.itinerary || []
+                            tour_name: tourFromList.name || res.tour_name,
+                            includes: tourFromList.includes || '',
+                            itinerary: tourFromList.itinerary || []
                         });
                     } else {
                         // Fallback if no tour data linked yet
@@ -714,35 +760,11 @@ export default function ReservasPage() {
         setCurrentPage(1);
     }, [debouncedSearchQuery, filterStatus]);
 
-    // Client-side search filtering + pagination
-    const filteredReservations = useMemo(() => {
-        if (!debouncedSearchQuery.trim()) return reservations;
-        const q = debouncedSearchQuery.toLowerCase().trim();
-        return reservations.filter(res => {
-            // Match by reservation ID
-            if (String(res.id).includes(q)) return true;
-            // Match by formatted reservation code
-            if (formatReservationCode(res.id, res.tour_date).toLowerCase().includes(q)) return true;
-            // Match by tour name
-            if (res.tour_name?.toLowerCase().includes(q)) return true;
-            // Match by passenger name, email, or phone
-            if (res.passengers?.some(p =>
-                p.full_name?.toLowerCase().includes(q) ||
-                p.email?.toLowerCase().includes(q) ||
-                p.phone?.toLowerCase().includes(q)
-            )) return true;
-            return false;
-        });
-    }, [reservations, debouncedSearchQuery]);
-
-    const totalFiltered = filteredReservations.length;
-    const totalPages = Math.max(1, Math.ceil(totalFiltered / ITEMS_PER_PAGE));
-    const paginatedReservations = filteredReservations.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
-    const showingFrom = totalFiltered === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-    const showingTo = Math.min(currentPage * ITEMS_PER_PAGE, totalFiltered);
+    // Server-side pagination: reservations already contains only the current page
+    const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+    const paginatedReservations = reservations;
+    const showingFrom = totalCount === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    const showingTo = Math.min(currentPage * ITEMS_PER_PAGE, totalCount);
 
     const currentTourMeals = toursList.find(t => t.id === (editingId ? form.tour_id : (expandedId ? reservations.find(r => r.id === expandedId)?.tour_id : toursList[0]?.id)))?.meals || [];
 
@@ -755,7 +777,7 @@ export default function ReservasPage() {
                 <div>
                     <h2 className="bo-title">Reservas</h2>
                     <p className="bo-subtitle">
-                        {reservations.length} servicios registrados • Comisión estimada: <span style={{ fontFamily: 'var(--bo-font-mono)' }}>${reservations.reduce((acc, curr) => acc + (curr.total_amount * (agent?.commission_rate || 5) / 100), 0).toFixed(2)}</span>
+                        {totalCount} servicios registrados • Comisión estimada: <span style={{ fontFamily: 'var(--bo-font-mono)' }}>${reservations.reduce((acc, curr) => acc + (curr.total_amount * (agent?.commission_rate || 5) / 100), 0).toFixed(2)}</span>
                     </p>
                 </div>
                 <button
@@ -1484,11 +1506,11 @@ export default function ReservasPage() {
             </div>
 
             {/* Pagination Controls */}
-            {totalFiltered > ITEMS_PER_PAGE && (
+            {totalCount > ITEMS_PER_PAGE && (
                 <div className="bo-section-card" style={{ marginTop: 0, paddingTop: '0.75rem', paddingBottom: '0.75rem' }}>
                     <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">
-                            Mostrando {showingFrom}-{showingTo} de {totalFiltered}
+                            Mostrando {showingFrom}-{showingTo} de {totalCount}
                         </span>
                         <div className="flex gap-2">
                             <button
@@ -1512,9 +1534,9 @@ export default function ReservasPage() {
                     </div>
                 </div>
             )}
-            {totalFiltered <= ITEMS_PER_PAGE && totalFiltered > 0 && (
+            {totalCount <= ITEMS_PER_PAGE && totalCount > 0 && (
                 <div className="text-center text-sm text-gray-400 py-2">
-                    Mostrando {totalFiltered} reserva{totalFiltered !== 1 ? 's' : ''}
+                    Mostrando {totalCount} reserva{totalCount !== 1 ? 's' : ''}
                 </div>
             )}
         </div >

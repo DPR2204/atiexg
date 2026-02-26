@@ -176,7 +176,7 @@ interface KanbanColumnProps {
     onEdit?: (id: number) => void;
 }
 
-const KanbanColumn = ({ status, reservations, id, onEdit }: KanbanColumnProps) => {
+const KanbanColumn = React.memo(function KanbanColumn({ status, reservations, id, onEdit }: KanbanColumnProps) {
     const { setNodeRef: setSortableRef } = useSortable({
         id,
         data: {
@@ -251,7 +251,7 @@ const KanbanColumn = ({ status, reservations, id, onEdit }: KanbanColumnProps) =
             </div>
         </div>
     );
-};
+});
 
 // --- Main Kanban Page ---
 
@@ -282,6 +282,15 @@ export default function KanbanPage() {
         });
     }, [reservations, searchQuery]);
 
+    // Pre-compute per-column arrays to avoid re-filtering on every render
+    const columnData = useMemo(() => {
+        const map: Record<string, Reservation[]> = {};
+        COLUMNS.forEach(col => {
+            map[col] = filteredReservations.filter(r => r.status === col);
+        });
+        return map;
+    }, [filteredReservations]);
+
     function handleEditReservation(id: number) {
         navigate(`/backoffice/reservas?editId=${id}`);
     }
@@ -303,6 +312,11 @@ export default function KanbanPage() {
 
     async function fetchReservations() {
         try {
+            // Only fetch reservations from the last 7 days onwards to avoid loading the entire history
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const dateFilter = sevenDaysAgo.toISOString().split('T')[0];
+
             const { data, error } = await supabase
                 .from('reservations')
                 .select(`
@@ -311,6 +325,7 @@ export default function KanbanPage() {
           boat:boats(name),
           passengers(full_name)
         `)
+                .gte('tour_date', dateFilter)
                 .order('tour_date', { ascending: true });
 
             if (error) throw error;
@@ -486,7 +501,7 @@ export default function KanbanPage() {
                             key={col}
                             id={col}
                             status={col}
-                            reservations={filteredReservations.filter((r) => r.status === col)}
+                            reservations={columnData[col]}
                             onEdit={handleEditReservation}
                         />
                     ))}
