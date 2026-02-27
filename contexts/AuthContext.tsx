@@ -132,13 +132,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signUp = async (email: string, password: string, name: string) => {
         try {
-            const { data, error } = await supabase.auth.signUp({
+            // Race against a timeout to avoid infinite "Procesando..." on 504s
+            const signUpPromise = supabase.auth.signUp({
                 email,
                 password,
                 options: { data: { name } },
             });
 
-            if (error) return { error: error.message || JSON.stringify(error) };
+            const timeoutPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('SIGNUP_TIMEOUT')), 15000)
+            );
+
+            const { data, error } = await Promise.race([signUpPromise, timeoutPromise]);
+
+            if (error) {
+                // Detect email rate limit or gateway errors
+                const msg = error.message || JSON.stringify(error);
+                if (msg.toLowerCase().includes('rate limit') || error.status === 429) {
+                    return { error: 'Límite de correos alcanzado. Pide a un admin que desactive la confirmación por email en Supabase.' };
+                }
+                return { error: msg };
+            }
 
             // Supabase returns a user with fake id and no session when email already exists
             // (to prevent user enumeration). Detect this case.
@@ -148,6 +162,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             return { error: null };
         } catch (err: any) {
+            if (err?.message === 'SIGNUP_TIMEOUT') {
+                return { error: 'El servidor tardó demasiado. Desactiva la confirmación por email en Supabase Dashboard → Authentication → Providers → Email.' };
+            }
+            // 504 Gateway Timeout from fetch
+            if (err?.message?.includes('504') || err?.message?.includes('Gateway')) {
+                return { error: 'Error 504: el servidor no pudo enviar el email de confirmación. Desactiva "Confirm email" en Supabase Dashboard.' };
+            }
             return { error: err?.message || 'Error inesperado al crear cuenta' };
         }
     };
