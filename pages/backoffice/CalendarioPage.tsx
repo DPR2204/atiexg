@@ -5,6 +5,7 @@ import { DndContext, useDraggable, useDroppable, DragOverlay, closestCenter } fr
 import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
+import { localToday, formatLocalDate } from '../../lib/dates';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import type { Reservation } from '../../types/backoffice';
 import { STATUS_CONFIG, type ReservationStatus } from '../../types/backoffice';
@@ -107,16 +108,16 @@ export default function CalendarioPage() {
             let startStr, endStr;
 
             if (viewMode === 'month') {
-                startStr = new Date(year, month, 1).toISOString().split('T')[0];
-                endStr = new Date(year, month + 1, 0).toISOString().split('T')[0];
+                startStr = formatLocalDate(new Date(year, month, 1));
+                endStr = formatLocalDate(new Date(year, month + 1, 0));
             } else {
                 // Week view: start of current week (Sunday)
                 const curr = new Date(currentDate);
                 const dayOfWeek = curr.getDay();
                 const sunday = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() - dayOfWeek);
                 const saturday = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + 6);
-                startStr = sunday.toISOString().split('T')[0];
-                endStr = saturday.toISOString().split('T')[0];
+                startStr = formatLocalDate(sunday);
+                endStr = formatLocalDate(saturday);
             }
 
             const { data, error } = await supabase
@@ -165,7 +166,7 @@ export default function CalendarioPage() {
             const diffTime = Math.abs(oldEnd.getTime() - oldStart.getTime());
             const newStart = new Date(newDate);
             const newEnd = new Date(newStart.getTime() + diffTime);
-            updatePayload.end_date = newEnd.toISOString().split('T')[0];
+            updatePayload.end_date = formatLocalDate(newEnd);
         }
 
         // Optimistic Update (after reading old values)
@@ -295,7 +296,7 @@ export default function CalendarioPage() {
                                                 key={day?.dateStr || `empty-${i}`}
                                                 dateStr={day?.dateStr || `empty-${i}`}
                                                 dayNumber={day?.date}
-                                                isToday={day?.dateStr === new Date().toISOString().split('T')[0]}
+                                                isToday={day?.dateStr === localToday()}
                                                 isSelected={day?.dateStr === selectedDay}
                                                 isOtherMonth={day?.isOtherMonth}
                                                 onSelect={() => day && setSelectedDay(day.dateStr)}
@@ -344,7 +345,7 @@ export default function CalendarioPage() {
                                         const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - dayOfWeek + i);
                                         const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                                         const dayRes = reservationsByDate.get(dateStr) || [];
-                                        const todayStr = new Date().toISOString().split('T')[0];
+                                        const todayStr = localToday();
 
                                         return (
                                             // @ts-ignore

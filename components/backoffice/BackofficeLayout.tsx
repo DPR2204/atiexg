@@ -8,6 +8,7 @@ import { Toaster } from 'sonner';
 import CommandPalette from './CommandPalette';
 import ErrorBoundary from '../ErrorBoundary';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { localToday } from '../../lib/dates';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -84,7 +85,7 @@ export default function BackofficeLayout() {
     }, []);
 
     async function fetchBadges() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = localToday();
 
         // Count offered (pending confirmation)
         const { count: offeredCount } = await supabase

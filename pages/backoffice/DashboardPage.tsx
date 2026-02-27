@@ -8,12 +8,13 @@ import type { Reservation } from '../../types/backoffice';
 import { STATUS_CONFIG } from '../../types/backoffice';
 import { generateReportCSV } from '../../lib/generateReportCSV';
 import { generateReportPDF } from '../../lib/generateReportPDF';
+import { localToday, formatLocalDate } from '../../lib/dates';
 
 type DatePreset = 'today' | 'week' | 'month' | 'year' | 'custom';
 
 function getPresetRange(preset: DatePreset): { from: string; to: string } {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = localToday();
 
     switch (preset) {
         case 'today':
@@ -24,16 +25,16 @@ function getPresetRange(preset: DatePreset): { from: string; to: string } {
             monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
-            return { from: monday.toISOString().split('T')[0], to: sunday.toISOString().split('T')[0] };
+            return { from: formatLocalDate(monday), to: formatLocalDate(sunday) };
         }
         case 'month': {
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            return { from: monthStart.toISOString().split('T')[0], to: monthEnd.toISOString().split('T')[0] };
+            return { from: formatLocalDate(monthStart), to: formatLocalDate(monthEnd) };
         }
         case 'year': {
             const yearStart = new Date(now.getFullYear(), 0, 1);
-            return { from: yearStart.toISOString().split('T')[0], to: today };
+            return { from: formatLocalDate(yearStart), to: today };
         }
         default:
             return { from: today, to: today };
@@ -48,7 +49,7 @@ function getPreviousPeriod(from: string, to: string): { from: string; to: string
     prevEnd.setDate(prevEnd.getDate() - 1);
     const prevStart = new Date(prevEnd);
     prevStart.setDate(prevEnd.getDate() - days + 1);
-    return { from: prevStart.toISOString().split('T')[0], to: prevEnd.toISOString().split('T')[0] };
+    return { from: formatLocalDate(prevStart), to: formatLocalDate(prevEnd) };
 }
 
 const PRESET_LABELS: Record<DatePreset, string> = {
@@ -159,9 +160,8 @@ export default function DashboardPage() {
 
     async function fetchDashboard(rangeFrom: string, rangeTo: string, silent = false) {
         if (!silent) setLoading(true);
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+        const today = localToday();
+        const nextWeek = formatLocalDate(new Date(Date.now() + 7 * 86400000));
 
         const prev = getPreviousPeriod(rangeFrom, rangeTo);
 

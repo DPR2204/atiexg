@@ -30,6 +30,7 @@ import { LayoutGrid, Loader2, Calendar, User, Ship, Search, AlertTriangle, Lock 
 import { toast } from 'sonner';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { canEditReservation } from '../../lib/reservation-permissions';
+import { formatLocalDate } from '../../lib/dates';
 
 // Valid status transitions: which statuses can move to which
 const VALID_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
@@ -359,7 +360,7 @@ export default function KanbanPage() {
             // Only fetch reservations from the last 7 days onwards to avoid loading the entire history
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            const dateFilter = sevenDaysAgo.toISOString().split('T')[0];
+            const dateFilter = formatLocalDate(sevenDaysAgo);
 
             const { data, error } = await supabase
                 .from('reservations')
