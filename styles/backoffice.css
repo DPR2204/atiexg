@@ -20,10 +20,10 @@
 
 /* === Design Tokens === */
 :root {
-  /* Sidebar */
+  /* Sidebar (WCAG AA ≥ 4.5:1 on #F0F2F8) */
   --bo-sidebar-bg: #F0F2F8;
   --bo-sidebar-border: rgba(33, 35, 42, 0.09);
-  --bo-sidebar-text: #54596E;
+  --bo-sidebar-text: #464B5E;
   --bo-sidebar-text-hover: #21232A;
   --bo-sidebar-active-bg: rgba(132, 39, 224, 0.08);
   --bo-sidebar-active-text: #8427E0;
@@ -36,11 +36,11 @@
   --bo-border: #E0E2EB;
   --bo-border-focus: #8427E0;
 
-  /* Text */
+  /* Text (WCAG AA ≥ 4.5:1 on #ffffff) */
   --bo-text: #21232A;
-  --bo-text-secondary: #6B6F7B;
-  --bo-text-muted: #9496A1;
-  --bo-text-disabled: #C9CBD6;
+  --bo-text-secondary: #5C6070;
+  --bo-text-muted: #71747E;
+  --bo-text-disabled: #9496A1;
 
   /* Accent */
   --bo-accent: #8427E0;
@@ -104,7 +104,7 @@
 
   --bo-sidebar-bg: #1E2028;
   --bo-sidebar-border: rgba(255, 255, 255, 0.08);
-  --bo-sidebar-text: #A0A4B8;
+  --bo-sidebar-text: #B0B4C4;
   --bo-sidebar-text-hover: #E8EAF0;
   --bo-sidebar-active-bg: rgba(168, 85, 247, 0.14);
   --bo-sidebar-active-text: #B07CED;
@@ -115,10 +115,11 @@
   --bo-border: #2E3140;
   --bo-border-focus: #A855F7;
 
+  /* Text (WCAG AA ≥ 4.5:1 on #1E2028) */
   --bo-text: #E8EAF0;
-  --bo-text-secondary: #A0A4B8;
-  --bo-text-muted: #6B6F7B;
-  --bo-text-disabled: #3E4150;
+  --bo-text-secondary: #B0B4C4;
+  --bo-text-muted: #8E92A4;
+  --bo-text-disabled: #5A5E6E;
 
   --bo-accent: #A855F7;
   --bo-accent-hover: #9333EA;
@@ -992,7 +993,7 @@ input[type="number"] {
 }
 
 .bo-filter-chip:hover {
-  border-color: #9496A1;
+  border-color: var(--bo-text-muted);
   color: var(--bo-text);
 }
 
@@ -1868,7 +1869,7 @@ input[type="number"] {
 }
 
 .bo-week-card-meta {
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   color: var(--bo-text-secondary);
 }
 
@@ -2755,7 +2756,7 @@ input[type="number"] {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9496A1;
+  background: var(--bo-text-muted);
 }
 
 /* ============================================
@@ -3931,13 +3932,13 @@ button:focus-visible {
 
 .bo-request-msg-time {
   font-size: 0.6875rem;
-  color: var(--bo-text-muted, #9496A1);
+  color: var(--bo-text-muted, #71747E);
   margin-left: auto;
 }
 
 .bo-request-msg-body {
   font-size: 0.8125rem;
-  color: var(--bo-text-secondary, #6B6F7B);
+  color: var(--bo-text-secondary, #5C6070);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -3986,7 +3987,7 @@ button:focus-visible {
   padding-top: 0.375rem;
   border-top: 1px dashed var(--bo-border, #E8EAF0);
   font-size: 0.75rem;
-  color: var(--bo-text-muted, #9496A1);
+  color: var(--bo-text-muted, #71747E);
   font-style: italic;
 }
 

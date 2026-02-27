@@ -306,7 +306,7 @@ export default function DashboardPage() {
                 {agent?.role === 'super_admin' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {showSyncConfirm && (
-                            <span style={{ fontSize: '0.8rem', color: '#6B6F7B' }}>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--bo-text-secondary)' }}>
                                 Esto activara un redespliegue (~2 min).
                             </span>
                         )}
@@ -414,7 +414,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Active date range indicator */}
-            <div style={{ fontSize: '0.8rem', color: '#6B6F7B', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--bo-text-secondary)', marginBottom: '0.5rem' }}>
                 Datos del {fmtShortDate(appliedFrom)} al {fmtShortDate(appliedTo)}
             </div>
 
