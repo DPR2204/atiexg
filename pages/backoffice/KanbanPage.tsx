@@ -26,9 +26,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import { Reservation, ReservationStatus, STATUS_CONFIG } from '../../types/backoffice';
-import { LayoutGrid, Loader2, Calendar, User, Ship, Search, AlertTriangle } from 'lucide-react';
+import { LayoutGrid, Loader2, Calendar, User, Ship, Search, AlertTriangle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import { canEditReservation } from '../../lib/reservation-permissions';
 
 // Valid status transitions: which statuses can move to which
 const VALID_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
@@ -74,9 +75,10 @@ interface KanbanCardProps {
     reservation: Reservation;
     isDragging?: boolean;
     onEdit?: (id: number) => void;
+    locked?: boolean;
 }
 
-const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onEdit }: KanbanCardProps) {
+const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onEdit, locked }: KanbanCardProps) {
     const isNonDraggable = NON_DRAGGABLE_STATUSES.includes(reservation.status);
 
     const {
@@ -121,7 +123,8 @@ const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onE
             onClick={() => onEdit?.(reservation.id)}
         >
             <div className="bo-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span className="bo-text-mono bo-text-xs bo-text-muted">
+                <span className="bo-text-mono bo-text-xs bo-text-muted" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {locked && <Lock size={10} className="bo-lock-icon" />}
                     {formatReservationCode(reservation.id, reservation.tour_date)}
                 </span>
                 <span className="bo-badge" style={{ backgroundColor: config.color + '10', color: config.color }}>
@@ -195,9 +198,10 @@ interface KanbanColumnProps {
     reservations: Reservation[];
     id: string;
     onEdit?: (id: number) => void;
+    lockedIds?: Set<number>;
 }
 
-const KanbanColumn = React.memo(function KanbanColumn({ status, reservations, id, onEdit }: KanbanColumnProps) {
+const KanbanColumn = React.memo(function KanbanColumn({ status, reservations, id, onEdit, lockedIds }: KanbanColumnProps) {
     const { setNodeRef: setSortableRef } = useSortable({
         id,
         data: {
@@ -249,7 +253,7 @@ const KanbanColumn = React.memo(function KanbanColumn({ status, reservations, id
             >
                 <SortableContext items={reservations.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     {reservations.map((res) => (
-                        <KanbanCard key={res.id} reservation={res} onEdit={onEdit} />
+                        <KanbanCard key={res.id} reservation={res} onEdit={onEdit} locked={lockedIds?.has(res.id)} />
                     ))}
                 </SortableContext>
                 {isOver && (
@@ -312,7 +316,20 @@ export default function KanbanPage() {
         return map;
     }, [filteredReservations]);
 
+    // Set of reservation IDs the current agent cannot edit (locked)
+    const lockedIds = useMemo(() => {
+        const set = new Set<number>();
+        reservations.forEach(r => {
+            if (!canEditReservation(r, agent)) set.add(r.id);
+        });
+        return set;
+    }, [reservations, agent]);
+
     function handleEditReservation(id: number) {
+        if (lockedIds.has(id)) {
+            toast.info('Esta reserva pertenece a otro agente. Puedes solicitar cambios desde la vista de reservas.');
+            return;
+        }
         navigate(`/backoffice/reservas?editId=${id}`);
     }
 
@@ -371,6 +388,12 @@ export default function KanbanPage() {
         // Prevent dragging completed/cancelled reservations
         if (draggedRes && NON_DRAGGABLE_STATUSES.includes(draggedRes.status)) {
             toast.warning(`Las reservas ${STATUS_CONFIG[draggedRes.status].label.toLowerCase()}s no se pueden mover`);
+            return;
+        }
+
+        // Prevent dragging reservations owned by other agents
+        if (draggedRes && !canEditReservation(draggedRes, agent)) {
+            toast.warning('Solo el agente asignado o un admin puede mover esta reserva');
             return;
         }
 
@@ -530,6 +553,7 @@ export default function KanbanPage() {
                             status={col}
                             reservations={columnData[col]}
                             onEdit={handleEditReservation}
+                            lockedIds={lockedIds}
                         />
                     ))}
                 </div>

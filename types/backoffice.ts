@@ -69,6 +69,7 @@ export interface Reservation {
     passengers?: Passenger[];
     meal_schedules?: MealSchedule[];
     audit_log?: AuditLogEntry[];
+    requests?: ReservationRequest[];
     // V3 Fields
     emergency_contact_name?: string;
     emergency_contact_phone?: string;
@@ -144,6 +145,21 @@ export interface AuditLogEntry {
     old_value?: string;
     new_value?: string;
     created_at: string;
+}
+
+export type RequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ReservationRequest {
+    id: number;
+    reservation_id: number;
+    author_id: string;
+    author_name: string;
+    message: string;
+    status: RequestStatus;
+    resolved_by?: string;
+    resolver_note?: string;
+    created_at: string;
+    resolved_at?: string;
 }
 
 // Meal type display labels

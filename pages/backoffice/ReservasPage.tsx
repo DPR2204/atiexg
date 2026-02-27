@@ -5,10 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
+import { canEditReservation } from '../../lib/reservation-permissions';
 import ItineraryEditor from '../../components/backoffice/ItineraryEditor';
 import QuickMenuEditor from '../../components/backoffice/QuickMenuEditor';
 import { toast } from 'sonner';
-import type { Reservation, Passenger, AuditLogEntry, PassengerMeal } from '../../types/backoffice';
+import type { Reservation, Passenger, AuditLogEntry, PassengerMeal, ReservationRequest } from '../../types/backoffice';
 import type { CustomTourData, Tour } from '../../types/shared';
 import { STATUS_CONFIG, MEAL_TYPE_LABELS, AUDIT_ACTION_LABELS } from '../../types/backoffice';
 import type { ReservationStatus, MealType } from '../../types/backoffice';
@@ -129,9 +130,11 @@ export default function ReservasPage() {
 
     // Expanded View State
     const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [expandedTab, setExpandedTab] = useState<'passengers' | 'audit' | 'menu' | 'tour'>('passengers');
+    const [expandedTab, setExpandedTab] = useState<'passengers' | 'audit' | 'menu' | 'tour' | 'requests'>('passengers');
     const [passengers, setPassengers] = useState<Passenger[]>([]);
     const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+    const [requests, setRequests] = useState<ReservationRequest[]>([]);
+    const [requestMsg, setRequestMsg] = useState('');
     // Menu Config for Expanded View (Quick Edit)
     const [quickMenu, setQuickMenu] = useState<{ type: string; options: string[] }[]>([]);
 
@@ -527,6 +530,8 @@ export default function ReservasPage() {
             setExpandedId(null);
             setPassengers([]);
             setAuditLogs([]);
+            setRequests([]);
+            setRequestMsg('');
             setQuickMenu([]); // Clear quick menu when collapsing
         } else {
             setExpandedId(id);
@@ -535,13 +540,15 @@ export default function ReservasPage() {
             const res = reservations.find(r => r.id === id);
             if (res) {
                 // Load passengers, audit, and custom_tour_data in parallel
-                const [{ data: pax }, { data: audits }, { data: detailData }] = await Promise.all([
+                const [{ data: pax }, { data: audits }, { data: detailData }, { data: reqs }] = await Promise.all([
                     supabase.from('passengers').select('*, meals:passenger_meals(*)').eq('reservation_id', id),
                     supabase.from('reservation_audit_log').select('*').eq('reservation_id', id).order('created_at', { ascending: false }),
                     supabase.from('reservations').select('custom_tour_data').eq('id', id).single(),
+                    supabase.from('reservation_requests').select('*').eq('reservation_id', id).order('created_at', { ascending: true }),
                 ]);
                 setPassengers((pax as any[]) || []);
                 setAuditLogs((audits as AuditLogEntry[]) || []);
+                setRequests((reqs as ReservationRequest[]) || []);
 
                 // Load Menu
                 setQuickMenu(res.meal_options?.available_meals || []);
@@ -693,6 +700,40 @@ export default function ReservasPage() {
             toast.error('Error al eliminar: ' + error.message);
         } else {
             await fetchAll();
+        }
+    }
+
+    // ==========================================
+    // Request Thread Functions
+    // ==========================================
+
+    async function submitRequest(reservationId: number) {
+        if (!agent || !requestMsg.trim()) return;
+        const { error } = await supabase.from('reservation_requests').insert({
+            reservation_id: reservationId,
+            author_id: agent.id,
+            author_name: agent.name,
+            message: requestMsg.trim(),
+        });
+        if (error) { toast.error('Error al enviar solicitud'); return; }
+        toast.success('Solicitud enviada');
+        setRequestMsg('');
+        // Refresh requests
+        const { data } = await supabase.from('reservation_requests').select('*').eq('reservation_id', reservationId).order('created_at');
+        setRequests((data as ReservationRequest[]) || []);
+    }
+
+    async function resolveRequest(reqId: number, status: 'approved' | 'rejected', note?: string) {
+        if (!agent) return;
+        const { error } = await supabase.from('reservation_requests')
+            .update({ status, resolved_by: agent.id, resolver_note: note || null, resolved_at: new Date().toISOString() })
+            .eq('id', reqId);
+        if (error) { toast.error('Error al resolver solicitud'); return; }
+        toast.success(status === 'approved' ? 'Solicitud aprobada' : 'Solicitud rechazada');
+        // Refresh
+        if (expandedId) {
+            const { data } = await supabase.from('reservation_requests').select('*').eq('reservation_id', expandedId).order('created_at');
+            setRequests((data as ReservationRequest[]) || []);
         }
     }
 
@@ -1256,10 +1297,16 @@ export default function ReservasPage() {
                                             <td><StatusBadge status={res.status} /></td>
                                             <td className="bo-text-right">
                                                 <div className="bo-action-btns">
-                                                    <button className="bo-action-btn bo-action-btn--edit" title="Editar" aria-label="Editar reserva" onClick={() => startEdit(res)}>✏️</button>
+                                                    {canEditReservation(res, agent) ? (
+                                                        <>
+                                                            <button className="bo-action-btn bo-action-btn--edit" title="Editar" aria-label="Editar reserva" onClick={() => startEdit(res)}>✏️</button>
+                                                            <button className="bo-action-btn bo-action-btn--pay" title="Cobrar" aria-label="Generar link de pago" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
+                                                            <button className="bo-action-btn bo-action-btn--delete" title="Eliminar" aria-label="Eliminar reserva" onClick={() => deleteReservation(res.id)}>🗑️</button>
+                                                        </>
+                                                    ) : (
+                                                        <button className="bo-action-btn" title="Solicitar cambio" aria-label="Solicitar cambio" onClick={() => { toggleExpanded(res.id); setExpandedTab('requests'); }}>💬</button>
+                                                    )}
                                                     <button className="bo-action-btn bo-action-btn--pdf" title="PDF" aria-label="Generar PDF" onClick={() => handlePrint(res)}>📄</button>
-                                                    <button className="bo-action-btn bo-action-btn--pay" title="Cobrar" aria-label="Generar link de pago" onClick={() => { setShowPaymentModal(res); setPaymentAmount(res.total_amount - res.paid_amount); }}>💳</button>
-                                                    <button className="bo-action-btn bo-action-btn--delete" title="Eliminar" aria-label="Eliminar reserva" onClick={() => deleteReservation(res.id)}>🗑️</button>
                                                 </div>
                                                 {res.payment_url && (
                                                     <div className="bo-cell-link">
@@ -1317,6 +1364,14 @@ export default function ReservasPage() {
                                                                 onClick={() => setExpandedTab('audit')}
                                                             >
                                                                 Historial
+                                                            </button>
+                                                            <button
+                                                                className={`bo-expanded-tab ${expandedTab === 'requests' ? 'bo-expanded-tab--active' : ''}`}
+                                                                onClick={() => setExpandedTab('requests')}
+                                                            >
+                                                                Solicitudes{requests.filter(r => r.status === 'pending').length > 0 && (
+                                                                    <span className="bo-nav-badge" style={{ marginLeft: '6px' }}>{requests.filter(r => r.status === 'pending').length}</span>
+                                                                )}
                                                             </button>
                                                         </div>
 
@@ -1486,6 +1541,66 @@ export default function ReservasPage() {
 
                                                             {expandedTab === 'audit' && (
                                                                 <AuditLogView logs={auditLogs} />
+                                                            )}
+
+                                                            {expandedTab === 'requests' && (
+                                                                <div>
+                                                                    {requests.length === 0 ? (
+                                                                        <div className="bo-empty-state">
+                                                                            <span className="bo-empty-state-icon">💬</span>
+                                                                            <p>No hay solicitudes de cambio para esta reserva.</p>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="bo-request-thread">
+                                                                            {requests.map(req => {
+                                                                                const canResolve = canEditReservation(res, agent) && req.status === 'pending';
+                                                                                return (
+                                                                                    <div key={req.id} className={`bo-request-msg bo-request-msg--${req.status}`}>
+                                                                                        <div className="bo-request-msg-header">
+                                                                                            <span className="bo-request-msg-author">{req.author_name}</span>
+                                                                                            <span className="bo-request-msg-status">
+                                                                                                {req.status === 'pending' ? '⏳ Pendiente' : req.status === 'approved' ? '✓ Aprobada' : '✗ Rechazada'}
+                                                                                            </span>
+                                                                                            <span className="bo-request-msg-time">
+                                                                                                {new Date(req.created_at).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div className="bo-request-msg-body">{req.message}</div>
+                                                                                        {req.resolver_note && (
+                                                                                            <div className="bo-request-msg-resolve">Nota: {req.resolver_note}</div>
+                                                                                        )}
+                                                                                        {canResolve && (
+                                                                                            <div className="bo-request-actions">
+                                                                                                <button className="bo-btn bo-btn--sm" style={{ background: '#E8F5E9', color: '#2E7D32', border: '1px solid #C8E6C9' }} onClick={() => resolveRequest(req.id, 'approved')}>Aprobar</button>
+                                                                                                <button className="bo-btn bo-btn--sm" style={{ background: '#FFEBEE', color: '#D32F2F', border: '1px solid #FFCDD2' }} onClick={() => resolveRequest(req.id, 'rejected')}>Rechazar</button>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Request form — only for non-owners */}
+                                                                    {!canEditReservation(res, agent) && (
+                                                                        <div className="bo-request-form" style={{ marginTop: '1rem' }}>
+                                                                            <textarea
+                                                                                className="bo-input"
+                                                                                value={requestMsg}
+                                                                                onChange={e => setRequestMsg(e.target.value)}
+                                                                                placeholder="Describe el cambio que necesitas..."
+                                                                                rows={2}
+                                                                            />
+                                                                            <button
+                                                                                className="bo-btn bo-btn--primary"
+                                                                                disabled={!requestMsg.trim()}
+                                                                                onClick={() => submitRequest(res.id)}
+                                                                            >
+                                                                                Enviar
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>
