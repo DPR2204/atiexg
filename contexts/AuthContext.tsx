@@ -13,6 +13,8 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<{ error: string | null }>;
     signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
+    updateProfile: (data: { name?: string }) => Promise<{ error: string | null }>;
+    updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
     isAdmin: boolean;
 }
 
@@ -150,6 +152,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const updateProfile = async (data: { name?: string }) => {
+        if (!user) return { error: 'No autenticado' };
+        try {
+            const { error } = await supabase
+                .from('agents')
+                .update({ name: data.name })
+                .eq('id', user.id);
+            if (error) return { error: error.message };
+            await fetchAgentProfile(user.id);
+            return { error: null };
+        } catch (err: any) {
+            return { error: err?.message || 'Error inesperado' };
+        }
+    };
+
+    const updatePassword = async (newPassword: string) => {
+        try {
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) return { error: error.message };
+            return { error: null };
+        } catch (err: any) {
+            return { error: err?.message || 'Error inesperado' };
+        }
+    };
+
     const signOut = async () => {
         try {
             await supabase.auth.signOut();
@@ -172,6 +199,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 signIn,
                 signUp,
                 signOut,
+                updateProfile,
+                updatePassword,
                 isAdmin: agent?.role === 'admin',
             }}
         >

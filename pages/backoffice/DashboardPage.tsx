@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import type { Reservation } from '../../types/backoffice';
 import { STATUS_CONFIG } from '../../types/backoffice';
 import { generateReportCSV } from '../../lib/generateReportCSV';
@@ -102,6 +103,11 @@ export default function DashboardPage() {
         fetchDashboard(appliedFrom, appliedTo);
     }, [appliedFrom, appliedTo]);
 
+    // Real-time: auto-refresh dashboard stats
+    useRealtimeTable('reservations', () => {
+        fetchDashboard(appliedFrom, appliedTo, true);
+    }, { debounceMs: 5000 });
+
     const [showSyncConfirm, setShowSyncConfirm] = useState(false);
 
     async function handleSyncGallery() {
@@ -151,8 +157,8 @@ export default function DashboardPage() {
         }
     }
 
-    async function fetchDashboard(rangeFrom: string, rangeTo: string) {
-        setLoading(true);
+    async function fetchDashboard(rangeFrom: string, rangeTo: string, silent = false) {
+        if (!silent) setLoading(true);
         const now = new Date();
         const today = now.toISOString().split('T')[0];
         const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];

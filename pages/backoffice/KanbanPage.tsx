@@ -28,6 +28,7 @@ import { updateReservation, formatReservationCode } from '../../lib/reservation-
 import { Reservation, ReservationStatus, STATUS_CONFIG } from '../../types/backoffice';
 import { LayoutGrid, Loader2, Calendar, User, Ship, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 
 // Valid status transitions: which statuses can move to which
 const VALID_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
@@ -41,6 +42,30 @@ const VALID_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
 
 // Statuses that should not be draggable
 const NON_DRAGGABLE_STATUSES: ReservationStatus[] = ['completed', 'cancelled'];
+
+// --- Agent Badge ---
+
+const AGENT_COLORS = [
+    { bg: '#E3F2FD', color: '#1565C0' },
+    { bg: '#F3E5F5', color: '#7B1FA2' },
+    { bg: '#E8F5E9', color: '#2E7D32' },
+    { bg: '#FFF3E0', color: '#E65100' },
+    { bg: '#FCE4EC', color: '#C62828' },
+    { bg: '#E0F7FA', color: '#00838F' },
+];
+
+function AgentBadge({ name }: { name?: string }) {
+    if (!name) return null;
+    const hash = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const palette = AGENT_COLORS[hash % AGENT_COLORS.length];
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    return (
+        <span className="bo-agent-badge" style={{ backgroundColor: palette.bg, color: palette.color }}>
+            <span className="bo-agent-badge-initials" style={{ backgroundColor: palette.color }}>{initials}</span>
+            <span className="bo-agent-badge-name">{name.split(' ')[0]}</span>
+        </span>
+    );
+}
 
 // --- Kanban Components ---
 
@@ -127,19 +152,15 @@ const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onE
                     {reservation.pax_count} Pax
                 </div>
             </div>
-            {(reservation.boat_id || reservation.agent_id) && (
-                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--bo-border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {reservation.boat?.name && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--bo-text-muted)', background: 'var(--bo-bg)', padding: '2px 6px', borderRadius: '4px' }}>
-                            <Ship size={10} />
-                            {reservation.boat.name}
-                        </div>
-                    )}
-                    <div style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 500, color: 'var(--bo-text-muted)' }}>
-                        {reservation.agent?.name}
+            <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--bo-border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AgentBadge name={reservation.agent?.name} />
+                {reservation.boat?.name && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--bo-text-muted)', background: 'var(--bo-bg)', padding: '2px 6px', borderRadius: '4px', marginLeft: 'auto' }}>
+                        <Ship size={10} />
+                        {reservation.boat.name}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             {/* Alert badges for missing info */}
             {(missingBoat || missingAgent) && (
@@ -310,8 +331,14 @@ export default function KanbanPage() {
         fetchReservations();
     }, []);
 
-    async function fetchReservations() {
+    // Real-time: auto-refresh when other agents make changes
+    useRealtimeTable('reservations', () => {
+        if (!activeId) fetchReservations(true);
+    });
+
+    async function fetchReservations(silent = false) {
         try {
+            if (!silent) setLoading(true);
             // Only fetch reservations from the last 7 days onwards to avoid loading the entire history
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);

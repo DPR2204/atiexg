@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import ItineraryEditor from '../../components/backoffice/ItineraryEditor';
@@ -15,6 +16,28 @@ import type { ReservationStatus, MealType } from '../../types/backoffice';
 // ==========================================
 // Helper Components
 // ==========================================
+
+const AGENT_COLORS = [
+    { bg: '#E3F2FD', color: '#1565C0' },
+    { bg: '#F3E5F5', color: '#7B1FA2' },
+    { bg: '#E8F5E9', color: '#2E7D32' },
+    { bg: '#FFF3E0', color: '#E65100' },
+    { bg: '#FCE4EC', color: '#C62828' },
+    { bg: '#E0F7FA', color: '#00838F' },
+];
+
+function AgentBadge({ name }: { name?: string }) {
+    if (!name) return null;
+    const hash = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const palette = AGENT_COLORS[hash % AGENT_COLORS.length];
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    return (
+        <span className="bo-agent-badge" style={{ backgroundColor: palette.bg, color: palette.color }}>
+            <span className="bo-agent-badge-initials" style={{ backgroundColor: palette.color }}>{initials}</span>
+            <span className="bo-agent-badge-name">{name.split(' ')[0]}</span>
+        </span>
+    );
+}
 
 function StatusBadge({ status }: { status: ReservationStatus }) {
     const config = STATUS_CONFIG[status];
@@ -165,6 +188,11 @@ export default function ReservasPage() {
     useEffect(() => {
         fetchAll();
     }, [currentPage, filterStatus, debouncedSearchQuery]);
+
+    // Real-time: auto-refresh when other agents make changes
+    useRealtimeTable('reservations', useCallback(() => {
+        if (!editingId && !showForm) fetchAll(true);
+    }, [editingId, showForm, currentPage, filterStatus, debouncedSearchQuery]));
 
     async function fetchResources() {
         try {
@@ -1219,7 +1247,8 @@ export default function ReservasPage() {
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="bo-cell-sub">
+                                                <AgentBadge name={res.agent?.name} />
+                                                <div className="bo-cell-sub" style={{ marginTop: '4px' }}>
                                                     <div title="Lancha">🚤 {res.boat?.name || 'S/A'}</div>
                                                     <div title="Capitán">⚓ {res.driver?.name?.split(' ')[0] || '?'}</div>
                                                 </div>

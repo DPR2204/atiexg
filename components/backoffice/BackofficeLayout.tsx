@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../../styles/backoffice.css';
-import { Outlet, NavLink, Navigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Search } from 'lucide-react';
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
 export default function BackofficeLayout() {
     const { agent, signOut, loading, user } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [badges, setBadges] = useState({ offered: 0, missingBoats: 0 });
@@ -137,11 +138,13 @@ export default function BackofficeLayout() {
         return <Navigate to="/backoffice/login" state={{ from: location }} replace />;
     }
 
-    const currentPage = NAV_ITEMS.find(
-        (item) => item.end
-            ? location.pathname === item.path
-            : location.pathname.startsWith(item.path) && item.path !== '/backoffice'
-    )?.label || 'Dashboard';
+    const currentPage = location.pathname.startsWith('/backoffice/perfil')
+        ? 'Mi Perfil'
+        : NAV_ITEMS.find(
+            (item) => item.end
+                ? location.pathname === item.path
+                : location.pathname.startsWith(item.path) && item.path !== '/backoffice'
+        )?.label || 'Dashboard';
 
     return (
         <div className="bo-layout notranslate" translate="no" lang="es">
@@ -200,7 +203,7 @@ export default function BackofficeLayout() {
 
                 {/* User footer */}
                 <div className="bo-sidebar-footer">
-                    <div className="bo-user-card">
+                    <div className="bo-user-card" onClick={() => navigate('/backoffice/perfil')} style={{ cursor: 'pointer' }}>
                         <div className="bo-user-avatar">
                             {agent?.name?.charAt(0)?.toUpperCase() || '?'}
                         </div>
@@ -211,7 +214,8 @@ export default function BackofficeLayout() {
                             </div>
                         </div>
                         <button
-                            onClick={async () => {
+                            onClick={async (e) => {
+                                e.stopPropagation();
                                 await signOut();
                                 // Force hard redirect to clear all contexts
                                 window.location.href = '/backoffice/login';

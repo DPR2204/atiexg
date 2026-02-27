@@ -5,6 +5,7 @@ import { DndContext, useDraggable, useDroppable, DragOverlay, closestCenter } fr
 import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../../lib/supabase';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import type { Reservation } from '../../types/backoffice';
 import { STATUS_CONFIG, type ReservationStatus } from '../../types/backoffice';
 
@@ -95,8 +96,13 @@ export default function CalendarioPage() {
         fetchReservations();
     }, [year, month, viewMode]);
 
-    async function fetchReservations() {
-        setLoading(true);
+    // Real-time: auto-refresh when other agents make changes
+    useRealtimeTable('reservations', () => {
+        if (!activeDragId) fetchReservations(true);
+    });
+
+    async function fetchReservations(silent = false) {
+        if (!silent) setLoading(true);
         try {
             let startStr, endStr;
 
