@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
+import { Sun, Moon, Monitor } from 'lucide-react';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
+
+type ThemePreference = 'light' | 'dark' | 'system';
 
 const INVITE_CODE = import.meta.env.VITE_INVITE_CODE || '';
 
@@ -17,6 +21,27 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState('');
+    const [themePreference, setThemePreference] = useLocalStorage<ThemePreference>('atiexg-bo-theme', 'system');
+    const [systemDark, setSystemDark] = useState(() =>
+        typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+    );
+
+    useEffect(() => {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+
+    const resolvedTheme = themePreference === 'system' ? (systemDark ? 'dark' : 'light') : themePreference;
+
+    function cycleTheme() {
+        const cycle: ThemePreference[] = ['light', 'dark', 'system'];
+        const idx = cycle.indexOf(themePreference);
+        setThemePreference(cycle[(idx + 1) % cycle.length]);
+    }
+
+    const ThemeIcon = themePreference === 'light' ? Sun : themePreference === 'dark' ? Moon : Monitor;
 
     // If already logged in, redirect
     if (!loading && user) {
@@ -76,7 +101,15 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="bo-login-page">
+        <div className="bo-login-page" data-theme={resolvedTheme} style={{ position: 'relative' }}>
+            <button
+                className="bo-login-theme-toggle"
+                onClick={cycleTheme}
+                title={themePreference === 'light' ? 'Modo claro' : themePreference === 'dark' ? 'Modo oscuro' : 'Automático'}
+                type="button"
+            >
+                <ThemeIcon size={16} />
+            </button>
             <div className="bo-login-card">
                 <div className="bo-login-header">
                     <span className="bo-login-logo">⛵</span>
@@ -144,7 +177,7 @@ export default function LoginPage() {
                                 required
                                 autoComplete="off"
                             />
-                            <span style={{ fontSize: '0.75rem', color: '#9496A1', marginTop: '0.25rem', display: 'block' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--bo-text-muted)', marginTop: '0.25rem', display: 'block' }}>
                                 Solicita este código a un administrador
                             </span>
                         </div>
