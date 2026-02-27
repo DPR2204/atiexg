@@ -123,6 +123,13 @@ export default function ReservasPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 25;
 
+    // Commission date filter
+    const defaultFrom = new Date();
+    defaultFrom.setDate(defaultFrom.getDate() - 30);
+    const [dateFrom, setDateFrom] = useState(defaultFrom.toISOString().split('T')[0]);
+    const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
+    const [commissionStats, setCommissionStats] = useState<{ agentId: string; agentName: string; count: number; totalSales: number; commission: number; rate: number }[]>([]);
+
     // Data lists
     const [boats, setBoats] = useState<any[]>([]);
     const [staffList, setStaffList] = useState<any[]>([]);
@@ -261,7 +268,7 @@ export default function ReservasPage() {
                     price_manual,
                     passengers(full_name, email, phone),
                     tour:tours(name),
-                    agent:agents(name),
+                    agent:agents(name, commission_rate),
                     boat:boats(name),
                     driver:staff!reservations_driver_id_fkey(name),
                     guide:staff!reservations_guide_id_fkey(name)
@@ -301,6 +308,47 @@ export default function ReservasPage() {
             setLoading(false);
         }
     }
+
+    // Commission stats: separate non-paginated query for accurate totals
+    async function fetchCommissionStats() {
+        try {
+            const { data } = await supabase
+                .from('reservations')
+                .select('agent_id, total_amount, agent:agents(name, commission_rate)')
+                .gte('tour_date', dateFrom)
+                .lte('tour_date', dateTo)
+                .neq('status', 'cancelled');
+
+            if (!data) return;
+
+            const grouped: Record<string, { agentName: string; count: number; totalSales: number; commission: number; rate: number }> = {};
+            for (const r of data as any[]) {
+                const aid = r.agent_id;
+                const rate = r.agent?.commission_rate || 5;
+                if (!grouped[aid]) {
+                    grouped[aid] = { agentName: r.agent?.name || 'Sin agente', count: 0, totalSales: 0, commission: 0, rate };
+                }
+                grouped[aid].count++;
+                grouped[aid].totalSales += r.total_amount || 0;
+                grouped[aid].commission += (r.total_amount || 0) * rate / 100;
+            }
+
+            setCommissionStats(
+                Object.entries(grouped)
+                    .map(([agentId, d]) => ({ agentId, ...d }))
+                    .sort((a, b) => b.totalSales - a.totalSales)
+            );
+        } catch (err) {
+            console.error('Error fetching commission stats:', err);
+        }
+    }
+
+    useEffect(() => { fetchCommissionStats(); }, [dateFrom, dateTo]);
+
+    const totalReservations = commissionStats.reduce((s, a) => s + a.count, 0);
+    const totalCommission = commissionStats.reduce((s, a) => s + a.commission, 0);
+    const myCommission = commissionStats.find(s => s.agentId === agent?.id)?.commission || 0;
+    const myCount = commissionStats.find(s => s.agentId === agent?.id)?.count || 0;
 
     // ==========================================
     // Actions & Handlers
@@ -846,9 +894,7 @@ export default function ReservasPage() {
             <header className="bo-header bo-flex bo-justify-between bo-align-center">
                 <div>
                     <h2 className="bo-title">Reservas</h2>
-                    <p className="bo-subtitle">
-                        {totalCount} servicios registrados • Comisión estimada: <span style={{ fontFamily: 'var(--bo-font-mono)' }}>${reservations.reduce((acc, curr) => acc + (curr.total_amount * (agent?.commission_rate || 5) / 100), 0).toFixed(2)}</span>
-                    </p>
+                    <p className="bo-subtitle">{totalCount} servicios registrados</p>
                 </div>
                 <button
                     className="bo-btn bo-btn--primary"
@@ -857,6 +903,63 @@ export default function ReservasPage() {
                     + Nueva Reserva
                 </button>
             </header>
+
+            {/* Commission Panel */}
+            <div className="bo-commission-panel">
+                <div className="bo-commission-header">
+                    <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--bo-text)', margin: 0 }}>Comisiones</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="date" className="bo-input" style={{ width: 'auto', fontSize: '0.8125rem', padding: '0.25rem 0.5rem' }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                        <span style={{ color: 'var(--bo-text-muted)', fontSize: '0.8125rem' }}>—</span>
+                        <input type="date" className="bo-input" style={{ width: 'auto', fontSize: '0.8125rem', padding: '0.25rem 0.5rem' }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                    </div>
+                </div>
+                <div className="bo-stat-grid">
+                    <div className="bo-commission-stat">
+                        <div className="bo-commission-stat-icon" style={{ background: 'var(--bo-info-bg)', color: 'var(--bo-info)' }}>⛵</div>
+                        <div>
+                            <div className="bo-commission-stat-value">{totalReservations}</div>
+                            <div className="bo-commission-stat-label">Total Reservas</div>
+                        </div>
+                    </div>
+                    <div className="bo-commission-stat">
+                        <div className="bo-commission-stat-icon" style={{ background: 'var(--bo-success-bg)', color: 'var(--bo-success)' }}>$</div>
+                        <div>
+                            <div className="bo-commission-stat-value">${totalCommission.toFixed(2)}</div>
+                            <div className="bo-commission-stat-label">Comisión Total</div>
+                        </div>
+                    </div>
+                    <div className="bo-commission-stat" style={{ border: '1px solid var(--bo-accent-ring)', background: 'var(--bo-accent-light)' }}>
+                        <div className="bo-commission-stat-icon" style={{ background: 'var(--bo-accent)', color: '#fff' }}>★</div>
+                        <div>
+                            <div className="bo-commission-stat-value">${myCommission.toFixed(2)}</div>
+                            <div className="bo-commission-stat-label">Mi Comisión ({myCount} tours)</div>
+                        </div>
+                    </div>
+                </div>
+                {commissionStats.length > 1 && (
+                    <table className="bo-commission-table">
+                        <thead>
+                            <tr>
+                                <th>Agente</th>
+                                <th>Tours</th>
+                                <th>Ventas</th>
+                                <th>Comisión</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {commissionStats.map(s => (
+                                <tr key={s.agentId} style={s.agentId === agent?.id ? { fontWeight: 600, background: 'var(--bo-accent-light)' } : {}}>
+                                    <td>{s.agentName}</td>
+                                    <td>{s.count}</td>
+                                    <td style={{ fontFamily: 'var(--bo-font-mono)' }}>${s.totalSales.toFixed(2)}</td>
+                                    <td style={{ fontFamily: 'var(--bo-font-mono)' }}>${s.commission.toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
 
             {/* Filters */}
             <div className="bo-filter-tabs">
