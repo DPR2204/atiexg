@@ -158,7 +158,7 @@ const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onE
             <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--bo-border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <AgentBadge name={reservation.agent?.name} />
                 {reservation.boat?.name && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--bo-text-muted)', background: 'var(--bo-bg)', padding: '2px 6px', borderRadius: '4px', marginLeft: 'auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--bo-text-muted)', background: 'var(--bo-bg)', padding: '2px 6px', borderRadius: '4px', marginLeft: 'auto' }}>
                         <Ship size={10} />
                         {reservation.boat.name}
                     </div>
@@ -171,7 +171,7 @@ const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onE
                     {missingBoat && (
                         <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: '3px',
-                            fontSize: '10px', color: '#E65100', background: '#FFF3E0',
+                            fontSize: '11px', color: 'var(--bo-warning)', background: 'var(--bo-warning-bg)',
                             padding: '2px 6px', borderRadius: '4px', fontWeight: 500,
                         }}>
                             <AlertTriangle size={10} /> Sin lancha
@@ -180,7 +180,7 @@ const KanbanCard = React.memo(function KanbanCard({ reservation, isDragging, onE
                     {missingAgent && (
                         <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: '3px',
-                            fontSize: '10px', color: '#E65100', background: '#FFF3E0',
+                            fontSize: '11px', color: 'var(--bo-warning)', background: 'var(--bo-warning-bg)',
                             padding: '2px 6px', borderRadius: '4px', fontWeight: 500,
                         }}>
                             <AlertTriangle size={10} /> Sin agente
