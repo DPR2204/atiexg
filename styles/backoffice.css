@@ -2595,6 +2595,13 @@ input[type="number"] {
   opacity: 0.5;
 }
 
+/* ─── Logistics v3: Meal Assignment ─── */
+
+.bo-logistica-meals {
+  padding: 0.5rem 0;
+  border-top: 1px dashed var(--bo-border);
+}
+
 @media (max-width: 768px) {
   .bo-timeline-label-col {
     width: 100px;

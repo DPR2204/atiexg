@@ -130,6 +130,7 @@ export interface MealSchedule {
     id: number;
     reservation_id: number;
     restaurant_name: string;
+    meal_type?: MealType;
     arrival_time?: string;
     pax_count?: number;
     special_requests?: string;
