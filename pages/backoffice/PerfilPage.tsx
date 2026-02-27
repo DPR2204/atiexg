@@ -30,7 +30,7 @@ export default function PerfilPage() {
     async function handleChangePassword(e: React.FormEvent) {
         e.preventDefault();
         if (newPassword.length < 6) {
-            toast.error('Mínimo 6 caracteres');
+            toast.error('La contraseña debe tener mínimo 6 caracteres');
             return;
         }
         if (newPassword !== confirmPassword) {
@@ -38,12 +38,17 @@ export default function PerfilPage() {
             return;
         }
         setChangingPassword(true);
-        const { error } = await updatePassword(newPassword);
-        if (error) toast.error(error);
-        else {
-            toast.success('Contraseña actualizada');
-            setNewPassword('');
-            setConfirmPassword('');
+        try {
+            const { error } = await updatePassword(newPassword);
+            if (error) {
+                toast.error(`Error al cambiar contraseña: ${error}`);
+            } else {
+                toast.success('Contraseña actualizada correctamente');
+                setNewPassword('');
+                setConfirmPassword('');
+            }
+        } catch (err: any) {
+            toast.error(err?.message || 'Error inesperado al cambiar contraseña');
         }
         setChangingPassword(false);
     }

@@ -1,12 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import '../../styles/backoffice.css';
 import { Outlet, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Search } from 'lucide-react';
+import { Search, Sun, Moon, Monitor } from 'lucide-react';
 import { Toaster } from 'sonner';
 import CommandPalette from './CommandPalette';
 import ErrorBoundary from '../ErrorBoundary';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
+
+type ThemePreference = 'light' | 'dark' | 'system';
+
+function useResolvedTheme(preference: ThemePreference): 'light' | 'dark' {
+    const [systemDark, setSystemDark] = useState(() =>
+        typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+    );
+
+    useEffect(() => {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+
+    return preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
+}
+
+const THEME_CYCLE: ThemePreference[] = ['light', 'dark', 'system'];
+const THEME_ICONS: Record<ThemePreference, typeof Sun> = { light: Sun, dark: Moon, system: Monitor };
+const THEME_LABELS: Record<ThemePreference, string> = { light: 'Modo claro', dark: 'Modo oscuro', system: 'Automático' };
 
 const NAV_ITEMS = [
     { path: '/backoffice', label: 'Dashboard', icon: '▣', end: true },
@@ -28,6 +50,15 @@ export default function BackofficeLayout() {
     const badgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [collapsed, setCollapsed] = useState(false);
+    const [themePreference, setThemePreference] = useLocalStorage<ThemePreference>('atiexg-bo-theme', 'system');
+    const resolvedTheme = useResolvedTheme(themePreference);
+
+    function cycleTheme() {
+        const idx = THEME_CYCLE.indexOf(themePreference);
+        setThemePreference(THEME_CYCLE[(idx + 1) % THEME_CYCLE.length]);
+    }
+
+    const ThemeIcon = THEME_ICONS[themePreference];
 
     // Real-time badges
     useEffect(() => {
@@ -142,9 +173,9 @@ export default function BackofficeLayout() {
 
     if (loading) {
         return (
-            <div className="bo-loading-screen">
+            <div className="bo-loading-screen" data-theme={resolvedTheme}>
                 <div className="bo-loading-spinner" />
-                <p style={{ color: '#9496A1', fontSize: '0.875rem' }}>Cargando...</p>
+                <p style={{ color: 'var(--bo-text-muted)', fontSize: '0.875rem' }}>Cargando...</p>
             </div>
         );
     }
@@ -162,7 +193,7 @@ export default function BackofficeLayout() {
         )?.label || 'Dashboard';
 
     return (
-        <div className="bo-layout notranslate" translate="no" lang="es">
+        <div className="bo-layout notranslate" translate="no" lang="es" data-theme={resolvedTheme}>
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div className="bo-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
@@ -205,14 +236,22 @@ export default function BackofficeLayout() {
                     ))}
                 </nav>
 
-                {/* Collapse toggle (inside sidebar) */}
-                <div className="bo-sidebar-collapse">
+                {/* Collapse toggle + theme toggle */}
+                <div className="bo-sidebar-collapse" style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                         className="bo-sidebar-collapse-btn"
                         onClick={() => setCollapsed(!collapsed)}
                         title={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+                        style={{ flex: 1 }}
                     >
                         {collapsed ? '▶' : '◀'}
+                    </button>
+                    <button
+                        className="bo-theme-toggle"
+                        onClick={cycleTheme}
+                        title={THEME_LABELS[themePreference]}
+                    >
+                        <ThemeIcon size={14} />
                     </button>
                 </div>
 
@@ -238,10 +277,10 @@ export default function BackofficeLayout() {
                             title="Cerrar sesión"
                             className="bo-logout-btn"
                             style={{
-                                background: 'rgba(33, 35, 42, 0.05)',
-                                border: '1px solid rgba(33, 35, 42, 0.08)',
+                                background: 'var(--bo-hover)',
+                                border: '1px solid var(--bo-hover-strong)',
                                 cursor: 'pointer',
-                                color: '#9496A1',
+                                color: 'var(--bo-text-muted)',
                                 fontSize: '1rem',
                                 padding: '0.4rem',
                                 borderRadius: '6px',
@@ -251,14 +290,14 @@ export default function BackofficeLayout() {
                                 transition: 'all 150ms ease',
                             }}
                             onMouseEnter={e => {
-                                e.currentTarget.style.color = '#D32F2F';
-                                e.currentTarget.style.background = '#FFEBEE';
-                                e.currentTarget.style.borderColor = '#FFCDD2';
+                                e.currentTarget.style.color = 'var(--bo-danger)';
+                                e.currentTarget.style.background = 'var(--bo-danger-bg)';
+                                e.currentTarget.style.borderColor = 'var(--bo-danger-border)';
                             }}
                             onMouseLeave={e => {
-                                e.currentTarget.style.color = '#9496A1';
-                                e.currentTarget.style.background = 'rgba(33, 35, 42, 0.05)';
-                                e.currentTarget.style.borderColor = 'rgba(33, 35, 42, 0.08)';
+                                e.currentTarget.style.color = 'var(--bo-text-muted)';
+                                e.currentTarget.style.background = 'var(--bo-hover)';
+                                e.currentTarget.style.borderColor = 'var(--bo-hover-strong)';
                             }}
                         >
                             <span style={{ fontSize: '12px', fontWeight: 600, marginRight: '4px' }} className="bo-logout-text">Salir</span>
