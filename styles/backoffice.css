@@ -2511,6 +2511,89 @@ input[type="number"] {
   page-break-after: always;
 }
 
+/* ─── Logistics v3: Capacity Bar ─── */
+
+.bo-capacity-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bo-capacity-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bo-border);
+  border-radius: 3px;
+  overflow: hidden;
+  max-width: 120px;
+}
+
+.bo-capacity-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 300ms ease, background 300ms ease;
+}
+
+.bo-capacity-bar-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── Logistics v3: Daily Note ─── */
+
+.bo-daily-note {
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius);
+  padding: 0.75rem 1rem;
+}
+
+/* ─── Logistics v3: Print Controls ─── */
+
+.bo-print-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius);
+}
+
+/* ─── Logistics v3: Allergy Summary ─── */
+
+.bo-allergy-summary {
+  background: var(--bo-warning-bg);
+  border: 1px solid var(--bo-warning);
+  border-radius: var(--bo-radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--bo-warning);
+}
+
+/* ─── Logistics v3: Equipment Checklist ─── */
+
+.bo-equipment-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--bo-border);
+  font-size: 0.75rem;
+  color: var(--bo-text-secondary);
+}
+
+/* ─── Logistics v3: Empty Restaurant Card ─── */
+
+.bo-logistica-restaurant-card--empty {
+  opacity: 0.5;
+}
+
 @media (max-width: 768px) {
   .bo-timeline-label-col {
     width: 100px;
@@ -2520,6 +2603,11 @@ input[type="number"] {
   .bo-logistica-card-header > div:first-child > div:last-child {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .bo-print-controls {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

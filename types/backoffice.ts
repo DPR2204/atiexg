@@ -176,6 +176,14 @@ export interface Supplier {
     created_at: string;
 }
 
+export interface DailyNote {
+    id: number;
+    note_date: string;
+    content: string;
+    updated_by?: string;
+    updated_at: string;
+}
+
 export const SUPPLIER_CATEGORY_LABELS: Record<SupplierCategory, string> = {
     transporte: 'Transporte',
     masajes: 'Masajes',
