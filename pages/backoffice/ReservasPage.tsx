@@ -6,6 +6,7 @@ import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { generateReservationPDF } from '../../lib/generatePDF';
 import { updateReservation, formatReservationCode } from '../../lib/reservation-logic';
 import { canEditReservation } from '../../lib/reservation-permissions';
+import { localToday, formatLocalDate } from '../../lib/dates';
 import ItineraryEditor from '../../components/backoffice/ItineraryEditor';
 import QuickMenuEditor from '../../components/backoffice/QuickMenuEditor';
 import { toast } from 'sonner';
@@ -126,8 +127,8 @@ export default function ReservasPage() {
     // Commission date filter
     const defaultFrom = new Date();
     defaultFrom.setDate(defaultFrom.getDate() - 30);
-    const [dateFrom, setDateFrom] = useState(defaultFrom.toISOString().split('T')[0]);
-    const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
+    const [dateFrom, setDateFrom] = useState(formatLocalDate(defaultFrom));
+    const [dateTo, setDateTo] = useState(localToday());
     const [commissionStats, setCommissionStats] = useState<{ agentId: string; agentName: string; count: number; totalSales: number; commission: number; rate: number }[]>([]);
 
     // Data lists
@@ -154,7 +155,7 @@ export default function ReservasPage() {
     const [form, setForm] = useState({
         tour_id: 0,
         tour_name: '',
-        tour_date: new Date().toISOString().split('T')[0],
+        tour_date: localToday(),
         end_date: '',
         start_time: '08:00',
         boat_id: '',
@@ -796,7 +797,7 @@ export default function ReservasPage() {
         setForm({
             tour_id: defaultTour?.id || 0,
             tour_name: defaultTour?.name || '',
-            tour_date: new Date().toISOString().split('T')[0],
+            tour_date: localToday(),
             end_date: '',
             start_time: '08:00',
             boat_id: '',

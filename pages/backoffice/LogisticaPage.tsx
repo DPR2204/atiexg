@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { updateReservation } from '../../lib/reservation-logic';
+import { localToday } from '../../lib/dates';
 import { toast } from 'sonner';
 import {
     Reservation, Boat, Staff, MEAL_TYPE_LABELS, STATUS_CONFIG,
@@ -88,7 +89,7 @@ export default function LogisticaPage() {
     const noteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // UI
-    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+    const [filterDate, setFilterDate] = useState(localToday());
     const [activeTab, setActiveTab] = useLocalStorage<TabKey>('logistica-tab', 'operaciones');
     const [printMode, setPrintMode] = useState<PrintMode>('all');
     const [printFilter, setPrintFilter] = useState<number | null>(null);
@@ -595,7 +596,8 @@ td:first-child { width: 2rem; text-align: center; }
             { label: 'Lancha', done: !!res.boat_id },
             { label: 'Lanchero', done: !!res.driver_id },
             { label: 'Guía', done: !!res.guide_id },
-            { label: 'Comidas', done: (res.meal_schedules || []).length > 0 },
+            { label: 'Restaurante', done: (res.meal_schedules || []).length > 0 },
+            { label: 'Pedidos', done: (res.passengers || []).some((p: any) => (p.meals || []).length > 0 || p.food_order) },
         ];
     }
 
@@ -643,7 +645,7 @@ td:first-child { width: 2rem; text-align: center; }
                     />
                     <button
                         className="bo-btn bo-btn--secondary"
-                        onClick={() => setFilterDate(new Date().toISOString().split('T')[0])}
+                        onClick={() => setFilterDate(localToday())}
                         title="Ir a hoy"
                     >
                         Hoy

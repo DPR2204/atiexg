@@ -6,6 +6,7 @@ import { GlassNav, GlassFooter, LoadingSpinner } from '../components/shared';
 import { Calendar, CreditCard, Shield, Clock, Info } from 'lucide-react';
 import { useTours } from '../hooks/useTours';
 import { getCloudinaryUrl } from '../src/utils/cloudinary';
+import { localToday } from '../lib/dates';
 import { useLanguage } from '../contexts/LanguageContext';
 import { L } from '../lib/localize';
 
@@ -144,7 +145,7 @@ export default function CheckoutPage() {
                                         id="checkout-date"
                                         type="date"
                                         required
-                                        min={new Date().toISOString().split('T')[0]}
+                                        min={localToday()}
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
                                         value={form.date}
                                         onChange={e => setForm({ ...form, date: e.target.value })}
