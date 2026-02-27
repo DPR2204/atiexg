@@ -9,7 +9,7 @@ import {
     Reservation, Boat, Staff, MEAL_TYPE_LABELS, STATUS_CONFIG,
     type ReservationStatus, type MealSchedule, type MealType
 } from '../../types/backoffice';
-import { Ship, Users, AlertTriangle, Check, X, Printer, Clock, FileText } from 'lucide-react';
+import { Ship, Users, AlertTriangle, Check, X, Printer, Clock, FileText, Plus, Trash2 } from 'lucide-react';
 
 // ─── Constants ──────────────────────────────────────────────
 const TIMELINE_START = 6;
@@ -92,6 +92,7 @@ export default function LogisticaPage() {
     const [activeTab, setActiveTab] = useLocalStorage<TabKey>('logistica-tab', 'operaciones');
     const [printMode, setPrintMode] = useState<PrintMode>('all');
     const [printFilter, setPrintFilter] = useState<number | null>(null);
+    const [mealForms, setMealForms] = useState<Record<number, { restaurant: string; mealType: string; time: string }>>({});
 
     // ─── Staff lookup ───────────────────────────────────────
     const staffMap = useMemo(() => new Map(staffList.map(s => [s.id, s])), [staffList]);
@@ -217,6 +218,7 @@ export default function LogisticaPage() {
     type RestaurantGroup = {
         name: string;
         arrivalTimes: string[];
+        mealTypes: string[];
         tours: { tourName: string; pax: number; resId: number; boatName?: string }[];
         totalPax: number;
         ordersByMealType: Map<string, { passenger: string; order: string; notes?: string }[]>;
@@ -228,6 +230,7 @@ export default function LogisticaPage() {
         const dataMap = new Map<string, {
             name: string;
             arrivalTimes: string[];
+            mealTypes: string[];
             tours: { tourName: string; pax: number; resId: number; boatName?: string }[];
             totalPax: number;
             ordersByMealType: Map<string, { passenger: string; order: string; notes?: string }[]>;
@@ -240,6 +243,7 @@ export default function LogisticaPage() {
                 const group = dataMap.get(key) || {
                     name: ms.restaurant_name,
                     arrivalTimes: [],
+                    mealTypes: [],
                     tours: [],
                     totalPax: 0,
                     ordersByMealType: new Map(),
@@ -248,6 +252,9 @@ export default function LogisticaPage() {
 
                 if (ms.arrival_time && !group.arrivalTimes.includes(ms.arrival_time.slice(0, 5))) {
                     group.arrivalTimes.push(ms.arrival_time.slice(0, 5));
+                }
+                if (ms.meal_type && !group.mealTypes.includes(ms.meal_type)) {
+                    group.mealTypes.push(ms.meal_type);
                 }
                 group.tours.push({
                     tourName: res.tour_name,
@@ -290,6 +297,7 @@ export default function LogisticaPage() {
             result.push({
                 name: loc,
                 arrivalTimes: data?.arrivalTimes || [],
+                mealTypes: data?.mealTypes || [],
                 tours: data?.tours || [],
                 totalPax: data?.totalPax || 0,
                 ordersByMealType: data?.ordersByMealType || new Map<string, { passenger: string; order: string; notes?: string }[]>(),
@@ -301,7 +309,7 @@ export default function LogisticaPage() {
         // Add any non-fixed restaurants
         dataMap.forEach((data, key) => {
             if (!usedKeys.has(key)) {
-                result.push({ ...data, isFixed: false });
+                result.push({ ...data, mealTypes: data.mealTypes || [], isFixed: false });
             }
         });
 
@@ -378,6 +386,52 @@ export default function LogisticaPage() {
             toast.error('Error al actualizar asignación');
         } finally {
             setSaving(null);
+        }
+    }
+
+    // ─── Meal schedule management ──────────────────────────
+    function getMealForm(resId: number) {
+        return mealForms[resId] || { restaurant: KITCHEN_LOCATIONS[0], mealType: 'almuerzo', time: '' };
+    }
+
+    function updateMealForm(resId: number, patch: Partial<{ restaurant: string; mealType: string; time: string }>) {
+        setMealForms(prev => ({ ...prev, [resId]: { ...getMealForm(resId), ...patch } }));
+    }
+
+    async function handleAddMeal(resId: number) {
+        const form = getMealForm(resId);
+        if (!form.restaurant) return;
+        setSaving(resId);
+        try {
+            const res = reservations.find(r => r.id === resId);
+            const { error } = await supabase.from('meal_schedules').insert([{
+                reservation_id: resId,
+                restaurant_name: form.restaurant,
+                meal_type: form.mealType || null,
+                arrival_time: form.time || null,
+                pax_count: res?.pax_count || 0,
+            }]);
+            if (error) throw error;
+            toast.success('Comida asignada');
+            setMealForms(prev => { const next = { ...prev }; delete next[resId]; return next; });
+            await fetchData(true);
+        } catch (err) {
+            console.error('Add meal error:', err);
+            toast.error('Error al agregar comida');
+        } finally {
+            setSaving(null);
+        }
+    }
+
+    async function handleRemoveMeal(mealId: number) {
+        try {
+            const { error } = await supabase.from('meal_schedules').delete().eq('id', mealId);
+            if (error) throw error;
+            toast.success('Comida eliminada');
+            await fetchData(true);
+        } catch (err) {
+            console.error('Remove meal error:', err);
+            toast.error('Error al eliminar comida');
         }
     }
 
@@ -468,7 +522,7 @@ ${restaurant.tours.map(t => `${t.tourName} (${t.pax} pax)${t.boatName ? ' — ' 
                 ).join(' → ');
 
                 const meals = (res.meal_schedules || []).map((ms: MealSchedule) =>
-                    `${ms.restaurant_name}${ms.arrival_time ? ' @ ' + ms.arrival_time.slice(0, 5) : ''}`
+                    `${ms.restaurant_name}${ms.meal_type ? ' · ' + (MEAL_TYPE_LABELS[ms.meal_type] || ms.meal_type) : ''}${ms.arrival_time ? ' @ ' + ms.arrival_time.slice(0, 5) : ''}`
                 ).join(', ');
 
                 const equipmentHtml = EQUIPMENT_CHECKLIST.map(item =>
@@ -541,7 +595,7 @@ td:first-child { width: 2rem; text-align: center; }
             { label: 'Lancha', done: !!res.boat_id },
             { label: 'Lanchero', done: !!res.driver_id },
             { label: 'Guía', done: !!res.guide_id },
-            { label: 'Comidas', done: (res.passengers || []).some((p: any) => (p.meals || []).length > 0) },
+            { label: 'Comidas', done: (res.meal_schedules || []).length > 0 },
         ];
     }
 
@@ -763,26 +817,85 @@ td:first-child { width: 2rem; text-align: center; }
                                             </div>
                                         )}
 
-                                        {/* Stops + meals summary */}
-                                        <div className="bo-logistica-details">
-                                            {((res.custom_stops as any[]) || []).length > 0 && (
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                                                    {(res.custom_stops as any[]).map((stop: any, i: number) => (
-                                                        <span key={i} className="bo-tag bo-tag--info" style={{ fontSize: '0.75rem' }}>
-                                                            {typeof stop === 'string' ? stop : stop.location || stop}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
+                                        {/* Stops */}
+                                        {((res.custom_stops as any[]) || []).length > 0 && (
+                                            <div className="bo-logistica-details" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                                {(res.custom_stops as any[]).map((stop: any, i: number) => (
+                                                    <span key={i} className="bo-tag bo-tag--info" style={{ fontSize: '0.75rem' }}>
+                                                        {typeof stop === 'string' ? stop : stop.location || stop}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Meal assignment */}
+                                        <div className="bo-logistica-meals">
+                                            <label className="bo-label" style={{ fontSize: '0.75rem', marginBottom: '0.375rem' }}>Comidas</label>
+                                            {/* Existing meals */}
                                             {(res.meal_schedules || []).length > 0 && (
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.5rem' }}>
                                                     {(res.meal_schedules || []).map((ms: MealSchedule) => (
-                                                        <span key={ms.id} className="bo-badge" style={{ fontSize: '0.6875rem' }}>
-                                                            {ms.restaurant_name} {ms.arrival_time ? `@ ${ms.arrival_time.slice(0, 5)}` : ''}
+                                                        <span key={ms.id} className="bo-badge" style={{ fontSize: '0.6875rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                            {ms.restaurant_name}
+                                                            {ms.meal_type ? ` · ${MEAL_TYPE_LABELS[ms.meal_type] || ms.meal_type}` : ''}
+                                                            {ms.arrival_time ? ` @ ${ms.arrival_time.slice(0, 5)}` : ''}
+                                                            <button
+                                                                onClick={() => handleRemoveMeal(ms.id)}
+                                                                disabled={isSaving}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, color: 'inherit', opacity: 0.6 }}
+                                                                title="Eliminar"
+                                                            >
+                                                                <X size={10} />
+                                                            </button>
                                                         </span>
                                                     ))}
                                                 </div>
                                             )}
+                                            {/* Add meal form */}
+                                            {(() => {
+                                                const form = getMealForm(res.id);
+                                                return (
+                                                    <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                                        <select
+                                                            className="bo-select bo-select--sm"
+                                                            value={form.restaurant}
+                                                            onChange={e => updateMealForm(res.id, { restaurant: e.target.value })}
+                                                            disabled={isSaving}
+                                                            style={{ flex: '1 1 140px', minWidth: 0 }}
+                                                        >
+                                                            {KITCHEN_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                                                        </select>
+                                                        <select
+                                                            className="bo-select bo-select--sm"
+                                                            value={form.mealType}
+                                                            onChange={e => updateMealForm(res.id, { mealType: e.target.value })}
+                                                            disabled={isSaving}
+                                                            style={{ flex: '0 1 120px', minWidth: 0 }}
+                                                        >
+                                                            {(Object.entries(MEAL_TYPE_LABELS) as [string, string][]).map(([val, label]) => (
+                                                                <option key={val} value={val}>{label}</option>
+                                                            ))}
+                                                        </select>
+                                                        <input
+                                                            type="time"
+                                                            className="bo-input bo-input--sm"
+                                                            value={form.time}
+                                                            onChange={e => updateMealForm(res.id, { time: e.target.value })}
+                                                            disabled={isSaving}
+                                                            style={{ flex: '0 0 90px' }}
+                                                        />
+                                                        <button
+                                                            className="bo-btn bo-btn--sm bo-btn--primary"
+                                                            onClick={() => handleAddMeal(res.id)}
+                                                            disabled={isSaving || !form.restaurant}
+                                                            title="Agregar comida"
+                                                            style={{ flex: '0 0 auto', padding: '0.25rem 0.5rem' }}
+                                                        >
+                                                            <Plus size={14} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* Checklist */}
@@ -815,6 +928,11 @@ td:first-child { width: 2rem; text-align: center; }
                                             <div className="bo-logistica-restaurant-header">
                                                 <h3>{rg.name}</h3>
                                                 <span className="bo-badge">{rg.totalPax} pax</span>
+                                                {rg.mealTypes.length > 0 && (
+                                                    <span style={{ fontSize: '0.75rem', color: 'var(--bo-text-secondary)' }}>
+                                                        {rg.mealTypes.map(t => MEAL_TYPE_LABELS[t as MealType] || t).join(', ')}
+                                                    </span>
+                                                )}
                                                 {rg.arrivalTimes.length > 0 && (
                                                     <span className="bo-logistica-restaurant-times">
                                                         <Clock size={12} style={{ verticalAlign: '-2px' }} /> {rg.arrivalTimes.join(', ')}
