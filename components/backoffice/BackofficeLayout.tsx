@@ -24,7 +24,7 @@ export default function BackofficeLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
-    const [badges, setBadges] = useState({ offered: 0, missingBoats: 0 });
+    const [badges, setBadges] = useState({ offered: 0, missingBoats: 0, pendingRequests: 0 });
     const badgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [collapsed, setCollapsed] = useState(false);
@@ -38,6 +38,10 @@ export default function BackofficeLayout() {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
                 if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current);
                 badgeTimerRef.current = setTimeout(() => fetchBadges(), 10000);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'reservation_requests' }, () => {
+                if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current);
+                badgeTimerRef.current = setTimeout(() => fetchBadges(), 3000);
             })
             .subscribe();
 
@@ -64,11 +68,22 @@ export default function BackofficeLayout() {
             .is('boat_id', null)
             .neq('status', 'cancelled');
 
+        // Count pending requests on reservations owned by the current agent
+        let pendingReqs = 0;
+        if (agent) {
+            const { count } = await supabase
+                .from('reservation_requests')
+                .select('id, reservations!inner(agent_id)', { count: 'exact', head: true })
+                .eq('status', 'pending')
+                .eq('reservations.agent_id', agent.id);
+            pendingReqs = count || 0;
+        }
+
         setBadges(prev => {
             const newOffered = offeredCount || 0;
             const newMissing = missingData?.length || 0;
-            if (prev.offered === newOffered && prev.missingBoats === newMissing) return prev;
-            return { offered: newOffered, missingBoats: newMissing };
+            if (prev.offered === newOffered && prev.missingBoats === newMissing && prev.pendingRequests === pendingReqs) return prev;
+            return { offered: newOffered, missingBoats: newMissing, pendingRequests: pendingReqs };
         });
     }
 
@@ -180,8 +195,8 @@ export default function BackofficeLayout() {
                         >
                             <span className="bo-nav-icon">{item.icon}</span>
                             <span className="bo-nav-label">{item.label}</span>
-                            {item.path === '/backoffice/reservas' && badges.offered > 0 && (
-                                <span className="bo-nav-badge">{badges.offered}</span>
+                            {item.path === '/backoffice/reservas' && (badges.offered + badges.pendingRequests) > 0 && (
+                                <span className="bo-nav-badge">{badges.offered + badges.pendingRequests}</span>
                             )}
                             {item.path === '/backoffice' && item.end && badges.missingBoats > 0 && (
                                 <span className="bo-nav-badge">{badges.missingBoats}</span>
