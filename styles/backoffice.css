@@ -4068,3 +4068,233 @@ button:focus-visible {
   background: var(--bo-hover-strong);
   color: var(--bo-text);
 }
+
+/* ============================================
+   Commission Panel
+   ============================================ */
+
+.bo-commission-panel {
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius-lg);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.bo-commission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bo-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .bo-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bo-commission-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--bo-radius);
+  background: var(--bo-hover);
+}
+
+.bo-commission-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--bo-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.bo-commission-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--bo-font-mono);
+  color: var(--bo-text);
+  line-height: 1.2;
+}
+
+.bo-commission-stat-label {
+  font-size: 0.75rem;
+  color: var(--bo-text-secondary);
+  margin-top: 0.125rem;
+}
+
+.bo-commission-table {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.bo-commission-table th {
+  text-align: left;
+  padding: 0.375rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bo-text-muted);
+  border-bottom: 1px solid var(--bo-border);
+}
+
+.bo-commission-table td {
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--bo-border);
+  color: var(--bo-text);
+}
+
+.bo-commission-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ============================================
+   Supplier Cards
+   ============================================ */
+
+.bo-supplier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .bo-supplier-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bo-supplier-card {
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius);
+  overflow: hidden;
+  transition: box-shadow var(--bo-transition);
+}
+
+.bo-supplier-card:hover {
+  box-shadow: var(--bo-shadow-sm);
+}
+
+.bo-supplier-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.75rem 1rem 0.5rem;
+  gap: 0.5rem;
+}
+
+.bo-supplier-card-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--bo-text);
+  margin: 0 0 0.375rem;
+}
+
+.bo-supplier-category {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--bo-radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bo-supplier-card-body {
+  padding: 0 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.bo-supplier-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--bo-accent);
+  text-decoration: none;
+  padding: 0.25rem 0;
+  transition: color var(--bo-transition);
+}
+
+.bo-supplier-link:hover {
+  color: var(--bo-accent-hover);
+  text-decoration: underline;
+}
+
+.bo-supplier-notes {
+  font-size: 0.8125rem;
+  color: var(--bo-text-secondary);
+  margin: 0.25rem 0 0;
+  line-height: 1.4;
+}
+
+/* Modal (shared) */
+.bo-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bo-overlay);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.bo-modal {
+  background: var(--bo-surface);
+  border-radius: var(--bo-radius-lg);
+  box-shadow: var(--bo-shadow-lg);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.bo-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--bo-border);
+}
+
+.bo-modal-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--bo-text);
+  margin: 0;
+}
+
+.bo-modal-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bo-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--bo-border);
+}

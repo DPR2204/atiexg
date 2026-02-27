@@ -10,6 +10,7 @@ export type AgentRole = 'admin' | 'agent';
 export type BoatStatus = 'active' | 'maintenance' | 'inactive';
 export type MealType = 'desayuno' | 'almuerzo' | 'coffee_break' | 'snacks' | 'picnic' | 'cena';
 export type AuditAction = 'created' | 'updated' | 'status_changed' | 'deleted';
+export type SupplierCategory = 'transporte' | 'masajes' | 'restaurantes' | 'hospedaje' | 'actividades' | 'otro';
 
 export interface Agent {
     id: string;
@@ -161,6 +162,28 @@ export interface ReservationRequest {
     created_at: string;
     resolved_at?: string;
 }
+
+export interface Supplier {
+    id: number;
+    name: string;
+    category: SupplierCategory;
+    phone?: string;
+    email?: string;
+    website?: string;
+    instagram?: string;
+    notes?: string;
+    active: boolean;
+    created_at: string;
+}
+
+export const SUPPLIER_CATEGORY_LABELS: Record<SupplierCategory, string> = {
+    transporte: 'Transporte',
+    masajes: 'Masajes',
+    restaurantes: 'Restaurantes',
+    hospedaje: 'Hospedaje',
+    actividades: 'Actividades',
+    otro: 'Otro',
+};
 
 // Meal type display labels
 export const MEAL_TYPE_LABELS: Record<MealType, string> = {

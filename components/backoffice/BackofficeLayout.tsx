@@ -38,6 +38,7 @@ const NAV_ITEMS = [
     { path: '/backoffice/calendario', label: 'Calendario', icon: '◫', end: false },
     { path: '/backoffice/logistica', label: 'Logística', icon: '⊡', end: false },
     { path: '/backoffice/recursos', label: 'Recursos', icon: '◈', end: false },
+    { path: '/backoffice/proveedores', label: 'Proveedores', icon: '☎', end: false },
 ];
 
 export default function BackofficeLayout() {
