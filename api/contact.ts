@@ -13,6 +13,22 @@ interface VercelResponse {
     end: () => void;
 }
 
+const ALLOWED_ORIGINS = [
+    'https://atitlanexperience.com',
+    'https://www.atitlanexperience.com',
+    'https://en.atitlanexperience.com',
+    'https://atitlanexperiences.com',
+];
+
+function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
+    const origin = (req.headers.origin as string) || '';
+    if (ALLOWED_ORIGINS.includes(origin) || /\.vercel\.app$/.test(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 interface ContactRequestBody {
     name: string;
     email: string;
@@ -140,10 +156,7 @@ function escapeHtml(str: string): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setCorsHeaders(req, res);
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
