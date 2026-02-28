@@ -15,6 +15,23 @@ interface VercelResponse {
 
 const RECURRENTE_API_URL = 'https://app.recurrente.com/api';
 
+const ALLOWED_ORIGINS = [
+    'https://atitlanexperience.com',
+    'https://www.atitlanexperience.com',
+    'https://en.atitlanexperience.com',
+    'https://atitlanexperiences.com',
+];
+
+function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
+    const origin = (req.headers.origin as string) || '';
+    // Allow exact matches or Vercel preview deployments
+    if (ALLOWED_ORIGINS.includes(origin) || /\.vercel\.app$/.test(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 interface CheckoutRequestBody {
     tourId: string;
     tourName: string;
@@ -22,14 +39,10 @@ interface CheckoutRequestBody {
     customerName: string;
     customerPhone?: string;
     selectedItems: string[];
-    depositAmount?: number;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setCorsHeaders(req, res);
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
@@ -49,8 +62,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             customerName,
             customerPhone,
             selectedItems,
-            depositAmount = 50,
         } = req.body as CheckoutRequestBody;
+
+        // Security: deposit amount is fixed server-side to prevent client manipulation
+        const depositAmount = 50;
 
         // Validate required fields
         if (!tourId || !tourName || !customerEmail || !customerName) {

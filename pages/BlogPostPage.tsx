@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import Seo from '../components/Seo';
 import { GlassNav, GlassFooter } from '../components/shared';
 import { getCloudinaryUrl } from '../src/utils/cloudinary';
@@ -145,7 +146,7 @@ const BlogPostPage = () => {
                     prose-ul:text-gray-600
                     prose-li:text-gray-600
                     prose-a:text-red-500 prose-a:font-bold prose-a:no-underline hover:prose-a:text-red-600"
-                  dangerouslySetInnerHTML={{ __html: L(post, 'content', language) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(L(post, 'content', language)) }}
                 />
 
                 {/* Share / Back */}

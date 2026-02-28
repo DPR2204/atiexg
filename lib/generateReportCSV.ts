@@ -12,17 +12,26 @@ interface ReportRow {
     paid_amount: number;
 }
 
+// Prevent CSV formula injection: prefix dangerous leading chars with a single quote
+function safeCsvText(val: string): string {
+    const escaped = val.replace(/"/g, '""');
+    if (/^[=+\-@\t\r]/.test(escaped)) {
+        return `"'${escaped}"`;
+    }
+    return `"${escaped}"`;
+}
+
 export function generateReportCSV(rows: ReportRow[], dateFrom: string, dateTo: string) {
     const header = ['ID', 'Tour', 'Fecha', 'Hora', 'Pax', 'Estado', 'Agente', 'Total ($)', 'Pagado ($)', 'Pendiente ($)'];
 
     const csvRows = rows.map(r => [
         r.id,
-        `"${(r.tour_name || '').replace(/"/g, '""')}"`,
+        safeCsvText(r.tour_name || ''),
         r.tour_date,
         r.start_time?.slice(0, 5) || '',
         r.pax_count,
         STATUS_CONFIG[r.status as keyof typeof STATUS_CONFIG]?.label || r.status,
-        `"${(r.agent_name || '').replace(/"/g, '""')}"`,
+        safeCsvText(r.agent_name || ''),
         r.total_amount.toFixed(2),
         r.paid_amount.toFixed(2),
         (r.total_amount - r.paid_amount).toFixed(2),
