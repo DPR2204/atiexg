@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { timingSafeEqual } from 'crypto';
 
 function getSupabaseAdmin() {
     const url = process.env.SUPABASE_URL;
@@ -14,44 +14,39 @@ function getSupabaseAdmin() {
 }
 
 /**
- * Verify the webhook signature using HMAC-SHA256.
- * If WEBHOOK_SECRET is not set, verification is skipped with a warning
- * (allows gradual rollout — set the secret to enforce).
+ * Recurrente does NOT support HMAC webhook signatures.
+ * Instead we use a secret token in the query string as authentication.
+ * The webhook URL registered in Recurrente should be:
+ *   https://yourdomain.com/api/webhook?token=YOUR_WEBHOOK_SECRET
+ *
+ * If WEBHOOK_SECRET is not set, verification is skipped (gradual rollout).
  */
-function verifyWebhookSignature(
-    body: string,
-    signatureHeader: string | undefined,
+function verifyWebhookToken(
+    providedToken: string | undefined,
     secret: string | undefined
 ): { valid: boolean; reason?: string } {
     if (!secret) {
         return { valid: true, reason: 'WEBHOOK_SECRET not configured — skipping verification' };
     }
-    if (!signatureHeader) {
-        return { valid: false, reason: 'Missing signature header' };
+    if (!providedToken) {
+        return { valid: false, reason: 'Missing token query parameter' };
     }
 
     try {
-        const expected = createHmac('sha256', secret)
-            .update(body, 'utf8')
-            .digest('hex');
+        const expected = Buffer.from(secret, 'utf8');
+        const provided = Buffer.from(providedToken, 'utf8');
 
-        // Support "sha256=<hex>" or raw "<hex>" formats
-        const provided = signatureHeader.replace(/^sha256=/, '');
-
-        const expectedBuf = Buffer.from(expected, 'hex');
-        const providedBuf = Buffer.from(provided, 'hex');
-
-        if (expectedBuf.length !== providedBuf.length) {
-            return { valid: false, reason: 'Signature length mismatch' };
+        if (expected.length !== provided.length) {
+            return { valid: false, reason: 'Invalid token' };
         }
 
-        if (!timingSafeEqual(expectedBuf, providedBuf)) {
-            return { valid: false, reason: 'Signature mismatch' };
+        if (!timingSafeEqual(expected, provided)) {
+            return { valid: false, reason: 'Invalid token' };
         }
 
         return { valid: true };
     } catch {
-        return { valid: false, reason: 'Signature verification error' };
+        return { valid: false, reason: 'Token verification error' };
     }
 }
 
@@ -59,7 +54,6 @@ function verifyWebhookSignature(
 interface VercelRequest {
     method?: string;
     body: any;
-    rawBody?: string | Buffer;
     query: Record<string, string | string[]>;
     headers: Record<string, string | string[] | undefined>;
 }
@@ -70,15 +64,24 @@ interface VercelResponse {
     end: () => void;
 }
 
+// Recurrente actual webhook payload structure (from their API docs)
 interface RecurrenteWebhookPayload {
-    event: string;
-    data: {
+    id: string;
+    event_type: string;
+    api_version: string;
+    created_at: string;
+    amount_in_cents: number;
+    currency: string;
+    failure_reason: string | null;
+    checkout: {
         id: string;
         status: string;
-        amount_in_cents: number;
-        currency: string;
-        user_email: string;
         metadata?: Record<string, string>;
+    };
+    customer?: {
+        email: string;
+        full_name: string;
+        id: string;
     };
 }
 
@@ -88,38 +91,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        // --- Signature verification ---
-        const rawBody = typeof req.rawBody === 'string'
-            ? req.rawBody
-            : req.rawBody instanceof Buffer
-                ? req.rawBody.toString('utf8')
-                : JSON.stringify(req.body);
-
-        const signatureHeader = req.headers['x-webhook-signature'] as string | undefined
-            ?? req.headers['x-signature'] as string | undefined;
-
-        const { valid, reason } = verifyWebhookSignature(
-            rawBody,
-            signatureHeader,
-            process.env.WEBHOOK_SECRET
-        );
+        // --- Token verification ---
+        const token = req.query.token as string | undefined;
+        const { valid, reason } = verifyWebhookToken(token, process.env.WEBHOOK_SECRET);
 
         if (!valid) {
-            console.error('Webhook signature rejected:', reason);
-            return res.status(401).json({ error: 'Invalid webhook signature' });
+            console.error('Webhook rejected:', reason);
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
         if (reason) {
-            // Warn once per invocation when running without secret
             console.warn('Webhook security:', reason);
         }
 
         // --- Process payload ---
         const payload = req.body as RecurrenteWebhookPayload;
+        const eventType = payload.event_type;
+        const checkoutId = payload.checkout?.id;
 
-        switch (payload.event) {
-            case 'checkout.completed': {
-                const checkoutId = payload.data.id;
+        switch (eventType) {
+            case 'payment_intent.succeeded': {
                 if (checkoutId) {
                     const supabase = getSupabaseAdmin();
                     const { error: updateError } = await supabase
@@ -127,25 +118,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         .update({ status: 'paid' })
                         .eq('payment_id', checkoutId);
                     if (updateError) {
-                        console.error('Error updating reservation status:', updateError.message);
+                        console.error('Error updating reservation:', updateError.message);
                     }
                 }
                 break;
             }
 
-            case 'checkout.expired':
-            case 'checkout.failed':
-                // Acknowledged — no action needed for now
+            case 'payment_intent.failed':
+                // Payment failed — log for monitoring, no status change
+                if (checkoutId) {
+                    console.warn('Payment failed for checkout:', checkoutId);
+                }
+                break;
+
+            case 'bank_transfer_intent.succeeded': {
+                // Bank transfer completed — same as card payment
+                if (checkoutId) {
+                    const supabase = getSupabaseAdmin();
+                    const { error: updateError } = await supabase
+                        .from('reservations')
+                        .update({ status: 'paid' })
+                        .eq('payment_id', checkoutId);
+                    if (updateError) {
+                        console.error('Error updating reservation:', updateError.message);
+                    }
+                }
+                break;
+            }
+
+            case 'bank_transfer_intent.pending':
+            case 'bank_transfer_intent.failed':
+            case 'subscription.create':
+            case 'subscription.cancel':
+            case 'subscription.past_due':
+            case 'subscription.paused':
+            case 'setup_intent.succeeded':
+            case 'setup_intent.cancelled':
+                // Acknowledged — no action needed
                 break;
 
             default:
-                console.warn('Unhandled webhook event:', payload.event);
+                console.warn('Unhandled webhook event:', eventType);
         }
 
         return res.status(200).json({ received: true });
 
     } catch (error) {
-        console.error('Webhook processing error:', error instanceof Error ? error.message : error);
+        console.error('Webhook error:', error instanceof Error ? error.message : error);
         return res.status(200).json({ received: true });
     }
 }
